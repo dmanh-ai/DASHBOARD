@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard Template - Tái sử dụng cho mọi báo cáo</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        :root {
+            --success: #10b981;
+            --danger: #ef4444;
+            --warning: #f59e0b;
+            --bg-dark: #0f172a;
+            --bg-card: rgba(255,255,255,0.05);
+            --text-primary: #e2e8f0;
+            --text-secondary: #94a3b8;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, var(--bg-dark) 0%, #1e293b 100%);
+            min-height: 100vh;
+            color: var(--text-primary);
+            padding: 20px;
+        }
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding: 20px;
+            background: var(--bg-card);
+            border-radius: 15px;
+        }
+        .header h1 {
+            font-size: 2rem;
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 25px;
+            flex-wrap: wrap;
+        }
+        .tab-btn {
+            padding: 12px 24px;
+            background: var(--bg-card);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 10px;
+            color: var(--text-secondary);
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+        .tab-btn:hover {
+            background: rgba(255,255,255,0.1);
+            transform: translateY(-2px);
+        }
+        .tab-btn.active {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            color: var(--bg-dark);
+            border-color: transparent;
+        }
+        .section {
+            margin-bottom: 25px;
+            background: var(--bg-card);
+            border-radius: 15px;
+            overflow: hidden;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        .section-header {
+            padding: 15px 20px;
+            background: rgba(255,255,255,0.05);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            transition: background 0.3s;
+        }
+        .section-header:hover {
+            background: rgba(255,255,255,0.08);
+        }
+        .section-icon { font-size: 1.5rem; margin-right: 12px; }
+        .section-title { font-weight: 600; font-size: 1.1rem; flex: 1; }
+        .section-content {
+            padding: 20px;
+            display: none;
+        }
+        .section-content.show { display: block; }
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 15px;
+        }
+        .info-box {
+            background: rgba(255,255,255,0.05);
+            padding: 15px;
+            border-radius: 10px;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        .info-box h4 { color: #4facfe; margin-bottom: 10px; font-size: 1rem; }
+        .info-box p { line-height: 1.8; font-size: 0.95rem; }
+        .info-box.success { background: rgba(16,185,129,0.1); border-color: rgba(16,185,129,0.3); }
+        .info-box.warning { background: rgba(245,158,11,0.1); border-color: rgba(245,158,11,0.3); }
+        .info-box.danger { background: rgba(239,68,68,0.1); border-color: rgba(239,68,68,0.3); }
+        .highlight { color: #4ade80; font-weight: 600; }
+        .warning { color: #fb923c; font-weight: 600; }
+        .danger { color: #f87171; font-weight: 600; }
+        .alert {
+            background: linear-gradient(135deg, rgba(99,102,241,0.15), rgba(168,85,247,0.15));
+            border: 2px solid rgba(99,102,241,0.3);
+            border-radius: 15px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+        .alert-title { font-size: 1.2rem; font-weight: 700; margin-bottom: 15px; color: #a78bfa; }
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+        .metric {
+            background: var(--bg-card);
+            padding: 15px;
+            border-radius: 10px;
+            text-align: center;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        .metric-name { color: var(--text-secondary); font-size: 0.85rem; margin-bottom: 5px; }
+        .metric-value { font-size: 1.5rem; font-weight: 700; margin: 10px 0; }
+        .metric-value.positive { color: var(--success); }
+        .metric-value.negative { color: var(--danger); }
+        .metric-change { font-size: 0.9rem; font-weight: 600; }
+        .metric-change.up { color: var(--success); }
+        .metric-change.down { color: var(--danger); }
+        .loading { text-align: center; padding: 50px; font-size: 1.2rem; }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .fade-in { animation: fadeIn 0.4s ease; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1 id="reportTitle">📊 Báo Cáo Thị Trường</h1>
+            <p style="color: #94a3b8; margin-top: 10px;" id="reportSubtitle">Dashboard động - Tái sử dụng được</p>
+        </div>
+
+        <div class="metrics-grid" id="metricsGrid"></div>
+
+        <div class="tabs" id="navTabs"></div>
+
+        <div id="content"></div>
+    </div>
+
+    <script>
+        // ============================================
+        // DASHBOARD TEMPLATE - TÁI SỬ DỤNG ĐƯỢC
+        // ============================================
+        // Hướng dẫn sử dụng:
+        // 1. Thay đổi file data ở dòng: <script src="TEN_FILE_DATA.js"></script>
+        // 2. Đảm bảo file data có cấu trúc như FULL_DATA trong stock_dashboard_full.js
+        // 3. Template này sẽ tự động render tất cả sections có trong data
+        // ============================================
+
+        // Load data từ file bên ngoài
+        // Đổi thành tên file data của bạn
+        document.write('<script src="stock_dashboard_full.js"><\/script>');
+
+        // Main rendering function - TỰ ĐỘNG render từ data
+        function renderDashboard(DATA) {
+            // Update header
+            if (DATA.reportInfo) {
+                document.getElementById('reportTitle').textContent = DATA.reportInfo.title || '📊 Báo Cáo Thị Trường';
+                document.getElementById('reportSubtitle').textContent = DATA.reportInfo.subtitle || '';
+            }
+
+            // Render metrics
+            if (DATA.metrics) {
+                renderMetrics(DATA.metrics);
+            }
+
+            // Render tabs
+            if (DATA.tabs) {
+                renderTabs(DATA.tabs);
+            }
+
+            // Render first tab content
+            if (DATA.tabs && DATA.tabs.length > 0) {
+                switchTab(DATA.tabs[0].id);
+            }
+        }
+
+        function renderMetrics(metrics) {
+            const grid = document.getElementById('metricsGrid');
+            grid.innerHTML = metrics.map(m => `
+                <div class="metric">
+                    <div class="metric-name">${m.name}</div>
+                    <div class="metric-value ${m.cls}">${m.price}</div>
+                    <div class="metric-change ${m.cls === 'positive' ? 'up' : 'down'}">${m.change}</div>
+                </div>
+            `).join('');
+        }
+
+        function renderTabs(tabs) {
+            const navTabs = document.getElementById('navTabs');
+            navTabs.innerHTML = tabs.map((tab, i) => `
+                <button class="tab-btn ${i === 0 ? 'active' : ''}" onclick="switchTab('${tab.id}')">${tab.name}</button>
+            `).join('');
+        }
+
+        function renderSection(icon, title, content) {
+            return `
+                <div class="section">
+                    <div class="section-header" onclick="toggleSection(this)">
+                        <span class="section-icon">${icon}</span>
+                        <span class="section-title">${title}</span>
+                    </div>
+                    <div class="section-content">
+                        <div class="info-grid">
+                            ${content}
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderAlert(icon, title, content) {
+            return `
+                <div class="alert">
+                    <div class="alert-title">${icon} ${title}</div>
+                    ${content}
+                </div>
+            `;
+        }
+
+        // Dynamic content renderer - TỰ ĐỘNG render sections từ data
+        function renderTabContent(tabId) {
+            const data = FULL_DATA[tabId];
+            if (!data) {
+                return `
+                    <div class="loading fade-in">
+                        <p>📊 ${tabId.toUpperCase()}</p>
+                        <p style="color: #94a3b8; margin-top: 15px;">Đang cập nhật...</p>
+                    </div>
+                `;
+            }
+
+            let html = '';
+            if (data.sections) {
+                data.sections.forEach(section => {
+                    if (section.alert) {
+                        html += renderAlert(section.icon, section.title, section.content);
+                    } else {
+                        html += renderSection(section.icon, section.title, section.content);
+                    }
+                });
+            }
+
+            return html || '<div class="loading"><p>Không có dữ liệu</p></div>';
+        }
+
+        function switchTab(tabId) {
+            // Remove all active classes
+            document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+
+            const content = renderTabContent(tabId);
+            document.getElementById('content').innerHTML = `<div class="fade-in">${content}</div>`;
+
+            // Activate clicked button
+            const buttons = document.querySelectorAll('.tab-btn');
+            buttons.forEach(btn => {
+                if (btn.onclick.toString().includes(tabId)) {
+                    btn.classList.add('active');
+                }
+            });
+
+            // Auto-expand all sections
+            setTimeout(() => {
+                document.querySelectorAll('.section-content').forEach(el => {
+                    el.classList.add('show');
+                });
+            }, 100);
+        }
+
+        function toggleSection(header) {
+            const content = header.nextElementSibling;
+            content.classList.toggle('show');
+        }
+
+        // Initialize khi data load xong
+        window.addEventListener('load', function() {
+            // Sử dụng DATA từ file data (nếu có) hoặc FULL_DATA
+            const dataSource = typeof DATA !== 'undefined' ? DATA : null;
+
+            if (dataSource) {
+                renderDashboard(dataSource);
+            } else if (typeof FULL_DATA !== 'undefined') {
+                // Tự tạo tabs từ FULL_DATA
+                const tabs = Object.keys(FULL_DATA).map(key => ({
+                    id: key,
+                    name: FULL_DATA[key].title || key.toUpperCase()
+                }));
+
+                renderDashboard({ tabs: tabs });
+            }
+        });
+    </script>
+</body>
+</html>

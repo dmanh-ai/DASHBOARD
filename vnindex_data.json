@@ -1,0 +1,75 @@
+{
+  "vnindex": {
+    "title": "VNINDEX Chi Tiết",
+    "sections": [
+      {
+        "title": "Thông Tin Chung",
+        "icon": "📊",
+        "gradient": "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+        "cards": [
+          {
+            "title": "Giá & Thay Đổi",
+            "content": "Giá hiện tại: 1,772 điểm | 1D: +1.21% | 5D: +5.54% | 20D: +6.73% | Khối lượng: 859.5 tỷ"
+          },
+          {
+            "title": "Tổng Quan",
+            "content": "VNINDEX đang trong xu hướng tăng mạnh trên mọi khung thời gian. Ngắn hạn quá mua (RSI5=94.69) nhưng trung hạn và dài hạn vẫn tích cực."
+          }
+        ]
+      },
+      {
+        "title": "Xu Hướng Giá",
+        "icon": "📈",
+        "gradient": "linear-gradient(135deg, #f093fb 0%, #f5576c 100%)",
+        "cards": [
+          {
+            "title": "Ngắn Hạn (1-5 phiên)",
+            "content": "Tăng mạnh: Giá (1,772) > MA5 (1,716) và MA10 (1,697). Mom5 = 5.54 dương, ADX5 = 43.83 (>25). RSI5 = 94.69 - Quá mua cực độ!"
+          },
+          {
+            "title": "Trung Hạn (20-50 phiên)",
+            "content": "Tăng vừa: Giá > MA20 (1,708) và MA50 (1,679). Mom20 = 6.73 dương nhưng ADX20 = 15.06 (<25) - xu hướng chưa cực kỳ mạnh."
+          },
+          {
+            "title": "Dài Hạn (>50 phiên)",
+            "content": "Tăng: Giá > MA100 (1,667) và MA200 (1,502). Mom200 = 33.22 dương mạnh - xu hướng dài hạn vẫn intact."
+          }
+        ]
+      },
+      {
+        "title": "Rủi Ro Theo Khung",
+        "icon": "⚠️",
+        "gradient": "linear-gradient(135deg, #fa709a 0%, #fee140 100%)",
+        "cards": [
+          {
+            "title": "Ngắn Hạn (1-5 phiên)",
+            "content": "RỦI RO CAO: RSI5=94.69 quá mua cực độ, nến thân nhỏ - dấu hiệu mệt mỏi, breadth yếu (218 giảm vs 113 tăng). Nguy cơ điều chỉnh kỹ thuật MẠNH."
+          },
+          {
+            "title": "Trung Hạn (10-20 phiên)",
+            "content": "RỦI RO TRUNG BÌNH: Xu hướng tăng còn (giá > MA20, Mom20=6.73) nhưng breadth yếu làm đà tăng dễ tổn thương."
+          },
+          {
+            "title": "Dài Hạn (40-60 phiên)",
+            "content": "RỦI RO THẤP - TRUNG BÌNH: Xu hướng cơ bản vẫn tăng (giá > MA200, Mom200=33.22 dương)."
+          }
+        ]
+      },
+      {
+        "title": "Khuyến Nghị Vị Thế",
+        "icon": "🎯",
+        "gradient": "linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)",
+        "cards": [
+          {
+            "title": "Hành Động",
+            "content": "TẠM ĐỨNG NGOÀI hoặc GIẢM TỶ TRỌNG (với vị thế đang nắm). KHÔNG mua mới ở mức giá hiện tại."
+          },
+          {
+            "title": "Chiến Lược",
+            "content": "Chờ giá điều chỉnh về MA20 (1,708) hoặc POC (1,654) + kết hợp cải thiện breadth. Mức độ tự tin: 7/10"
+          }
+        ]
+      }
+    ]
+  }
+}

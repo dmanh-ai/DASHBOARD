@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test VN30</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .test-result {
+            background: white;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .success { color: green; font-weight: bold; }
+        .error { color: red; font-weight: bold; }
+        .info { color: blue; }
+    </style>
+</head>
+<body>
+    <h1>📊 Test VN30 Data</h1>
+    <div id="results"></div>
+
+    <script src="full_data.js"></script>
+    <script>
+        const results = document.getElementById('results');
+
+        function addResult(html) {
+            results.innerHTML += `<div class="test-result">${html}</div>`;
+        }
+
+        // Test 1: FULL_DATA tồn tại
+        if (typeof FULL_DATA !== 'undefined') {
+            addResult('<span class="success">✅ FULL_DATA object loaded</span>');
+        } else {
+            addResult('<span class="error">❌ FULL_DATA NOT found</span>');
+        }
+
+        // Test 2: VN30 tồn tại
+        if (FULL_DATA && FULL_DATA.vn30) {
+            addResult('<span class="success">✅ VN30 exists in FULL_DATA</span>');
+        } else {
+            addResult('<span class="error">❌ VN30 NOT found in FULL_DATA</span>');
+        }
+
+        // Test 3: VN30 có title
+        if (FULL_DATA && FULL_DATA.vn30 && FULL_DATA.vn30.title) {
+            addResult(`<span class="success">✅ VN30 title: ${FULL_DATA.vn30.title}</span>`);
+        } else {
+            addResult('<span class="error">❌ VN30 title missing</span>');
+        }
+
+        // Test 4: VN30 có sections
+        if (FULL_DATA && FULL_DATA.vn30 && FULL_DATA.vn30.sections) {
+            const sectionCount = FULL_DATA.vn30.sections.length;
+            addResult(`<span class="success">✅ VN30 has ${sectionCount} sections</span>`);
+
+            // List all sections
+            FULL_DATA.vn30.sections.forEach((section, index) => {
+                addResult(`<span class="info">📌 Section ${index + 1}: ${section.icon} ${section.title}</span>`);
+            });
+        } else {
+            addResult('<span class="error">❌ VN30 sections missing</span>');
+        }
+
+        // Test 5: Total indices count
+        if (FULL_DATA) {
+            const indexCount = Object.keys(FULL_DATA).length;
+            addResult(`<span class="info">📊 Total indices: ${indexCount}</span>`);
+            addResult(`<span class="info">📋 Index names: ${Object.keys(FULL_DATA).join(', ')}</span>`);
+        }
+    </script>
+</body>
+</html>

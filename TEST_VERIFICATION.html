@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🧪 Dashboard Test - Verification</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+            color: #e2e8f0;
+            padding: 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .header {
+            text-align: center;
+            padding: 30px;
+            background: rgba(255,255,255,0.05);
+            border-radius: 15px;
+            margin-bottom: 30px;
+        }
+        .status-box {
+            background: rgba(255,255,255,0.05);
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 15px;
+            border-left: 4px solid;
+        }
+        .success { border-color: #10b981; }
+        .warning { border-color: #f59e0b; }
+        .error { border-color: #ef4444; }
+        .info { border-color: #4facfe; }
+        h1 { color: #4facfe; }
+        h2 { color: #10b981; margin-top: 20px; }
+        .stat {
+            display: inline-block;
+            background: rgba(16,185,129,0.2);
+            padding: 10px 20px;
+            border-radius: 10px;
+            margin: 10px;
+            font-size: 1.2rem;
+        }
+        ul { margin-left: 20px; line-height: 1.8; }
+        .check-list li {
+            padding: 8px 0;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+        .btn {
+            display: inline-block;
+            padding: 15px 30px;
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            color: #0f172a;
+            text-decoration: none;
+            border-radius: 10px;
+            font-weight: bold;
+            font-size: 1.1rem;
+            margin: 10px;
+        }
+        .btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 10px 30px rgba(79,172,254,0.3);
+        }
+        code {
+            background: rgba(0,0,0,0.3);
+            padding: 2px 8px;
+            border-radius: 4px;
+            color: #4ade80;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🧪 DASHBOARD VERIFICATION TEST</h1>
+        <p>Kiểm tra trạng thái toàn bộ hệ thống</p>
+    </div>
+
+    <div id="loading" class="status-box info">
+        <h2>⏳ Đang kiểm tra...</h2>
+        <p>Vui lòng đợi trong giây lát...</p>
+    </div>
+
+    <div id="results" style="display:none;">
+        <div class="status-box success">
+            <h2>✅ KẾT QUẢ KIỂM TRA</h2>
+            <div id="stats"></div>
+        </div>
+
+        <div class="status-box info">
+            <h2>📊 DANH SÁCH CHỈ SỐ</h2>
+            <div id="index-list"></div>
+        </div>
+
+        <div class="status-box success">
+            <h2>✅ CÁC BƯỚC KIỂM TRA</h2>
+            <ul class="check-list" id="check-list"></ul>
+        </div>
+
+        <div style="text-align: center; margin-top: 30px;">
+            <a href="COMPLETE.html" class="btn">🚀 MỎ DASHBOARD CHÍNH</a>
+            <a href="#" onclick="window.print(); return false;" class="btn">📄 IN KẾT QUẢ</a>
+        </div>
+    </div>
+
+    <script>
+        const checks = [];
+        let allPassed = true;
+
+        function addCheck(name, passed, details = '') {
+            checks.push({ name, passed, details });
+            if (!passed) allPassed = false;
+        }
+
+        function runTests() {
+            console.log('🧪 Starting verification tests...');
+
+            // Test 1: Check FULL_DATA object
+            try {
+                if (typeof FULL_DATA === 'undefined') {
+                    addCheck('FULL_DATA object loaded', false, 'FULL_DATA not found');
+                    return;
+                }
+                addCheck('FULL_DATA object loaded', true, 'Object exists and accessible');
+            } catch (e) {
+                addCheck('FULL_DATA object loaded', false, e.message);
+                return;
+            }
+
+            // Test 2: Count indices
+            const indices = Object.keys(FULL_DATA);
+            const indexCount = indices.length;
+            addCheck(
+                'Index count',
+                indexCount >= 14,
+                `Found ${indexCount}/16 indices`
+            );
+
+            // Test 3: Count total sections
+            let totalSections = 0;
+            let sectionDetails = [];
+
+            indices.forEach(idx => {
+                const data = FULL_DATA[idx];
+                if (data && data.sections) {
+                    const secCount = data.sections.length;
+                    totalSections += secCount;
+                    sectionDetails.push({
+                        name: idx.toUpperCase(),
+                        sections: secCount,
+                        title: data.title || 'N/A'
+                    });
+                }
+            });
+
+            addCheck(
+                'Total sections',
+                totalSections >= 200,
+                `Found ${totalSections}+ sections`
+            );
+
+            // Test 4: Check structure of first few indices
+            if (FULL_DATA.vnindex) {
+                const hasSections = FULL_DATA.vnindex.sections && FULL_DATA.vnindex.sections.length > 0;
+                addCheck(
+                    'VNINDEX structure',
+                    hasSections,
+                    `${FULL_DATA.vnindex.sections.length} sections found`
+                );
+            }
+
+            if (FULL_DATA.vn30) {
+                const hasSections = FULL_DATA.vn30.sections && FULL_DATA.vn30.sections.length > 0;
+                addCheck(
+                    'VN30 structure',
+                    hasSections,
+                    `${FULL_DATA.vn30.sections.length} sections found`
+                );
+            }
+
+            // Test 5: Check section content format
+            let contentTests = 0;
+            let contentPassed = 0;
+            sectionDetails.slice(0, 5).forEach(item => {
+                const idx = item.name.toLowerCase();
+                if (FULL_DATA[idx] && FULL_DATA[idx].sections) {
+                    contentTests++;
+                    const firstSection = FULL_DATA[idx].sections[0];
+                    if (firstSection && firstSection.content && firstSection.icon) {
+                        contentPassed++;
+                    }
+                }
+            });
+
+            addCheck(
+                'Section content format',
+                contentPassed >= contentTests - 1,
+                `${contentPassed}/${contentTests} indices have valid content`
+            );
+
+            // Display results
+            displayResults(totalSections, sectionDetails, indexCount);
+        }
+
+        function displayResults(totalSections, sectionDetails, indexCount) {
+            document.getElementById('loading').style.display = 'none';
+            document.getElementById('results').style.display = 'block';
+
+            // Stats
+            document.getElementById('stats').innerHTML = `
+                <div class="stat">📊 ${indexCount} Chỉ số</div>
+                <div class="stat">📝 ${totalSections}+ Sections</div>
+                <div class="stat">✅ ${checks.filter(c => c.passed).length}/${checks.length} Tests Passed</div>
+            `;
+
+            // Index list
+            const indexHtml = sectionDetails.map((item, i) => `
+                <div style="padding: 10px; margin: 5px 0; background: rgba(0,0,0,0.2); border-radius: 5px;">
+                    <strong>${i+1}. ${item.name}</strong> - ${item.sections} sections
+                    <div style="font-size: 0.9em; color: #94a3b8; margin-top: 5px;">${item.title}</div>
+                </div>
+            `).join('');
+            document.getElementById('index-list').innerHTML = indexHtml;
+
+            // Check list
+            const checkHtml = checks.map(check => `
+                <li>
+                    <span style="color: ${check.passed ? '#10b981' : '#ef4444'}">
+                        ${check.passed ? '✅' : '❌'} ${check.name}
+                    </span>
+                    ${check.details ? `<span style="color: #94a3b8;"> - ${check.details}</span>` : ''}
+                </li>
+            `).join('');
+            document.getElementById('check-list').innerHTML = checkHtml;
+
+            console.log('✅ Tests completed!');
+            console.log(`📊 ${indexCount} indices, ${totalSections} sections`);
+        }
+
+        // Load full_data.js and run tests
+        const script = document.createElement('script');
+        script.src = 'full_data.js';
+        script.onload = () => {
+            setTimeout(runTests, 500);
+        };
+        script.onerror = () => {
+            document.getElementById('loading').innerHTML = `
+                <h2 style="color: #ef4444;">❌ LỖI: Không thể load full_data.js</h2>
+                <p>Vui lòng kiểm tra file full_data.js có tồn tại trong cùng thư mục.</p>
+            `;
+        };
+        document.head.appendChild(script);
+    </script>
+</body>
+</html>

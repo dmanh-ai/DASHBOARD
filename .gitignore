@@ -1,0 +1,28 @@
+# Source files
+*.txt
+*.docx
+*.doc
+
+# Backup files
+*_backup*
+*.bak
+*~
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Node modules (nếu có)
+node_modules/
+package-lock.json
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+.Python
+
+# Temporary files
+*.tmp
+*.temp
