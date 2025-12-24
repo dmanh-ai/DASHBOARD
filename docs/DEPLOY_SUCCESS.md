@@ -72,7 +72,7 @@ GitHub Pages sẽ tự động deploy trong vòng **1-3 phút**.
 
 ### Bước 1: Parse file Word mới
 ```bash
-python3 tools/auto_parse.py baocao_moi.txt full_data_new.js
+python3 tools/auto_parse.py reports/txt/baocao_moi.txt full_data_new.js
 node --check full_data_new.js
 cp full_data_new.js full_data.js
 ```

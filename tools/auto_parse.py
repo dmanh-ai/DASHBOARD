@@ -106,9 +106,13 @@ if __name__ == '__main__':
     import os
 
     # Default paths
-    project_root = Path(__file__).resolve().parent
-    default_input = str(project_root / "baocao_full.txt")
+    project_root = Path(__file__).resolve().parents[1]
     default_output = str(project_root / "full_data_new.js")
+
+    # Prefer `reports/txt/baocao_full.txt` to keep repo root clean; fallback to root for compatibility.
+    preferred_input = project_root / "reports" / "txt" / "baocao_full.txt"
+    legacy_input = project_root / "baocao_full.txt"
+    default_input = str(preferred_input if preferred_input.exists() else legacy_input)
 
     # Get input from command line or use default
     if len(sys.argv) > 1:

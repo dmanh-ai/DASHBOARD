@@ -4,10 +4,10 @@ Mục tiêu: tạo data mới (`full_data_new.js`) từ file báo cáo `.txt`, k
 
 ```bash
 # 1) Convert Word → Text (macOS)
-textutil -convert txt -stdout "BaoCao_MOI.docx" > baocao_moi.txt
+textutil -convert txt -stdout "reports/word/BaoCao_MOI.docx" > reports/txt/baocao_moi.txt
 
 # 2) Generate data
-python3 tools/auto_parse.py baocao_moi.txt full_data_new.js
+python3 tools/auto_parse.py reports/txt/baocao_moi.txt full_data_new.js
 
 # 3) Verify + replace
 node --check full_data_new.js

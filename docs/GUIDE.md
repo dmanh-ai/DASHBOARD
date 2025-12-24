@@ -11,7 +11,7 @@ UI GLM/
 ├── 💾 full_data.js                      # Data (overview + 15 indices)
 ├── 🤖 tools/auto_parse.py               # Auto parse từ file text
 ├── 🧠 tools/smart_parser.py             # Parser “thông minh” cho từng index
-├── 📖 START_HERE.md                     # Điểm bắt đầu (root)
+├── 📖 docs/START_HERE.md                # Điểm bắt đầu (root có stub `START_HERE.md`)
 ├── 📚 docs/GUIDE.md                     # File này
 └── 📁 archive/_old_files/               # File cũ/đã archive
 ```
@@ -56,10 +56,10 @@ UI GLM/
 
 ```bash
 # Bước 1: Convert Word → Text
-textutil -convert txt -stdout "BaoCao_MOI.docx" > baocao_moi.txt
+textutil -convert txt -stdout "reports/word/BaoCao_MOI.docx" > reports/txt/baocao_moi.txt
 
 # Bước 2: Chạy auto parser
-python3 tools/auto_parse.py baocao_moi.txt full_data_new.js
+python3 tools/auto_parse.py reports/txt/baocao_moi.txt full_data_new.js
 
 # Bước 3: Verify + replace data
 node --check full_data_new.js

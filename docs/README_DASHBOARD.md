@@ -16,7 +16,7 @@ UI GLM/
 ├── dashboard_template.html          # Template HTML chính (TÁI SỬ DỤNG)
 ├── stock_dashboard_full.js           # File data cho báo cáo hiện tại
 ├── dashboard_100percent.html         # Dashboard hoàn chỉnh (đã render)
-├── baocao_full.txt                   # File text từ Word gốc
+├── reports/txt/baocao_full.txt       # File text từ Word gốc
 └── README_DASHBOARD.md              # File hướng dẫn này
 ```
 
@@ -27,7 +27,7 @@ UI GLM/
 ### Bước 1: Chuyển Word sang Text
 
 ```bash
-textutil -convert txt -stdout "BaoCao_MOI.docx" > baocao_moi.txt
+textutil -convert txt -stdout "reports/word/BaoCao_MOI.docx" > reports/txt/baocao_moi.txt
 ```
 
 ### Bước 2: Tạo File Data JS Mới

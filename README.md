@@ -115,7 +115,7 @@ marketoverview.github.io/
 
 ## 📚 Tài liệu quan trọng
 
-- Bắt đầu nhanh: `START_HERE.md`
+- Bắt đầu nhanh: `docs/START_HERE.md` (hoặc `START_HERE.md`)
 - Hướng dẫn chi tiết: `docs/GUIDE.md`
 
 ## ❓ FAQ:
