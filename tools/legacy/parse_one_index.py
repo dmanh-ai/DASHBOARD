@@ -6,6 +6,7 @@ Parse chỉ số từ file text và tạo JavaScript object với format chuẩn
 """
 
 import re
+from pathlib import Path
 
 def parse_index_from_txt(filepath, index_code, index_name, start_line, end_line=None):
     """
@@ -162,7 +163,8 @@ def main():
     """
     Main function để test parser
     """
-    filepath = '/Users/bobo/Library/Mobile Documents/com~apple~CloudDocs/UI GLM/baocao_full.txt'
+    project_root = Path(__file__).resolve().parents[2]
+    filepath = str(project_root / 'baocao_full.txt')
 
     # Test với VN30
     print("🔧 Testing parser với VN30...\n")

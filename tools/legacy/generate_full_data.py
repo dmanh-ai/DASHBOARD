@@ -5,6 +5,7 @@ Uses backticks for all content strings to avoid quote escaping issues.
 """
 
 import re
+from pathlib import Path
 import sys
 
 def read_file(filepath):
@@ -51,8 +52,9 @@ def parse_index_content(lines, start_line, index_name):
 
 def generate_full_js():
     """Generate the complete full_data.js file."""
-    input_file = '/Users/bobo/Library/Mobile Documents/com~apple~CloudDocs/UI GLM/baocao_full.txt'
-    output_file = '/Users/bobo/Library/Mobile Documents/com~apple~CloudDocs/UI GLM/full_data.js'
+    project_root = Path(__file__).resolve().parents[2]
+    input_file = str(project_root / 'baocao_full.txt')
+    output_file = str(project_root / 'full_data.js')
 
     lines = read_file(input_file)
     if not lines:
@@ -65,7 +67,7 @@ def generate_full_js():
     print(f"\nFound {len(indices)} indices to process")
 
     # Read existing vnindex_data.js to get VNINDEX structure
-    vnindex_file = '/Users/bobo/Library/Mobile Documents/com~apple~CloudDocs/UI GLM/vnindex_data.js'
+    vnindex_file = str(project_root / 'vnindex_data.js')
     try:
         with open(vnindex_file, 'r', encoding='utf-8') as f:
             vnindex_content = f.read()

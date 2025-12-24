@@ -1,42 +1,13 @@
-# 🎉 CHÚC MỪNG! CODE ĐÃ PUSH THÀNH CÔNG!
+# UI GLM / Market Overview Dashboard
 
-## ✅ Đã hoàn thành:
-- [x] SSH Authentication: **OK**
-- [x] Remote URL: **Đã đổi sang SSH**
-- [x] Push code: **THÀNH CÔNG**
-- [x] Repository: https://github.com/Thanhtran-165/marketoverview.github.io
+Ghi chú: Các file `COMPLETE*.html` và `dashboard.html` là alias/compat và sẽ redirect về `ELEGANT_CHRISTMAS.html` (dashboard hiện tại).
 
 ---
 
-## 📝 BƯỚC CUỐI CÙNG - KÍCH HOẠT GITHUB PAGES
+## 🌐 Mở Dashboard
 
-### 1. Tab GitHub Pages vừa mở:
-   - Nếu chưa mở, vào: https://github.com/Thanhtran-165/marketoverview.github.io/settings/pages
-
-### 2. Cấu hình GitHub Pages:
-   ```
-   Source:    Deploy from a branch
-   Branch:    main          (chọn main)
-   Folder:    / (root)      (chọn root)
-   ```
-
-### 3. Click **Save** (nút xanh)
-
----
-
-## ⏳ Chờ Deploy (1-3 phút)
-
-GitHub sẽ tự động deploy. Bạn có thể xem tiến độ:
-- **Tab Actions:** Xem deployment progress
-- **Tab Pages:** Xem deployment status
-
----
-
-## 🌐 Dashboard Của Bạn
-
-Sau khi deploy xong, truy cập:
-
-### **https://thanhtan-165.github.io/**
+- Local: mở `index.html` (hoặc `ELEGANT_CHRISTMAS.html`)
+- GitHub Pages: https://thanhtan-165.github.io/
 
 ### 📋 Phiên bản có sẵn:
 1. **🏆 PRO VERSION** (Mặc định - Khuyên dùng)
@@ -45,13 +16,13 @@ Sau khi deploy xong, truy cập:
    - 🔍 Search & filter realtime
    - 📁 Categorized menu (5 groups)
    - 📱 Mobile responsive (hamburger menu)
-   - 📖 Xem chi tiết: `PRO_VERSION_GUIDE.md`
+   - 📖 Xem chi tiết: `docs/PRO_VERSION_GUIDE.md`
 
 2. **🎨 ANIMATED VERSION** (Full animations)
    - File: `COMPLETE_ANIMATED.html`
    - ✨ 30+ animation & motion effects
    - 🎯 10+ keyframes, 20+ transitions
-   - 📖 Xem chi tiết: `ANIMATION_GUIDE.md`
+   - 📖 Xem chi tiết: `docs/ANIMATION_GUIDE.md`
 
 3. **📊 CLASSIC VERSION** (Không animation)
    - File: `COMPLETE.html`
@@ -82,14 +53,14 @@ Dashboard responsive hoàn toàn:
 ## 🔄 Cách Update Khi Có File Word Mới:
 
 ```bash
-# Vào thư mục project
-cd "/Users/bobo/Library/Mobile Documents/com~apple~CloudDocs/UI GLM"
-
 # 1. Parse file Word mới
-python3 auto_parse.py baocao_new.txt full_data.js
+python3 tools/auto_parse.py baocao_new.txt full_data_new.js
 
 # 2. Verify syntax
-node --check full_data.js
+node --check full_data_new.js
+
+# 3. Replace data (nếu OK)
+cp full_data_new.js full_data.js
 
 # 3. Commit & push (auto deploy sau 1-3 phút!)
 git add full_data.js
@@ -106,19 +77,25 @@ git push origin main
 ```
 marketoverview.github.io/
 ├── index.html                  ← Auto-redirect (trang chủ)
+├── ELEGANT_CHRISTMAS.html      ← Dashboard hiện tại
 ├── COMPLETE_PRO.html           ← 🏆 Dashboard PRO (Mặc định - KHUYÊN DÙNG)
 ├── COMPLETE_ANIMATED.html      ← 🎨 Dashboard ANIMATED (Full animations)
 ├── COMPLETE.html               ← 📊 Dashboard CLASSIC (Không animation)
 ├── test_all_16.html            ← Test verification page
+├── CHOOSE_VERSION.html         ← Trang chọn version
 ├── full_data.js                ← Data (16 objects, 218 sections)
 │
-├── PRO_VERSION_GUIDE.md        ← 📖 Hướng dẫn PRO version
-├── ANIMATION_GUIDE.md          ← 📖 Hướng dẫn animations
-├── VERSION_COMPARISON.md       ← 📊 So sánh tất cả versions
-├── CHOOSE_VERSION.html         ← 🎯 Trang chọn version
+├── docs/                       ← Tài liệu
+│   ├── GUIDE.md                 (hướng dẫn chi tiết)
+│   ├── PRO_VERSION_GUIDE.md
+│   ├── ANIMATION_GUIDE.md
+│   └── ...
 │
-├── smart_parser.py             ← Parser cho file Word mới
-├── auto_parse.py               ← Auto parse tất cả indices
+├── tools/                      ← Script tạo/cập nhật data
+│   ├── auto_parse.py
+│   ├── smart_parser.py
+│   ├── test_and_deploy.sh
+│   └── legacy/                 (script cũ)
 │
 └── README.md                   ← File này
 ```
@@ -135,6 +112,11 @@ marketoverview.github.io/
 | **Actions (deploy logs)** | https://github.com/Thanhtran-165/marketoverview.github.io/actions |
 
 ---
+
+## 📚 Tài liệu quan trọng
+
+- Bắt đầu nhanh: `START_HERE.md`
+- Hướng dẫn chi tiết: `docs/GUIDE.md`
 
 ## ❓ FAQ:
 
@@ -168,8 +150,8 @@ marketoverview.github.io/
 - Force refresh browser (Cmd+Shift+R)
 
 ### Lỗi 404 Not Found trên /COMPLETE.html
-- File index.html redirect đến COMPLETE.html
-- Đảm bảo đã push cả COMPLETE.html
+- File `index.html` redirect đến `ELEGANT_CHRISTMAS.html`
+- Các file `COMPLETE*.html` là alias/compat (redirect)
 - Kiểm tra tab **Actions** có lỗi gì không
 
 ### Data cũ không update
@@ -198,6 +180,3 @@ Nếu gặp lỗi:
 **Chúc mừng bạn đã deploy thành công! 🚀**
 
 ---
-
-*Generated with Claude Code*
-*Co-Authored-By: Claude <noreply@anthropic.com>

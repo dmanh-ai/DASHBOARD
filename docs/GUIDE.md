@@ -6,15 +6,14 @@
 
 ```
 UI GLM/
-├── 📊 dashboard_100percent.html         # Dashboard final (VNINDEX 100%)
-├── 📄 dashboard_template.html          # Template tái sử dụng
-├── 💾 stock_dashboard_full.js           # Data VNINDEX đầy đủ
-├── 💾 stock_dashboard_full_auto.js     # Data AUTO từ tất cả chỉ số
-├── 🔍 analyze_coverage.py              # Script phân tích coverage
-├── 🤖 parse_all_indices.py             # Script parse TỰ ĐỘNG 100%
-├── 📖 README_DASHBOARD.md              # Hướng dẫn sử dụng
-├── 📚 FINAL_GUIDE.md                   # File này
-└── 📝 baocao_full.txt                  # Báo cáo gốc (2,373 dòng)
+├── 🎯 index.html                        # Trang chủ (redirect)
+├── 🎄 ELEGANT_CHRISTMAS.html            # Dashboard hiện tại
+├── 💾 full_data.js                      # Data (overview + 15 indices)
+├── 🤖 tools/auto_parse.py               # Auto parse từ file text
+├── 🧠 tools/smart_parser.py             # Parser “thông minh” cho từng index
+├── 📖 START_HERE.md                     # Điểm bắt đầu (root)
+├── 📚 docs/GUIDE.md                     # File này
+└── 📁 archive/_old_files/               # File cũ/đã archive
 ```
 
 ---
@@ -59,21 +58,15 @@ UI GLM/
 # Bước 1: Convert Word → Text
 textutil -convert txt -stdout "BaoCao_MOI.docx" > baocao_moi.txt
 
-# Bước 2: Chạy parser tự động
-python3 parse_all_indices.py
+# Bước 2: Chạy auto parser
+python3 tools/auto_parse.py baocao_moi.txt full_data_new.js
 
-# Bước 3: Sửa line paths trong parse_all_indices.py:
-# - INPUT_FILE = "baocao_moi.txt"
-# - OUTPUT_FILE = "baocao_moi_data.js"
+# Bước 3: Verify + replace data
+node --check full_data_new.js
+cp full_data_new.js full_data.js
 
-# Bước 4: Copy template
-cp dashboard_template.html dashboard_moi.html
-
-# Bước 5: Sửa link trong HTML
-# <script src="baocao_moi_data.js"></script>
-
-# Bước 6: Mở dashboard
-open dashboard_moi.html
+# Bước 4: Mở dashboard
+open index.html
 ```
 
 ### Option 2: MANUAL (Chỉnh sửa chi tiết)
@@ -81,7 +74,7 @@ open dashboard_moi.html
 ```javascript
 // 1. Copy cấu trúc từ vnindex (đã có)
 const FULL_DATA = {
-    vnindex: { ... },  // ← Copy toàn bộ từ stock_dashboard_full.js
+    vnindex: { ... },  // ← Copy từ `full_data.js` hiện tại
 
     // 2. Thêm chỉ số mới
     vn30: {
@@ -173,8 +166,8 @@ const FULL_DATA = {
 
 ## ✅ CHECKLIST TRƯỚC KHI XUẤT BẢN
 
-- [ ] Chạy `analyze_coverage.py` để check coverage
-- [ ] Chạy `parse_all_indices.py` để auto-parse
+- [ ] (Legacy) Chạy `tools/legacy/analyze_coverage.py` để check coverage
+- [ ] Chạy `tools/auto_parse.py` để auto-parse
 - [ ] Review file JS output
 - [ ] Test trên browser (Chrome/Safari)
 - [ ] Check responsive trên mobile
@@ -270,10 +263,9 @@ TOTAL: 234 sections from 16 indices
 ## 📞 SUPPORT
 
 **Tools đã tạo:**
-- `analyze_coverage.py` - Check coverage
-- `parse_all_indices.py` - Auto parse 100%
-- `dashboard_template.html` - Reusable template
-- `stock_dashboard_full.js` - Reference (VNINDEX 100%)
+- `tools/auto_parse.py` - Generate `full_data_new.js` từ file text
+- `tools/smart_parser.py` - Parser “thông minh” theo index
+- `tools/legacy/` - Các script cũ (không khuyến nghị)
 
 **Workflow:**
 ```

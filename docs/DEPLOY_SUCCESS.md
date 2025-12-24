@@ -50,9 +50,9 @@ https://thanhtan-165.github.io/ELEGANT_CHRISTMAS.html
 
 ### 3. Các Versions Khác:
 ```
-https://thanhtan-165.github.io/CLEAN_NO_ANIMATION.html  (Không animation)
-https://thanhtan-165.github.io/COMPLETE_PRO_FINAL.html  (Professional)
-https://thanhtan-165.github.io/SANTA_DASHBOARD.html      (Santa Claus)
+https://thanhtan-165.github.io/COMPLETE.html           (Classic - alias/redirect)
+https://thanhtan-165.github.io/COMPLETE_PRO.html       (PRO - alias/redirect)
+https://thanhtan-165.github.io/COMPLETE_ANIMATED.html  (Animated - alias/redirect)
 ```
 
 ---
@@ -72,8 +72,9 @@ GitHub Pages sẽ tự động deploy trong vòng **1-3 phút**.
 
 ### Bước 1: Parse file Word mới
 ```bash
-cd "/Users/bobo/Library/Mobile Documents/com~apple~CloudDocs/UI GLM"
-python3 smart_parser.py baocao_moi.txt full_data.js
+python3 tools/auto_parse.py baocao_moi.txt full_data_new.js
+node --check full_data_new.js
+cp full_data_new.js full_data.js
 ```
 
 ### Bước 2: Kiểm tra syntax

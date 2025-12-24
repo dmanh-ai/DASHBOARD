@@ -6,15 +6,18 @@ Sử dụng khi có file Word mới cần convert sang dashboard
 """
 
 import sys
-from smart_parser import parse_smart
+from pathlib import Path
+
+from smart_parser import parse_overview_smart, parse_smart
 
 def parse_all_indices(input_txt, output_js='full_data_new.js'):
     """
-    Parse tất cả 16 indices từ file text
+    Parse tất cả indices (overview + 15 chỉ số) từ file text
     """
 
     # Danh sách tất cả indices cần parse
     indices = [
+        ('OVERVIEW', 'overview'),
         ('VNINDEX', 'vnindex'),
         ('VN30', 'vn30'),
         ('VN100', 'vn100'),
@@ -44,13 +47,17 @@ def parse_all_indices(input_txt, output_js='full_data_new.js'):
 
         success_count = 0
         failed_indices = []
+        total = len(indices)
 
         # Parse từng index
         for i, (index_name, index_code) in enumerate(indices, 1):
             try:
-                print(f"[{i}/16] Processing {index_name}...", end=" ")
+                print(f"[{i}/{total}] Processing {index_name}...", end=" ")
 
-                js_obj = parse_smart(input_txt, index_name, index_code)
+                if index_code == "overview":
+                    js_obj = parse_overview_smart(input_txt)
+                else:
+                    js_obj = parse_smart(input_txt, index_name, index_code)
 
                 # Check if parse thành công
                 if js_obj and not js_obj.startswith("# LỖI"):
@@ -76,8 +83,8 @@ def parse_all_indices(input_txt, output_js='full_data_new.js'):
     # Print summary
     print("-" * 60)
     print(f"📊 SUMMARY:")
-    print(f"   ✅ Success: {success_count}/16 indices")
-    print(f"   ❌ Failed: {len(failed_indices)}/16 indices")
+    print(f"   ✅ Success: {success_count}/{total} items")
+    print(f"   ❌ Failed: {len(failed_indices)}/{total} items")
 
     if failed_indices:
         print(f"\n❌ Failed indices:")
@@ -89,8 +96,8 @@ def parse_all_indices(input_txt, output_js='full_data_new.js'):
     print(f"\n📝 Output file: {output_js}")
     print(f"\n🔍 Next steps:")
     print(f"   1. node --check {output_js}")
-    print(f"   2. Copy {output_js} → full_data.js")
-    print(f"   3. Open COMPLETE.html to verify")
+    print(f"   2. If OK: cp {output_js} full_data.js")
+    print(f"   3. Open index.html (or ELEGANT_CHRISTMAS.html) to verify")
 
     return success_count == len(indices)
 
@@ -99,8 +106,9 @@ if __name__ == '__main__':
     import os
 
     # Default paths
-    default_input = '/Users/bobo/Library/Mobile Documents/com~apple~CloudDocs/UI GLM/baocao_full.txt'
-    default_output = '/Users/bobo/Library/Mobile Documents/com~apple~CloudDocs/UI GLM/full_data_new.js'
+    project_root = Path(__file__).resolve().parent
+    default_input = str(project_root / "baocao_full.txt")
+    default_output = str(project_root / "full_data_new.js")
 
     # Get input from command line or use default
     if len(sys.argv) > 1:

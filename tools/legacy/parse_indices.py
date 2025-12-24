@@ -6,6 +6,7 @@ Uses backticks for all content strings to avoid quote escaping issues.
 
 import re
 import json
+from pathlib import Path
 
 def clean_html_content(text):
     """Convert text content to HTML format with proper escaping."""
@@ -54,8 +55,9 @@ def parse_index_section(lines, start_idx, index_name):
 
 def main():
     """Main parsing function."""
-    input_file = '/Users/bobo/Library/Mobile Documents/com~apple~CloudDocs/UI GLM/baocao_full.txt'
-    output_file = '/Users/bobo/Library/Mobile Documents/com~apple~CloudDocs/UI GLM/full_data.js'
+    project_root = Path(__file__).resolve().parents[2]
+    input_file = str(project_root / 'baocao_full.txt')
+    output_file = str(project_root / 'full_data.js')
 
     print("Starting to parse baocao_full.txt...")
 

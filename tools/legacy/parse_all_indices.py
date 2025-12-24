@@ -8,10 +8,12 @@ và tạo file JS hoàn chỉnh với 100% coverage.
 
 import re
 import json
+from pathlib import Path
 
 # File paths
-INPUT_FILE = "/Users/bobo/Library/Mobile Documents/com~apple~CloudDocs/UI GLM/baocao_full.txt"
-OUTPUT_FILE = "/Users/bobo/Library/Mobile Documents/com~apple~CloudDocs/UI GLM/stock_dashboard_full_auto.js"
+project_root = Path(__file__).resolve().parents[2]
+INPUT_FILE = str(project_root / "baocao_full.txt")
+OUTPUT_FILE = str(project_root / "stock_dashboard_full_auto.js")
 
 # Cấu trúc các chỉ số cần phân tích
 INDICES_STRUCTURE = {

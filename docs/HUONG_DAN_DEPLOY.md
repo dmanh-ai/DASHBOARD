@@ -23,8 +23,7 @@ ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAILhHIggA24oxeX+b7bDxCb16KBI2ll1uZv0jyQMYvTUd
 
 ✅ **Xong bước này rồi? Chạy command:**
 ```bash
-cd "/Users/bobo/Library/Mobile Documents/com~apple~CloudDocs/UI GLM"
-./test_and_deploy.sh
+./tools/test_and_deploy.sh
 ```
 
 ---
@@ -71,13 +70,14 @@ Sau khi push thành công, làm thêm bước này:
 ## 📋 Cách update khi có file Word mới:
 
 ```bash
-cd "/Users/bobo/Library/Mobile Documents/com~apple~CloudDocs/UI GLM"
-
 # 1. Parse file mới
-python3 auto_parse.py baocao_new.txt full_data.js
+python3 tools/auto_parse.py baocao_new.txt full_data_new.js
 
 # 2. Verify syntax
-node --check full_data.js
+node --check full_data_new.js
+
+# 3. Replace data (nếu OK)
+cp full_data_new.js full_data.js
 
 # 3. Commit & push
 git add full_data.js

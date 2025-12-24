@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Test FULL_DATA (16 objects)</title>
+  <style>
+    body { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; margin: 0; background:#0b1020; color:#e5e7eb; }
+    .wrap { max-width: 920px; margin: 0 auto; padding: 28px 18px; }
+    .ok { color: #34d399; }
+    .bad { color: #fb7185; }
+    pre { background: rgba(255,255,255,0.04); padding: 14px; border-radius: 10px; overflow: auto; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h2>Test FULL_DATA</h2>
+    <div id="status">Loading <code>full_data.js</code>…</div>
+    <pre id="out"></pre>
+  </div>
+
+  <script src="full_data.js"></script>
+  <script>
+    (function () {
+      const expectedKeys = [
+        'overview',
+        'vnindex', 'vn30', 'vn100', 'vnmidcap',
+        'vnreal', 'vnit', 'vnheal', 'vnfin',
+        'vnene', 'vncons', 'vnmat', 'vncond',
+        'vnsml', 'vnfinselect', 'vndiamond',
+      ];
+
+      const statusEl = document.getElementById('status');
+      const outEl = document.getElementById('out');
+
+      try {
+        if (typeof FULL_DATA === 'undefined') {
+          statusEl.innerHTML = '<span class=\"bad\">FAILED</span> - FULL_DATA is not defined';
+          return;
+        }
+
+        const keys = Object.keys(FULL_DATA);
+        const missing = expectedKeys.filter(k => !keys.includes(k));
+        const extra = keys.filter(k => !expectedKeys.includes(k));
+
+        const ok = missing.length === 0;
+        statusEl.innerHTML = ok
+          ? '<span class=\"ok\">OK</span> - FULL_DATA has expected keys'
+          : '<span class=\"bad\">FAILED</span> - FULL_DATA keys mismatch';
+
+        outEl.textContent = JSON.stringify({ expectedKeys, keys, missing, extra }, null, 2);
+      } catch (e) {
+        statusEl.innerHTML = '<span class=\"bad\">FAILED</span> - ' + String(e);
+      }
+    })();
+  </script>
+</body>
+</html>

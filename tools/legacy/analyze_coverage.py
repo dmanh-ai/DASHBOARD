@@ -10,9 +10,11 @@ Script này phân tích toàn bộ file text từ Word và:
 
 import re
 import json
+from pathlib import Path
 
 # Đọc file
-file_path = "/Users/bobo/Library/Mobile Documents/com~apple~CloudDocs/UI GLM/baocao_full.txt"
+project_root = Path(__file__).resolve().parents[2]
+file_path = project_root / "baocao_full.txt"
 
 with open(file_path, 'r', encoding='utf-8') as f:
     content = f.read()

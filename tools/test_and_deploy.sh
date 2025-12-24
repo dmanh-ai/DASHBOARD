@@ -12,7 +12,8 @@ if [ $? -eq 0 ]; then
     echo ""
 
     echo "🔄 Bước 2: Đổi remote URL sang SSH..."
-    cd "/Users/bobo/Library/Mobile Documents/com~apple~CloudDocs/UI GLM"
+    SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+    cd "$SCRIPT_DIR"
     git remote set-url origin git@github.com:Thanhtran-165/marketoverview.github.io.git
 
     echo "✅ Done! Remote URL:"

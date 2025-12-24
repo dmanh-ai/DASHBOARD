@@ -24,9 +24,6 @@
 Sau khi tạo repo, GitHub sẽ hiện hướng dẫn. Chạy các lệnh sau:
 
 ```bash
-# Vào thư mục project
-cd "/Users/bobo/Library/Mobile Documents/com~apple~CloudDocs/UI GLM"
-
 # Thêm remote (THAY YOUR_USERNAME bằng username GitHub của bạn)
 git remote add origin https://github.com/YOUR_USERNAME/vietnam-stock-dashboard.git
 
@@ -81,10 +78,13 @@ https://YOUR_USERNAME.github.io/vietnam-stock-dashboard/
 
 ```bash
 # 1. Parse file mới
-python3 auto_parse.py baocao_new.txt full_data.js
+python3 tools/auto_parse.py baocao_new.txt full_data_new.js
 
 # 2. Verify syntax
-node --check full_data.js
+node --check full_data_new.js
+
+# 3. Replace data (nếu OK)
+cp full_data_new.js full_data.js
 
 # 3. Commit thay đổi
 git add full_data.js
@@ -105,8 +105,8 @@ vietnam-stock-dashboard/
 ├── COMPLETE.html          ← Dashboard chính
 ├── test_all_16.html       ← Test page
 ├── full_data.js           ← Data (auto-load)
-├── smart_parser.py        ← Parser tools
-└── auto_parse.py          ← Auto parser
+├── docs/                  ← Tài liệu
+└── tools/                 ← Parser tools
 ```
 
 **Trang chính:** `COMPLETE.html` - hiển thị 16 data objects (1 overview + 15 indices)

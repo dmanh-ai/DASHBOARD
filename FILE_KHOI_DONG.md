@@ -5,7 +5,7 @@
 ### 📯 CHỈ CẦN 1 FILE:
 
 ```
-📊 dashboard.html  ← CLICK FILE NÀY!
+🎯 index.html  ← CLICK FILE NÀY!
 ```
 
 **Đã sửa lỗi `document.write()` - Giờ hoạt động tốt!**
@@ -14,7 +14,7 @@
 
 ## 📋 BẠN SẼ THẤY
 
-Khi mở `dashboard.html`:
+Khi mở `index.html`:
 
 1. **Header:** "Báo Cáo Thị Trường"
 2. **Metrics:** 5 chỉ số (VNINDEX, VN30, VN100, VNMIDCAP, VNSML)
@@ -28,10 +28,11 @@ Khi mở `dashboard.html`:
 
 ```
 UI GLM/
-├── dashboard.html      ← FILE KHỞI ĐỘNG ✅
-├── data.js            ← CHỨA DATA
-├── parser.py          ← CÔNG CỤ AUTO
-├── GUIDE.md           ← HƯỚNG DẪN
+├── index.html         ← FILE KHỞI ĐỘNG ✅
+├── ELEGANT_CHRISTMAS.html ← Dashboard hiện tại
+├── full_data.js       ← CHỨA DATA
+├── tools/auto_parse.py ← CÔNG CỤ AUTO
+├── docs/GUIDE.md      ← HƯỚNG DẪN
 └── baocao_full.txt    ← BÁO CÁO GỐC
 ```
 
@@ -41,18 +42,19 @@ UI GLM/
 
 ### Xem Dashboard:
 ```bash
-open dashboard.html
+open index.html
 ```
 
 ### Thêm Chỉ Số Mới:
-1. Mở `data.js`
+1. Mở `full_data.js`
 2. Thêm vào `FULL_DATA`
 3. Refresh dashboard
 
 ### Tạo Dashboard Cho Báo Cáo Mới:
 ```bash
-python3 parser.py
-# → Sẽ tạo file mới tự động
+python3 tools/auto_parse.py baocao_moi.txt full_data_new.js
+node --check full_data_new.js
+cp full_data_new.js full_data.js
 ```
 
 ---
@@ -60,7 +62,7 @@ python3 parser.py
 ## ✅ ĐÃ SỬA
 
 - ❌ ~~document.write()~~ (Xóa HTML)
-- ✅ **<script src="data.js"></script>** (Load đúng cách)
+- ✅ **<script src="full_data.js"></script>** (Load đúng cách)
 - ✅ Thêm `DATA` object (metrics + tabs)
 - ✅ Full content cho VNINDEX
 
