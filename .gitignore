@@ -1,10 +1,15 @@
 # ==================== SOURCE FILES (KEEP PRIVATE) ====================
-# Word/Excel source files
+# Word/Excel source files - INTELLECTUAL PROPERTY
 *.txt
 *.docx
 *.doc
 *.xlsx
 *.xls
+
+# Source data directories - CORE ASSETS
+reports/
+!reports/README.md
+# Note: reports/ contains proprietary source data - DO NOT COMMIT source files
 
 # Backup & temp files
 *_backup*
