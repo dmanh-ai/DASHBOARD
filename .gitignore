@@ -1,34 +1,98 @@
-# Source files
+# ==================== SOURCE FILES (KEEP PRIVATE) ====================
+# Word/Excel source files
 *.txt
 *.docx
 *.doc
+*.xlsx
+*.xls
 
-# Backup files
+# Backup & temp files
 *_backup*
 *.bak
 *~
+~$*
 
+# ==================== GENERATED FILES (VARY) ====================
+# Keep main data file, ignore test outputs
+full_data_*.js
+!full_data.js
+!full_data_complete.js
+
+# Parser test outputs
+*_baseline.js
+*_phase*.js
+*_task*.js
+*_final*.js
+*_verify.js
+*_arch*.js
+
+# ==================== OS & EDITOR FILES ====================
 # macOS
 .DS_Store
 .AppleDouble
 .LSOverride
+._*
 
-# Node modules (nếu có)
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# Linux
+*~
+
+# IDE & Editors
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# ==================== DEPENDENCIES ====================
+# Node modules
 node_modules/
 package-lock.json
+yarn.lock
 
 # Python cache
 __pycache__/
 *.pyc
 *.pyo
 .Python
+*.py[cod]
+*$py.class
+*.so
+.Python
 
-# Temporary files
+# Virtual environments
+venv/
+env/
+ENV/
+.venv
+
+# ==================== LOCAL-ONLY FILES ====================
+# Local development files (never commit)
+local/
+*.local
 *.tmp
 *.temp
 
-# Local-only files (keep repo root clean)
-local/
-# Test outputs
-full_data_*.js
-!full_data.js
+# Environment & secrets
+.env
+.env.local
+.env.*.local
+*.pem
+*.key
+credentials.json
+
+# ==================== TEST OUTPUTS ====================
+# Test files (optional - uncomment if needed)
+# test_*.txt
+# *_test_output.*
+
+# ==================== DOCUMENTATION (OPTIONAL) ====================
+# Uncomment to keep private docs private
+# PRIVATE_*.md
+# */PRIVATE/
+# notes/
+# TODO.md
