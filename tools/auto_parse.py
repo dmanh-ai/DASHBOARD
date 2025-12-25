@@ -8,7 +8,8 @@ Sử dụng khi có file Word mới cần convert sang dashboard
 import sys
 from pathlib import Path
 
-from smart_parser import parse_overview_smart, parse_smart
+from smart_parser import parse_overview, parse_index
+from parser_models import ParsedResult
 
 def parse_all_indices(input_txt, output_js='full_data_new.js'):
     """
@@ -39,6 +40,12 @@ def parse_all_indices(input_txt, output_js='full_data_new.js'):
     print(f"📝 Output to: {output_js}")
     print("-" * 60)
 
+    # ✅ TASK 1.1: Đọc file 1 lần duy nhất
+    print(f"📖 Reading file: {input_txt}")
+    with open(input_txt, 'r', encoding='utf-8') as f:
+        content = f.read()
+    print(f"   ✓ Loaded {len(content)} characters")
+
     # Mở file output
     with open(output_js, 'w', encoding='utf-8') as f:
         # Write header
@@ -47,6 +54,7 @@ def parse_all_indices(input_txt, output_js='full_data_new.js'):
 
         success_count = 0
         failed_indices = []
+        error_summary = {}  # error_type -> count
         total = len(indices)
 
         # Parse từng index
@@ -54,28 +62,33 @@ def parse_all_indices(input_txt, output_js='full_data_new.js'):
             try:
                 print(f"[{i}/{total}] Processing {index_name}...", end=" ")
 
+                # TASK 1.2: Sử dụng structured result API
+                result: ParsedResult
                 if index_code == "overview":
-                    js_obj = parse_overview_smart(input_txt)
+                    result = parse_overview(content)
                 else:
-                    js_obj = parse_smart(input_txt, index_name, index_code)
+                    result = parse_index(content, index_name, index_code)
 
-                # Check if parse thành công
-                if js_obj and not js_obj.startswith("# LỖI"):
-                    # Validate: check có sections không
-                    if "sections:" in js_obj and "title:" in js_obj:
-                        f.write(js_obj + ",\n")
-                        print("✅ DONE")
-                        success_count += 1
-                    else:
-                        print("⚠️  WARNING: Invalid structure")
-                        failed_indices.append(index_name)
+                # Check result status
+                if result.is_success():
+                    # Write JS output
+                    f.write(result.raw_js + ",\n")
+                    print("✅ DONE")
+                    success_count += 1
                 else:
-                    print("❌ FAILED")
+                    # Structured error handling
+                    error_type = result.error.error_type if result.error else "Unknown"
+                    error_msg = result.error.message if result.error else "No error info"
+                    print(f"❌ FAILED: {error_type}")
                     failed_indices.append(index_name)
 
+                    # Collect error statistics
+                    error_summary[error_type] = error_summary.get(error_type, 0) + 1
+
             except Exception as e:
-                print(f"❌ ERROR: {e}")
+                print(f"❌ UNEXPECTED ERROR: {e}")
                 failed_indices.append(index_name)
+                error_summary["UnexpectedError"] = error_summary.get("UnexpectedError", 0) + 1
 
         # Close FULL_DATA object
         f.write("};\n")
@@ -90,6 +103,12 @@ def parse_all_indices(input_txt, output_js='full_data_new.js'):
         print(f"\n❌ Failed indices:")
         for idx in failed_indices:
             print(f"   - {idx}")
+
+        # TASK 1.2: Show error statistics
+        if error_summary:
+            print(f"\n📋 Error breakdown:")
+            for error_type, count in sorted(error_summary.items(), key=lambda x: -x[1]):
+                print(f"   • {error_type}: {count}")
     else:
         print(f"\n🎉 ALL INDICES PARSED SUCCESSFULLY!")
 
