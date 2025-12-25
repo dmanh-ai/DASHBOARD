@@ -1,182 +1,143 @@
-# UI GLM / Market Overview Dashboard
+# Market Overview Dashboard - Financial Theme
 
-Ghi chú: Các file `COMPLETE*.html` và `dashboard.html` là alias/compat và sẽ redirect về `ELEGANT_CHRISTMAS.html` (dashboard hiện tại).
-
----
+Báo cáo thị trường chứng khoán Việt Nam với giao diện chuyên nghiệp, nền sáng.
 
 ## 🌐 Mở Dashboard
 
-- Local: mở `index.html` (hoặc `ELEGANT_CHRISTMAS.html`)
-- GitHub Pages: https://thanhtan-165.github.io/
+- **Local**: Mở `index.html` (sẽ tự động redirect đến `DASHBOARD.html`)
+- **GitHub Pages**: https://thanhtan-165.github.io/
 
-### 📋 Phiên bản có sẵn:
-1. **🏆 PRO VERSION** (Mặc định - Khuyên dùng)
-   - File: `COMPLETE_PRO.html`
-   - ✅ Sidebar navigation chuyên nghiệp
-   - 🔍 Search & filter realtime
-   - 📁 Categorized menu (5 groups)
-   - 📱 Mobile responsive (hamburger menu)
-   - 📖 Xem chi tiết: `docs/PRO_VERSION_GUIDE.md`
+## 📊 Dashboard Features
 
-2. **🎨 ANIMATED VERSION** (Full animations)
-   - File: `COMPLETE_ANIMATED.html`
-   - ✨ 30+ animation & motion effects
-   - 🎯 10+ keyframes, 20+ transitions
-   - 📖 Xem chi tiết: `docs/ANIMATION_GUIDE.md`
+### Theme
+- ✅ **Financial Light Theme** - Nền sáng chuyên nghiệp
+- 🎨 Màu xanh dương tài chính
+- 📱 Responsive hoàn toàn (Desktop/Tablet/Mobile)
+- 🔍 Tìm kiếm & filter realtime
+- 📁 Sidebar với 5 categorized groups
 
-3. **📊 CLASSIC VERSION** (Không animation)
-   - File: `COMPLETE.html`
-   - 🚀 Nhanh nhất, tối giản
-   - 👍 Cho máy yếu hoặc thích đơn giản
-
-### Dashboard bao gồm:
+### Nội dung
 - 📊 **1 Overview** (9 sections) - Báo cáo tổng hợp thị trường
 - 📈 **15 Indices** (mỗi index 14 sections):
-  - VNINDEX, VN30, VN100, VNMIDCAP
-  - VNREAL, VNIT, VNHEAL, VNFIN
-  - VNENE, VNCONS, VNMAT, VNCOND
-  - VNSML, VNFINSELECT, VNDIAMOND
+  - **Chỉ số chính**: VNINDEX, VN30, VN100
+  - **Vốn hóa**: VNMIDCAP, VNSML
+  - **Ngành hàng**: VNREAL, VNIT, VNHEAL, VNFIN, VNENE, VNCONS, VNMAT, VNCOND
+  - **Đặc biệt**: VNFINSELECT, VNDIAMOND
 
 ### Tổng cộng: **16 data objects | 218 sections**
 
 ---
 
-## 📱 Truy cập từ mobile:
-
-Dashboard responsive hoàn toàn:
-- 📱 iPhone/Android: Hoạt động tốt
-- 💻 Desktop: Trải nghiệm đầy đủ
-- 📟 Tablet: Tự động điều chỉnh
-
----
-
-## 🔄 Cách Update Khi Có File Word Mới:
-
-```bash
-# 1. Parse file Word mới
-python3 tools/auto_parse.py baocao_new.txt full_data_new.js
-
-# 2. Verify syntax
-node --check full_data_new.js
-
-# 3. Replace data (nếu OK)
-cp full_data_new.js full_data.js
-
-# 3. Commit & push (auto deploy sau 1-3 phút!)
-git add full_data.js
-git commit -m "Update: $(date +%Y-%m-%d)"
-git push origin main
-
-# GitHub Pages sẽ tự động update! 🚀
-```
-
----
-
-## 📊 Files trên Repository:
+## 📁 File Structure
 
 ```
 marketoverview.github.io/
-├── index.html                  ← Auto-redirect (trang chủ)
-├── ELEGANT_CHRISTMAS.html      ← Dashboard hiện tại
-├── COMPLETE_PRO.html           ← 🏆 Dashboard PRO (Mặc định - KHUYÊN DÙNG)
-├── COMPLETE_ANIMATED.html      ← 🎨 Dashboard ANIMATED (Full animations)
-├── COMPLETE.html               ← 📊 Dashboard CLASSIC (Không animation)
+├── index.html                  ← Entry point (redirect to DASHBOARD.html)
+├── DASHBOARD.html              ← Main dashboard (Financial Light Theme)
 ├── test_all_16.html            ← Test verification page
-├── CHOOSE_VERSION.html         ← Trang chọn version
-├── full_data.js                ← Data (16 objects, 218 sections)
+├── full_data.js                ← Data file (16 objects, 218 sections)
 │
-├── docs/                       ← Tài liệu
-│   ├── GUIDE.md                 (hướng dẫn chi tiết)
-│   ├── PRO_VERSION_GUIDE.md
-│   ├── ANIMATION_GUIDE.md
-│   └── ...
+├── tools/                      ← Parser tools
+│   ├── auto_parse.py           ← Main parser script
+│   ├── smart_parser.py         ← O(N) parsing logic
+│   ├── renderer.py             ← JS generation
+│   ├── parser_models.py        ← Data structures & errors
+│   └── benchmark.py            ← Performance testing
 │
-├── tools/                      ← Script tạo/cập nhật data
-│   ├── auto_parse.py
-│   ├── smart_parser.py
-│   ├── test_and_deploy.sh
-│   └── legacy/                 (script cũ)
+├── tests/                      ← Golden tests
+│   └── test_parser.py
 │
-└── README.md                   ← File này
+├── reports/
+│   └── txt/baocao_full.txt     ← Input data source
+│
+└── archive/                    ← Old versions
+    ├── ELEGANT_CHRISTMAS_christmas_theme.html
+    └── _old_files/
 ```
 
 ---
 
-## 🎯 URL Quan Trọng:
+## 🔄 Update Workflow
 
-| Mục đích | URL |
-|----------|-----|
-| **Dashboard** | https://thanhtan-165.github.io/ |
-| **Repository** | https://github.com/Thanhtran-165/marketoverview.github.io |
-| **Settings Pages** | https://github.com/Thanhtran-165/marketoverview.github.io/settings/pages |
-| **Actions (deploy logs)** | https://github.com/Thanhtran-165/marketoverview.github.io/actions |
+Khi có file Word mới:
 
----
+```bash
+# 1. Parse file Word mới
+python3 tools/auto_parse.py reports/txt/baocao_new.txt full_data.js
 
-## 📚 Tài liệu quan trọng
+# 2. Verify syntax
+node --check full_data.js
 
-- Bắt đầu nhanh: `docs/START_HERE.md` (hoặc `START_HERE.md`)
-- Hướng dẫn chi tiết: `docs/GUIDE.md`
+# 3. Test locally
+python3 -m http.server 8080
+# Mở http://localhost:8080
 
-## ❓ FAQ:
-
-### GitHub Pages không hiển thị?
-- Chờ thêm 2-3 phút (đôi khi lâu hơn)
-- Xem tab **Actions** để biết lỗi gì
-- Kiểm tra **Settings → Pages** đã Save chưa
-
-### Data không load?
-- Mở browser Console (F12)
-- Kiểm tra đường dẫn `full_data.js`
-- Verify: `node --check full_data.js`
-
-### Deploy bao lâu?
-- Thường 1-3 phút
-- Lần đầu có thể 5-10 phút
-- Xem progress ở tab **Actions**
-
-### Có custom domain được không?
-- Có! Vào **Settings → Pages → Custom domain**
-- Thêm domain của bạn
-- Cấu hình DNS theo hướng dẫn của GitHub
+# 4. Commit & push (auto deploy sau 1-3 phút)
+git add full_data.js
+git commit -m "Update: $(date +%Y-%m-%d)"
+git push origin main
+```
 
 ---
 
-## 🆘 Troubleshooting:
+## 🧪 Testing
 
-### Lỗi 404 Not Found
-- Chờ deploy xong (1-3 phút)
-- Xem tab **Actions**
+```bash
+# Run parser tests
+python3 -m pytest tests/test_parser.py -v
+
+# Run benchmark
+python3 tools/benchmark.py reports/txt/baocao_full.txt
+
+# KPI Targets:
+# - Time: < 2s (achieved: 0.054s)
+# - Memory: < 100 MB (achieved: 1.57 MB)
+# - Success rate: 16/16 (achieved: 16/16)
+```
+
+---
+
+## 🎯 Performance Metrics
+
+| Metric | Target | Achieved | Status |
+|--------|--------|----------|--------|
+| Parse time | < 2s | 0.054s | ✅ 37× faster |
+| Memory usage | < 100 MB | 1.57 MB | ✅ 98% under |
+| Success rate | 16/16 | 16/16 | ✅ 100% |
+| Algorithm | O(N) | O(N) | ✅ Optimal |
+
+---
+
+## 📚 Documentation
+
+- Parser implementation: `tools/smart_parser.py`
+- Test suite: `tests/test_parser.py`
+- Data models: `tools/parser_models.py`
+- Renderer: `tools/renderer.py`
+
+---
+
+## 🆘 Troubleshooting
+
+### Dashboard không load?
+- Mở browser Console (F12) để kiểm tra lỗi
+- Verify `full_data.js` tồn tại và đúng format
+- Test với `node --check full_data.js`
+
+### Parser lỗi?
+- Kiểm tra input file format: `reports/txt/baocao_full.txt`
+- Run tests: `python3 -m pytest tests/test_parser.py -v`
+- Run benchmark: `python3 tools/benchmark.py`
+
+### GitHub Pages không update?
+- Chờ 1-3 phút cho deploy
+- Xem tab **Actions** để check lỗi
 - Force refresh browser (Cmd+Shift+R)
 
-### Lỗi 404 Not Found trên /COMPLETE.html
-- File `index.html` redirect đến `ELEGANT_CHRISTMAS.html`
-- Các file `COMPLETE*.html` là alias/compat (redirect)
-- Kiểm tra tab **Actions** có lỗi gì không
-
-### Data cũ không update
-- Xóa cache browser
-- Chờ GitHub Pages deploy lại
-- Xem trong **Settings → Pages** deployment history
-
 ---
 
-## 📞 Cần hỗ trợ?
+## 🎉 Done!
 
-Nếu gặp lỗi:
-1. Xem **Actions** tab để biết chi tiết lỗi
-2. Copy error message
-3. Chụp screenshot
-4. Gửi cho tôi
+**Dashboard đã online với Financial Light Theme chuyên nghiệp!**
 
----
-
-## 🎉 XONG RỒI!
-
-**Dashboard của bạn đã online:**
-
-### 🌐 https://thanhtan-165.github.io/
-
-**Chúc mừng bạn đã deploy thành công! 🚀**
-
----
+### URL: https://thanhtan-165.github.io/

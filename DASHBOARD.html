@@ -3,130 +3,37 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🎄 Báo Cáo Thị Trường - Christmas Edition</title>
+    <title>📊 Báo Cáo Thị Trường - Market Dashboard</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         :root {
             --success: #10b981;
             --danger: #ef4444;
             --warning: #f59e0b;
-            --primary: #c41e3a;
-            --secondary: #165b33;
-            --gold: #ffd700;
-            --bg-dark: #0f172a;
-            --bg-darker: #0c1222;
-            --text-primary: #ffffff;
-            --text-secondary: #e2e8f0;
-            --text-muted: #94a3b8;
+            --primary: #2563eb;
+            --secondary: #1e40af;
+            --accent: #3b82f6;
+            --bg-light: #f8fafc;
+            --bg-white: #ffffff;
+            --bg-card: #ffffff;
+            --border-color: #e2e8f0;
+            --text-primary: #1e293b;
+            --text-secondary: #475569;
+            --text-muted: #64748b;
             --sidebar-width: 280px;
         }
 
         body {
             font-family: 'Segoe UI', sans-serif;
-            background: linear-gradient(135deg, #1a2332 0%, #0f172a 50%, #1a2332 100%);
-            background-size: 400% 400%;
-            animation: gradientShift 15s ease infinite;
+            background: var(--bg-light);
             min-height: 100vh;
             color: var(--text-primary);
             overflow-x: hidden;
         }
 
-        @keyframes gradientShift {
-            0% { background-position: 0% 50%; }
-            50% { background-position: 100% 50%; }
-            100% { background-position: 0% 50%; }
-        }
+        /* ==================== REMOVED CHRISTMAS ANIMATIONS ==================== */
 
-        /* ==================== ELEGANT SNOWFALL ==================== */
-        .snowfall {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            pointer-events: none;
-            z-index: 9998;
-            overflow: hidden;
-        }
-
-        .snowflake {
-            position: absolute;
-            top: -10px;
-            color: rgba(255,255,255,0.6);
-            font-size: 1em;
-            animation: fall linear infinite;
-        }
-
-        @keyframes fall {
-            0% {
-                transform: translateY(-10px) rotate(0deg);
-                opacity: 0;
-            }
-            10% { opacity: 0.8; }
-            90% { opacity: 0.3; }
-            100% {
-                transform: translateY(100vh) rotate(360deg);
-                opacity: 0;
-            }
-        }
-
-        /* ==================== CHRISTMAS DECORATIONS ==================== */
-        .christmas-border {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            height: 4px;
-            background: linear-gradient(90deg,
-                var(--primary) 0%,
-                var(--gold) 25%,
-                var(--secondary) 50%,
-                var(--gold) 75%,
-                var(--primary) 100%);
-            background-size: 200% 100%;
-            animation: borderGlow 3s linear infinite;
-            z-index: 9999;
-        }
-
-        @keyframes borderGlow {
-            0% { background-position: 0% 50%; }
-            100% { background-position: 200% 50%; }
-        }
-
-        /* Christmas Ornaments */
-        .ornament {
-            position: fixed;
-            width: 30px;
-            height: 30px;
-            border-radius: 50%;
-            z-index: 9997;
-            animation: swing 3s ease-in-out infinite;
-        }
-
-        .ornament::before {
-            content: '';
-            position: absolute;
-            top: -8px;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 2px;
-            height: 8px;
-            background: var(--gold);
-        }
-
-        @keyframes swing {
-            0%, 100% { transform: rotate(-5deg); }
-            50% { transform: rotate(5deg); }
-        }
-
-        .ornament.red { background: radial-gradient(circle at 30% 30%, #ff6b6b, var(--primary)); }
-        .ornament.gold { background: radial-gradient(circle at 30% 30%, #ffe66d, var(--gold)); }
-        .ornament.green { background: radial-gradient(circle at 30% 30%, #51cf66, var(--secondary)); }
-
-        .ornament-1 { top: 20px; left: 50px; animation-delay: 0s; }
-        .ornament-2 { top: 15px; left: calc(50% - 100px); animation-delay: 0.5s; }
-        .ornament-3 { top: 25px; left: calc(50% + 100px); animation-delay: 1s; }
-        .ornament-4 { top: 18px; right: 50px; animation-delay: 1.5s; }
+        /* ==================== REMOVED CHRISTMAS DECORATIONS ==================== */
 
         /* ==================== MAIN LAYOUT ==================== */
         .app-container {
@@ -136,8 +43,8 @@
 
         .sidebar {
             width: var(--sidebar-width);
-            background: var(--bg-darker);
-            border-right: 1px solid rgba(255,255,255,0.06);
+            background: var(--bg-white);
+            border-right: 1px solid var(--border-color);
             height: 100vh;
             position: fixed;
             left: 0;
@@ -148,17 +55,9 @@
 
         .sidebar-header {
             padding: 25px 20px;
-            border-bottom: 1px solid rgba(255,255,255,0.06);
+            border-bottom: 1px solid var(--border-color);
             position: relative;
-        }
-
-        .sidebar-header::before {
-            content: '🎄';
-            position: absolute;
-            top: 10px;
-            right: 10px;
-            font-size: 2rem;
-            opacity: 0.1;
+            background: var(--bg-white);
         }
 
         .sidebar-header h1 {
@@ -175,7 +74,7 @@
 
         .search-box {
             padding: 15px 20px;
-            border-bottom: 1px solid rgba(255,255,255,0.06);
+            border-bottom: 1px solid var(--border-color);
         }
 
         .search-input-wrapper {
@@ -185,8 +84,8 @@
         .search-input {
             width: 100%;
             padding: 10px 15px 10px 40px;
-            background: rgba(255,255,255,0.04);
-            border: 1px solid rgba(255,255,255,0.08);
+            background: var(--bg-light);
+            border: 1px solid var(--border-color);
             border-radius: 8px;
             color: var(--text-primary);
             font-size: 0.9rem;
@@ -196,7 +95,7 @@
         .search-input:focus {
             outline: none;
             border-color: var(--primary);
-            background: rgba(255,255,255,0.06);
+            background: var(--bg-white);
         }
 
         .search-input::placeholder {
@@ -235,7 +134,7 @@
 
         .nav-group-header:hover {
             color: var(--text-secondary);
-            background: rgba(255,255,255,0.02);
+            background: var(--bg-light);
         }
 
         .nav-group-header .icon {
@@ -275,13 +174,13 @@
         }
 
         .nav-item:hover {
-            background: rgba(255,255,255,0.03);
+            background: var(--bg-light);
             color: var(--text-primary);
             border-left-color: var(--primary);
         }
 
         .nav-item.active {
-            background: linear-gradient(90deg, rgba(196, 30, 58, 0.15), transparent);
+            background: linear-gradient(90deg, rgba(37, 99, 235, 0.08), transparent);
             color: var(--primary);
             border-left-color: var(--primary);
             font-weight: 600;
@@ -297,7 +196,7 @@
         }
 
         .nav-item .item-badge {
-            background: rgba(196, 30, 58, 0.15);
+            background: rgba(37, 99, 235, 0.1);
             color: var(--primary);
             padding: 2px 8px;
             border-radius: 10px;
@@ -309,7 +208,7 @@
             margin-left: var(--sidebar-width);
             flex: 1;
             min-height: 100vh;
-            background: var(--bg-dark);
+            background: var(--bg-light);
         }
 
         .content-wrapper {
@@ -321,33 +220,12 @@
         .header {
             margin-bottom: 30px;
             padding: 30px;
-            background: linear-gradient(135deg,
-                rgba(196, 30, 58, 0.1) 0%,
-                rgba(22, 91, 51, 0.05) 50%,
-                rgba(255, 215, 0, 0.05) 100%);
+            background: var(--bg-white);
             border-radius: 15px;
-            border: 2px solid;
-            border-image: linear-gradient(135deg, var(--primary), var(--gold), var(--secondary)) 1;
+            border: 1px solid var(--border-color);
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
             position: relative;
             overflow: hidden;
-        }
-
-        .header::before {
-            content: '❄️';
-            position: absolute;
-            top: 10px;
-            right: 20px;
-            font-size: 3rem;
-            opacity: 0.1;
-        }
-
-        .header::after {
-            content: '🎄';
-            position: absolute;
-            bottom: -10px;
-            right: 30px;
-            font-size: 5rem;
-            opacity: 0.05;
         }
 
         .header-content {
@@ -357,17 +235,8 @@
 
         .header h1 {
             font-size: 2rem;
-            background: linear-gradient(135deg, #ffd700 0%, #fff 50%, #ffd700 100%);
-            background-size: 200% auto;
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            animation: shimmer 3s linear infinite;
+            color: var(--text-primary);
             margin-bottom: 10px;
-        }
-
-        @keyframes shimmer {
-            0% { background-position: 0% center; }
-            100% { background-position: 200% center; }
         }
 
         .header-decoration {
@@ -378,9 +247,9 @@
         }
 
         .decoration-item {
-            background: rgba(255,215,0,0.1);
-            border: 1px solid rgba(255,215,0,0.3);
-            color: var(--gold);
+            background: rgba(37, 99, 235, 0.08);
+            border: 1px solid rgba(37, 99, 235, 0.2);
+            color: var(--primary);
             padding: 8px 16px;
             border-radius: 20px;
             font-size: 0.85rem;
@@ -395,14 +264,15 @@
         }
 
         .metric {
-            background: rgba(255,255,255,0.02);
+            background: var(--bg-white);
             padding: 18px;
             border-radius: 12px;
-            border: 1px solid rgba(255,255,255,0.06);
+            border: 1px solid var(--border-color);
             transition: all 0.3s ease;
             cursor: pointer;
             position: relative;
             overflow: hidden;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
         }
 
         .metric::before {
@@ -421,10 +291,10 @@
         }
 
         .metric:hover {
-            background: rgba(255,255,255,0.04);
+            background: var(--bg-white);
             border-color: var(--primary);
             transform: translateY(-3px);
-            box-shadow: 0 8px 25px rgba(196, 30, 58, 0.2);
+            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.15);
         }
 
         .metric-name {
@@ -443,11 +313,11 @@
         }
 
         .metric-value.positive {
-            color: #34d399;
+            color: var(--success);
         }
 
         .metric-value.negative {
-            color: #f87171;
+            color: var(--danger);
         }
 
         .metric-change {
@@ -472,20 +342,22 @@
 
         .section {
             margin-bottom: 20px;
-            background: transparent;
+            background: var(--bg-white);
             border-radius: 12px;
             overflow: hidden;
-            border: 1px solid rgba(255,255,255,0.06);
+            border: 1px solid var(--border-color);
             transition: all 0.3s ease;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
         }
 
         .section:hover {
-            border-color: rgba(196, 30, 58, 0.2);
+            border-color: var(--primary);
+            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.1);
         }
 
         .section-header {
             padding: 18px 22px;
-            background: rgba(255,255,255,0.02);
+            background: var(--bg-white);
             cursor: pointer;
             display: flex;
             align-items: center;
@@ -500,7 +372,7 @@
             top: 0;
             width: 4px;
             height: 100%;
-            background: linear-gradient(180deg, var(--gold), var(--primary));
+            background: var(--primary);
             opacity: 0;
             transition: opacity 0.3s ease;
         }
@@ -510,7 +382,7 @@
         }
 
         .section-header:hover {
-            background: rgba(196, 30, 58, 0.05);
+            background: var(--bg-light);
         }
 
         .section-icon {
@@ -540,12 +412,13 @@
             max-height: 0;
             overflow: hidden;
             transition: max-height 0.3s ease, padding 0.3s ease;
-            background: transparent;
+            background: var(--bg-light);
         }
 
         .section-content.show {
             padding: 22px;
             max-height: 5000px;
+            background: var(--bg-light);
         }
 
         .info-grid {
@@ -555,16 +428,17 @@
         }
 
         .info-box {
-            background: rgba(255,255,255,0.02);
+            background: var(--bg-white);
             padding: 18px;
             border-radius: 10px;
-            border: 1px solid rgba(255,255,255,0.06);
+            border: 1px solid var(--border-color);
             transition: all 0.3s ease;
         }
 
         .info-box:hover {
-            background: rgba(255,255,255,0.04);
-            border-color: rgba(196, 30, 58, 0.15);
+            background: var(--bg-white);
+            border-color: var(--primary);
+            box-shadow: 0 2px 8px rgba(37, 99, 235, 0.1);
         }
 
         .info-box h4 {
@@ -581,47 +455,47 @@
         }
 
         .highlight {
-            color: #34d399;
+            color: var(--success);
             font-weight: 600;
         }
 
         .warning {
-            color: #fbbf24;
+            color: var(--warning);
             font-weight: 600;
         }
 
         .danger {
-            color: #f87171;
+            color: var(--danger);
             font-weight: 600;
         }
 
-        .alert {
-            background: linear-gradient(135deg,
-                rgba(196, 30, 58, 0.1) 0%,
-                rgba(22, 91, 51, 0.05) 100%);
-            border: 1px solid rgba(196, 30, 58, 0.2);
-            border-radius: 12px;
-            padding: 22px;
-            margin: 15px 0;
-        }
-
-        .alert-title {
-            font-size: 1.1rem;
+        /* HTML content styling from parser - CONSISTENT TEMPLATE */
+        .info-box strong {
+            color: var(--text-primary);
             font-weight: 700;
-            margin-bottom: 12px;
-            color: var(--gold);
         }
 
-        .alert p {
+        .info-box ul {
+            margin: 8px 0;
+            padding-left: 20px;
+        }
+
+        .info-box li {
+            margin: 6px 0;
             color: var(--text-secondary);
+            line-height: 1.6;
+        }
+
+        .info-box li::marker {
+            color: var(--primary);
         }
 
         .placeholder {
             text-align: center;
             padding: 50px;
-            background: rgba(255,255,255,0.02);
+            background: var(--bg-white);
             border-radius: 12px;
-            border: 1px solid rgba(255,255,255,0.06);
+            border: 1px solid var(--border-color);
         }
 
         .placeholder p:first-child {
@@ -640,7 +514,7 @@
             left: 0;
             width: 100%;
             height: 100%;
-            background: var(--bg-darker);
+            background: var(--bg-light);
             display: flex;
             justify-content: center;
             align-items: center;
@@ -656,7 +530,7 @@
         .loading-spinner {
             width: 60px;
             height: 60px;
-            border: 4px solid rgba(255,255,255,0.1);
+            border: 4px solid var(--border-color);
             border-top: 4px solid var(--primary);
             border-radius: 50%;
             animation: spin 1s linear infinite;
@@ -781,7 +655,7 @@
         }
 
         ::-webkit-scrollbar-track {
-            background: var(--bg-darker);
+            background: var(--bg-light);
         }
 
         ::-webkit-scrollbar-thumb {
@@ -795,23 +669,11 @@
     </style>
 </head>
 <body>
-    <!-- Christmas Border -->
-    <div class="christmas-border"></div>
-
-    <!-- Christmas Ornaments -->
-    <div class="ornament red ornament-1"></div>
-    <div class="ornament gold ornament-2"></div>
-    <div class="ornament green ornament-3"></div>
-    <div class="ornament red ornament-4"></div>
-
-    <!-- Snowfall -->
-    <div class="snowfall" id="snowfall"></div>
-
     <!-- Loading Overlay -->
     <div class="loading-overlay" id="loadingOverlay">
         <div style="text-align: center;">
             <div class="loading-spinner"></div>
-            <h2 style="margin-bottom: 10px; color: var(--text-primary);">🎄 Đang tải dashboard...</h2>
+            <h2 style="margin-bottom: 10px; color: var(--text-primary);">📊 Đang tải dashboard...</h2>
             <p style="color: var(--text-muted);">Chuẩn bị dữ liệu thị trường</p>
         </div>
     </div>
@@ -827,7 +689,7 @@
         <aside class="sidebar" id="sidebar">
             <div class="sidebar-header">
                 <h1>📊 Market Dashboard</h1>
-                <p class="subtitle">❄️ Christmas Edition ❄️</p>
+                <p class="subtitle">Báo cáo thị trường</p>
             </div>
 
             <div class="search-box">
@@ -840,13 +702,13 @@
             <nav class="nav-groups" id="navGroups">
                 <div class="nav-group" data-group="overview">
                     <div class="nav-group-header" onclick="toggleNavGroup(this)">
-                        <span class="icon">🎄</span>
+                        <span class="icon">📋</span>
                         <span>Tổng Quan</span>
                         <span class="arrow">▼</span>
                     </div>
                     <div class="nav-group-items">
                         <div class="nav-item active" data-tab="overview" data-search="tổng quan overview báo cáo">
-                            <span class="item-icon">📋</span>
+                            <span class="item-icon">📊</span>
                             <span class="item-name">Báo Cáo Tổng Hợp</span>
                         </div>
                     </div>
@@ -854,7 +716,7 @@
 
                 <div class="nav-group" data-group="major">
                     <div class="nav-group-header" onclick="toggleNavGroup(this)">
-                        <span class="icon">💎</span>
+                        <span class="icon">📈</span>
                         <span>Chỉ Số Chính</span>
                         <span class="arrow">▼</span>
                     </div>
@@ -877,7 +739,7 @@
 
                 <div class="nav-group" data-group="cap">
                     <div class="nav-group-header" onclick="toggleNavGroup(this)">
-                        <span class="icon">⛄</span>
+                        <span class="icon">💰</span>
                         <span>Vốn Hóa</span>
                         <span class="arrow">▼</span>
                     </div>
@@ -895,7 +757,7 @@
 
                 <div class="nav-group" data-group="sectors">
                     <div class="nav-group-header" onclick="toggleNavGroup(this)">
-                        <span class="icon">🎁</span>
+                        <span class="icon">🏢</span>
                         <span>Ngành Hàng</span>
                         <span class="arrow">▼</span>
                     </div>
@@ -966,9 +828,9 @@
                     <div class="header-content">
                         <h1 id="pageTitle">📊 Báo Cáo Tổng Hợp</h1>
                         <div class="header-decoration">
-                            <span class="decoration-item">❄️ Winter 2025</span>
-                            <span class="decoration-item">🎄 Christmas</span>
-                            <span class="decoration-item">✨ Happy New Year</span>
+                            <span class="decoration-item">📊 Thị Trường Chứng Khoán</span>
+                            <span class="decoration-item">📈 Phân Tích Chi Tiết</span>
+                            <span class="decoration-item">💹 Cập Nhật Real-time</span>
                         </div>
                     </div>
                 </header>
@@ -1008,24 +870,6 @@
 
     <script src="full_data.js"></script>
     <script>
-        // ==================== CREATE SNOWFALL ====================
-        function createSnowfall() {
-            const container = document.getElementById('snowfall');
-            const snowflakeCount = 35;
-
-            for (let i = 0; i < snowflakeCount; i++) {
-                const snowflake = document.createElement('div');
-                snowflake.className = 'snowflake';
-                snowflake.innerHTML = '❄';
-                snowflake.style.left = Math.random() * 100 + '%';
-                snowflake.style.animationDuration = (Math.random() * 4 + 6) + 's';
-                snowflake.style.animationDelay = Math.random() * 8 + 's';
-                snowflake.style.fontSize = (Math.random() * 8 + 10) + 'px';
-                snowflake.style.opacity = Math.random() * 0.4 + 0.4;
-                container.appendChild(snowflake);
-            }
-        }
-
         // ==================== NUMBER ANIMATION ====================
         function animateValue(element, start, end, duration) {
             const range = end - start;
@@ -1160,14 +1004,7 @@
         }
 
         function renderSection(icon, title, content, alert = false, index) {
-            if (alert) {
-                return `
-                    <div class="alert">
-                        <div class="alert-title">${icon} ${title}</div>
-                        ${content}
-                    </div>
-                `;
-            }
+            // CONSISTENT TEMPLATE: All sections use same structure
             return `
                 <div class="section">
                     <div class="section-header" onclick="toggleSection(this)">
@@ -1202,8 +1039,6 @@
         }
 
         document.addEventListener('DOMContentLoaded', () => {
-            createSnowfall();
-
             document.querySelectorAll('.nav-item').forEach(item => {
                 item.addEventListener('click', function() {
                     const tabId = this.getAttribute('data-tab');

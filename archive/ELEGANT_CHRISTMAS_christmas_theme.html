@@ -1,0 +1,1065 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>📊 Báo Cáo Thị Trường - Market Dashboard</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        :root {
+            --success: #10b981;
+            --danger: #ef4444;
+            --warning: #f59e0b;
+            --primary: #2563eb;
+            --secondary: #1e40af;
+            --accent: #3b82f6;
+            --bg-light: #f8fafc;
+            --bg-white: #ffffff;
+            --bg-card: #ffffff;
+            --border-color: #e2e8f0;
+            --text-primary: #1e293b;
+            --text-secondary: #475569;
+            --text-muted: #64748b;
+            --sidebar-width: 280px;
+        }
+
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            background: var(--bg-light);
+            min-height: 100vh;
+            color: var(--text-primary);
+            overflow-x: hidden;
+        }
+
+        /* ==================== REMOVED CHRISTMAS ANIMATIONS ==================== */
+
+        /* ==================== REMOVED CHRISTMAS DECORATIONS ==================== */
+
+        /* ==================== MAIN LAYOUT ==================== */
+        .app-container {
+            display: flex;
+            min-height: 100vh;
+        }
+
+        .sidebar {
+            width: var(--sidebar-width);
+            background: var(--bg-white);
+            border-right: 1px solid var(--border-color);
+            height: 100vh;
+            position: fixed;
+            left: 0;
+            top: 0;
+            overflow-y: auto;
+            z-index: 1000;
+        }
+
+        .sidebar-header {
+            padding: 25px 20px;
+            border-bottom: 1px solid var(--border-color);
+            position: relative;
+            background: var(--bg-white);
+        }
+
+        .sidebar-header h1 {
+            font-size: 1.25rem;
+            color: var(--primary);
+            font-weight: 700;
+            margin-bottom: 5px;
+        }
+
+        .sidebar-header .subtitle {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+        }
+
+        .search-box {
+            padding: 15px 20px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .search-input-wrapper {
+            position: relative;
+        }
+
+        .search-input {
+            width: 100%;
+            padding: 10px 15px 10px 40px;
+            background: var(--bg-light);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            color: var(--text-primary);
+            font-size: 0.9rem;
+            transition: all 0.2s ease;
+        }
+
+        .search-input:focus {
+            outline: none;
+            border-color: var(--primary);
+            background: var(--bg-white);
+        }
+
+        .search-input::placeholder {
+            color: var(--text-muted);
+        }
+
+        .search-icon {
+            position: absolute;
+            left: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-muted);
+            font-size: 0.9rem;
+        }
+
+        .nav-groups {
+            padding: 10px 0;
+        }
+
+        .nav-group {
+            margin-bottom: 5px;
+        }
+
+        .nav-group-header {
+            padding: 12px 20px;
+            color: var(--text-muted);
+            font-size: 0.7rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            display: flex;
+            align-items: center;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .nav-group-header:hover {
+            color: var(--text-secondary);
+            background: var(--bg-light);
+        }
+
+        .nav-group-header .icon {
+            margin-right: 8px;
+        }
+
+        .nav-group-header .arrow {
+            margin-left: auto;
+            font-size: 0.7rem;
+            transition: transform 0.2s ease;
+        }
+
+        .nav-group.collapsed .nav-group-header .arrow {
+            transform: rotate(-90deg);
+        }
+
+        .nav-group-items {
+            max-height: 1000px;
+            overflow: hidden;
+            transition: max-height 0.3s ease;
+        }
+
+        .nav-group.collapsed .nav-group-items {
+            max-height: 0;
+        }
+
+        .nav-item {
+            padding: 11px 20px 11px 45px;
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            font-size: 0.9rem;
+            border-left: 3px solid transparent;
+            background: transparent;
+        }
+
+        .nav-item:hover {
+            background: var(--bg-light);
+            color: var(--text-primary);
+            border-left-color: var(--primary);
+        }
+
+        .nav-item.active {
+            background: linear-gradient(90deg, rgba(37, 99, 235, 0.08), transparent);
+            color: var(--primary);
+            border-left-color: var(--primary);
+            font-weight: 600;
+        }
+
+        .nav-item .item-icon {
+            margin-right: 10px;
+            font-size: 1rem;
+        }
+
+        .nav-item .item-name {
+            flex: 1;
+        }
+
+        .nav-item .item-badge {
+            background: rgba(37, 99, 235, 0.1);
+            color: var(--primary);
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 0.7rem;
+            font-weight: 600;
+        }
+
+        .main-content {
+            margin-left: var(--sidebar-width);
+            flex: 1;
+            min-height: 100vh;
+            background: var(--bg-light);
+        }
+
+        .content-wrapper {
+            padding: 30px;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .header {
+            margin-bottom: 30px;
+            padding: 30px;
+            background: var(--bg-white);
+            border-radius: 15px;
+            border: 1px solid var(--border-color);
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .header-content {
+            position: relative;
+            z-index: 1;
+        }
+
+        .header h1 {
+            font-size: 2rem;
+            color: var(--text-primary);
+            margin-bottom: 10px;
+        }
+
+        .header-decoration {
+            display: flex;
+            gap: 15px;
+            margin-top: 15px;
+            flex-wrap: wrap;
+        }
+
+        .decoration-item {
+            background: rgba(37, 99, 235, 0.08);
+            border: 1px solid rgba(37, 99, 235, 0.2);
+            color: var(--primary);
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+
+        .metric {
+            background: var(--bg-white);
+            padding: 18px;
+            border-radius: 12px;
+            border: 1px solid var(--border-color);
+            transition: all 0.3s ease;
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+
+        .metric::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,215,0,0.1), transparent);
+            transition: left 0.5s ease;
+        }
+
+        .metric:hover::before {
+            left: 100%;
+        }
+
+        .metric:hover {
+            background: var(--bg-white);
+            border-color: var(--primary);
+            transform: translateY(-3px);
+            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.15);
+        }
+
+        .metric-name {
+            color: var(--text-muted);
+            font-size: 0.75rem;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+        }
+
+        .metric-value {
+            font-size: 1.6rem;
+            font-weight: 700;
+            margin: 10px 0;
+            color: var(--text-primary);
+        }
+
+        .metric-value.positive {
+            color: var(--success);
+        }
+
+        .metric-value.negative {
+            color: var(--danger);
+        }
+
+        .metric-change {
+            font-size: 0.85rem;
+            font-weight: 600;
+            padding: 4px 10px;
+            border-radius: 12px;
+            display: inline-block;
+        }
+
+        .metric-change.up {
+            color: #34d399;
+            background: rgba(16,185,129,0.1);
+            border: 1px solid rgba(16,185,129,0.2);
+        }
+
+        .metric-change.down {
+            color: #f87171;
+            background: rgba(239,68,68,0.1);
+            border: 1px solid rgba(239,68,68,0.2);
+        }
+
+        .section {
+            margin-bottom: 20px;
+            background: var(--bg-white);
+            border-radius: 12px;
+            overflow: hidden;
+            border: 1px solid var(--border-color);
+            transition: all 0.3s ease;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+
+        .section:hover {
+            border-color: var(--primary);
+            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.1);
+        }
+
+        .section-header {
+            padding: 18px 22px;
+            background: var(--bg-white);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        .section-header::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 4px;
+            height: 100%;
+            background: var(--primary);
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .section:hover .section-header::before {
+            opacity: 1;
+        }
+
+        .section-header:hover {
+            background: var(--bg-light);
+        }
+
+        .section-icon {
+            font-size: 1.4rem;
+            margin-right: 12px;
+        }
+
+        .section-title {
+            font-weight: 600;
+            font-size: 1rem;
+            flex: 1;
+            color: var(--text-primary);
+        }
+
+        .section-arrow {
+            transition: transform 0.2s ease;
+            color: var(--text-muted);
+            font-size: 0.8rem;
+        }
+
+        .section.active .section-arrow {
+            transform: rotate(180deg);
+        }
+
+        .section-content {
+            padding: 0;
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease, padding 0.3s ease;
+            background: var(--bg-light);
+        }
+
+        .section-content.show {
+            padding: 22px;
+            max-height: 5000px;
+            background: var(--bg-light);
+        }
+
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 15px;
+        }
+
+        .info-box {
+            background: var(--bg-white);
+            padding: 18px;
+            border-radius: 10px;
+            border: 1px solid var(--border-color);
+            transition: all 0.3s ease;
+        }
+
+        .info-box:hover {
+            background: var(--bg-white);
+            border-color: var(--primary);
+            box-shadow: 0 2px 8px rgba(37, 99, 235, 0.1);
+        }
+
+        .info-box h4 {
+            color: var(--primary);
+            margin-bottom: 12px;
+            font-size: 0.95rem;
+            font-weight: 600;
+        }
+
+        .info-box p {
+            line-height: 1.8;
+            font-size: 0.92rem;
+            color: var(--text-secondary);
+        }
+
+        .highlight {
+            color: var(--success);
+            font-weight: 600;
+        }
+
+        .warning {
+            color: var(--warning);
+            font-weight: 600;
+        }
+
+        .danger {
+            color: var(--danger);
+            font-weight: 600;
+        }
+
+        /* HTML content styling from parser - CONSISTENT TEMPLATE */
+        .info-box strong {
+            color: var(--text-primary);
+            font-weight: 700;
+        }
+
+        .info-box ul {
+            margin: 8px 0;
+            padding-left: 20px;
+        }
+
+        .info-box li {
+            margin: 6px 0;
+            color: var(--text-secondary);
+            line-height: 1.6;
+        }
+
+        .info-box li::marker {
+            color: var(--primary);
+        }
+
+        .placeholder {
+            text-align: center;
+            padding: 50px;
+            background: var(--bg-white);
+            border-radius: 12px;
+            border: 1px solid var(--border-color);
+        }
+
+        .placeholder p:first-child {
+            font-size: 1.2rem;
+            margin-bottom: 10px;
+            color: var(--text-primary);
+        }
+
+        .placeholder p:last-child {
+            color: var(--text-muted);
+        }
+
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: var(--bg-light);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+            transition: opacity 0.3s ease, visibility 0.3s ease;
+        }
+
+        .loading-overlay.hidden {
+            opacity: 0;
+            visibility: hidden;
+        }
+
+        .loading-spinner {
+            width: 60px;
+            height: 60px;
+            border: 4px solid var(--border-color);
+            border-top: 4px solid var(--primary);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .mobile-menu-btn {
+            display: none;
+            position: fixed;
+            top: 15px;
+            right: 15px;
+            z-index: 1001;
+            background: var(--primary);
+            border: none;
+            border-radius: 8px;
+            padding: 10px 14px;
+            color: white;
+            font-size: 1.3rem;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(196, 30, 58, 0.3);
+        }
+
+        .sidebar-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.7);
+            z-index: 999;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .sidebar-overlay.active {
+            opacity: 1;
+        }
+
+        @media (max-width: 1024px) {
+            :root {
+                --sidebar-width: 240px;
+            }
+
+            .metrics-grid {
+                grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            }
+
+            .metric-value {
+                font-size: 1.4rem;
+            }
+
+            .ornament {
+                width: 25px;
+                height: 25px;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .sidebar {
+                transform: translateX(-100%);
+            }
+
+            .sidebar.active {
+                transform: translateX(0);
+            }
+
+            .sidebar-overlay {
+                display: block;
+            }
+
+            .mobile-menu-btn {
+                display: block;
+            }
+
+            .main-content {
+                margin-left: 0;
+            }
+
+            .content-wrapper {
+                padding: 20px 15px;
+                padding-top: 70px;
+            }
+
+            .header h1 {
+                font-size: 1.5rem;
+            }
+
+            .metrics-grid {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 10px;
+            }
+
+            .metric {
+                padding: 15px;
+            }
+
+            .metric-value {
+                font-size: 1.2rem;
+            }
+
+            .info-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .nav-item {
+                padding: 11px 20px 11px 35px;
+            }
+
+            .ornament {
+                display: none;
+            }
+        }
+
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: var(--bg-light);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--primary);
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--secondary);
+        }
+    </style>
+</head>
+<body>
+    <!-- Loading Overlay -->
+    <div class="loading-overlay" id="loadingOverlay">
+        <div style="text-align: center;">
+            <div class="loading-spinner"></div>
+            <h2 style="margin-bottom: 10px; color: var(--text-primary);">📊 Đang tải dashboard...</h2>
+            <p style="color: var(--text-muted);">Chuẩn bị dữ liệu thị trường</p>
+        </div>
+    </div>
+
+    <!-- Mobile Menu Button -->
+    <button class="mobile-menu-btn" id="mobileMenuBtn" onclick="toggleSidebar()">☰</button>
+
+    <!-- Sidebar Overlay -->
+    <div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
+
+    <div class="app-container">
+        <!-- Sidebar -->
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <h1>📊 Market Dashboard</h1>
+                <p class="subtitle">Báo cáo thị trường</p>
+            </div>
+
+            <div class="search-box">
+                <div class="search-input-wrapper">
+                    <span class="search-icon">🔍</span>
+                    <input type="text" class="search-input" id="searchInput" placeholder="Tìm kiếm chỉ số..." onkeyup="filterNavItems()">
+                </div>
+            </div>
+
+            <nav class="nav-groups" id="navGroups">
+                <div class="nav-group" data-group="overview">
+                    <div class="nav-group-header" onclick="toggleNavGroup(this)">
+                        <span class="icon">📋</span>
+                        <span>Tổng Quan</span>
+                        <span class="arrow">▼</span>
+                    </div>
+                    <div class="nav-group-items">
+                        <div class="nav-item active" data-tab="overview" data-search="tổng quan overview báo cáo">
+                            <span class="item-icon">📊</span>
+                            <span class="item-name">Báo Cáo Tổng Hợp</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="nav-group" data-group="major">
+                    <div class="nav-group-header" onclick="toggleNavGroup(this)">
+                        <span class="icon">📈</span>
+                        <span>Chỉ Số Chính</span>
+                        <span class="arrow">▼</span>
+                    </div>
+                    <div class="nav-group-items">
+                        <div class="nav-item" data-tab="vnindex" data-search="vnindex chỉ số toàn thị trường">
+                            <span class="item-icon">📈</span>
+                            <span class="item-name">VNINDEX</span>
+                            <span class="item-badge">14 sections</span>
+                        </div>
+                        <div class="nav-item" data-tab="vn30" data-search="vn30 blue chip">
+                            <span class="item-icon">💎</span>
+                            <span class="item-name">VN30</span>
+                        </div>
+                        <div class="nav-item" data-tab="vn100" data-search="vn100 top 100">
+                            <span class="item-icon">🔷</span>
+                            <span class="item-name">VN100</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="nav-group" data-group="cap">
+                    <div class="nav-group-header" onclick="toggleNavGroup(this)">
+                        <span class="icon">💰</span>
+                        <span>Vốn Hóa</span>
+                        <span class="arrow">▼</span>
+                    </div>
+                    <div class="nav-group-items">
+                        <div class="nav-item" data-tab="vnmidcap" data-search="vnmidcap mid cap trung bình">
+                            <span class="item-icon">📉</span>
+                            <span class="item-name">VNMIDCAP</span>
+                        </div>
+                        <div class="nav-item" data-tab="vnsml" data-search="vnsml small cap nhỏ">
+                            <span class="item-icon">🔻</span>
+                            <span class="item-name">VNSML</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="nav-group" data-group="sectors">
+                    <div class="nav-group-header" onclick="toggleNavGroup(this)">
+                        <span class="icon">🏢</span>
+                        <span>Ngành Hàng</span>
+                        <span class="arrow">▼</span>
+                    </div>
+                    <div class="nav-group-items">
+                        <div class="nav-item" data-tab="vnreal" data-search="vnreal bất động sản real estate">
+                            <span class="item-icon">🏢</span>
+                            <span class="item-name">VNREAL</span>
+                            <span class="item-badge">BĐS</span>
+                        </div>
+                        <div class="nav-item" data-tab="vnit" data-search="vnit công nghệ technology it">
+                            <span class="item-icon">💻</span>
+                            <span class="item-name">VNIT</span>
+                            <span class="item-badge">Tech</span>
+                        </div>
+                        <div class="nav-item" data-tab="vnheal" data-search="vnheal y tế health care">
+                            <span class="item-icon">🏥</span>
+                            <span class="item-name">VNHEAL</span>
+                            <span class="item-badge">Health</span>
+                        </div>
+                        <div class="nav-item" data-tab="vnfin" data-search="vnfin tài chính financial">
+                            <span class="item-icon">🏦</span>
+                            <span class="item-name">VNFIN</span>
+                            <span class="item-badge">Finance</span>
+                        </div>
+                        <div class="nav-item" data-tab="vnene" data-search="vnene năng lượng energy">
+                            <span class="item-icon">⚡</span>
+                            <span class="item-name">VNENE</span>
+                            <span class="item-badge">Energy</span>
+                        </div>
+                        <div class="nav-item" data-tab="vncons" data-search="vncons tiêu dùng thiết yếu consumer">
+                            <span class="item-icon">🛒</span>
+                            <span class="item-name">VNCONS</span>
+                        </div>
+                        <div class="nav-item" data-tab="vnmat" data-search="vnmat nguyên vật liệu material">
+                            <span class="item-icon">🔩</span>
+                            <span class="item-name">VNMAT</span>
+                        </div>
+                        <div class="nav-item" data-tab="vncond" data-search="vncond hàng tiêu dùng">
+                            <span class="item-icon">🛍️</span>
+                            <span class="item-name">VNCOND</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="nav-group" data-group="special">
+                    <div class="nav-group-header" onclick="toggleNavGroup(this)">
+                        <span class="icon">⭐</span>
+                        <span>Đặc Biệt</span>
+                        <span class="arrow">▼</span>
+                    </div>
+                    <div class="nav-group-items">
+                        <div class="nav-item" data-tab="vnfinselect" data-search="vnfinselect tài chính được chọn">
+                            <span class="item-icon">💠</span>
+                            <span class="item-name">VNFINSELECT</span>
+                        </div>
+                        <div class="nav-item" data-tab="vndiamond" data-search="vndiamond kim cương diamond">
+                            <span class="item-icon">💎</span>
+                            <span class="item-name">VNDIAMOND</span>
+                        </div>
+                    </div>
+                </div>
+            </nav>
+        </aside>
+
+        <main class="main-content">
+            <div class="content-wrapper">
+                <header class="header">
+                    <div class="header-content">
+                        <h1 id="pageTitle">📊 Báo Cáo Tổng Hợp</h1>
+                        <div class="header-decoration">
+                            <span class="decoration-item">📊 Thị Trường Chứng Khoán</span>
+                            <span class="decoration-item">📈 Phân Tích Chi Tiết</span>
+                            <span class="decoration-item">💹 Cập Nhật Real-time</span>
+                        </div>
+                    </div>
+                </header>
+
+                <div class="metrics-grid">
+                    <div class="metric" data-value="1772.15">
+                        <div class="metric-name">VNINDEX</div>
+                        <div class="metric-value positive" data-target="1772.15">0.00</div>
+                        <div class="metric-change up">+1.21%</div>
+                    </div>
+                    <div class="metric" data-value="2013.44">
+                        <div class="metric-name">VN30</div>
+                        <div class="metric-value positive" data-target="2013.44">0.00</div>
+                        <div class="metric-change up">+1.39%</div>
+                    </div>
+                    <div class="metric" data-value="1052.75">
+                        <div class="metric-name">VN100</div>
+                        <div class="metric-value positive" data-target="1052.75">0.00</div>
+                        <div class="metric-change up">+1.20%</div>
+                    </div>
+                    <div class="metric" data-value="1108.23">
+                        <div class="metric-name">VNMIDCAP</div>
+                        <div class="metric-value negative" data-target="1108.23">0.00</div>
+                        <div class="metric-change down">-0.88%</div>
+                    </div>
+                    <div class="metric" data-value="566.66">
+                        <div class="metric-name">VNSML</div>
+                        <div class="metric-value negative" data-target="566.66">0.00</div>
+                        <div class="metric-change down">-0.11%</div>
+                    </div>
+                </div>
+
+                <div id="content"></div>
+            </div>
+        </main>
+    </div>
+
+    <script src="full_data.js"></script>
+    <script>
+        // ==================== NUMBER ANIMATION ====================
+        function animateValue(element, start, end, duration) {
+            const range = end - start;
+            const increment = range / (duration / 16);
+            const isInteger = Number.isInteger(end);
+            let current = start;
+
+            const timer = setInterval(() => {
+                current += increment;
+                if ((increment > 0 && current >= end) || (increment < 0 && current <= end)) {
+                    current = end;
+                    clearInterval(timer);
+                }
+
+                element.textContent = isInteger ?
+                    Math.round(current).toLocaleString('vi-VN') :
+                    current.toFixed(2).replace('.', ',');
+            }, 16);
+        }
+
+        function animateAllNumbers() {
+            const values = document.querySelectorAll('.metric-value');
+            values.forEach((value, index) => {
+                const target = parseFloat(value.getAttribute('data-target'));
+                setTimeout(() => {
+                    animateValue(value, 0, target, 1200);
+                }, index * 80);
+            });
+        }
+
+        // ==================== SIDEBAR FUNCTIONS ====================
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            const overlay = document.getElementById('sidebarOverlay');
+            sidebar.classList.toggle('active');
+            overlay.classList.toggle('active');
+        }
+
+        function toggleNavGroup(header) {
+            const group = header.parentElement;
+            group.classList.toggle('collapsed');
+        }
+
+        function filterNavItems() {
+            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+            const navItems = document.querySelectorAll('.nav-item');
+            const navGroups = document.querySelectorAll('.nav-group');
+
+            navItems.forEach(item => {
+                const searchText = item.getAttribute('data-search') || '';
+                const itemName = item.querySelector('.item-name').textContent.toLowerCase();
+
+                if (searchText.includes(searchTerm) || itemName.includes(searchTerm)) {
+                    item.style.display = 'flex';
+                } else {
+                    item.style.display = 'none';
+                }
+            });
+
+            navGroups.forEach(group => {
+                const visibleItems = group.querySelectorAll('.nav-item:not([style*="display: none"])');
+                if (visibleItems.length === 0) {
+                    group.style.display = 'none';
+                } else {
+                    group.style.display = 'block';
+                }
+            });
+        }
+
+        // ==================== SWITCH TAB ====================
+        function switchTab(tabId, navItem) {
+            document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+            navItem.classList.add('active');
+
+            const titles = {
+                overview: '📊 Báo Cáo Tổng Hợp',
+                vnindex: '📈 VNINDEX - Chỉ Số Toàn Thị Trường',
+                vn30: '💎 VN30 - Chỉ Số Blue Chips',
+                vn100: '🔷 VN100 - Top 100 Cổ Phiếu',
+                vnmidcap: '📉 VNMIDCAP - Mid Cap',
+                vnsml: '🔻 VNSML - Small Cap',
+                vnreal: '🏢 VNREAL - Bất Động Sản',
+                vnit: '💻 VNIT - Công Nghệ Thông Tin',
+                vnheal: '🏥 VNHEAL - Chăm Sóc Sức Khỏe',
+                vnfin: '🏦 VNFIN - Tài Chính',
+                vnene: '⚡ VNENE - Năng Lượng',
+                vncons: '🛒 VNCONS - Tiêu Dùng Thiết Yếu',
+                vnmat: '🔩 VNMAT - Nguyên Vật Liệu',
+                vncond: '🛍️ VNCOND - Hàng Tiêu Dùng',
+                vnfinselect: '💠 VNFINSELECT - Tài Chính Được Chọn',
+                vndiamond: '💎 VNDIAMOND - Chỉ Số Kim Cương'
+            };
+            document.getElementById('pageTitle').textContent = titles[tabId] || tabId.toUpperCase();
+
+            const content = document.getElementById('content');
+            content.style.opacity = '0';
+
+            setTimeout(() => {
+                const data = FULL_DATA[tabId];
+                let html = '';
+
+                if (data && data.sections) {
+                    data.sections.forEach((section, index) => {
+                        html += renderSection(section.icon, section.title, section.content, section.alert, index);
+                    });
+                } else {
+                    html = renderPlaceholder(
+                        titles[tabId] || tabId.toUpperCase(),
+                        'Đang cập nhật phân tích chi tiết đầy đủ...'
+                    );
+                }
+
+                content.innerHTML = html;
+                content.style.transition = 'opacity 0.3s ease';
+                content.style.opacity = '1';
+
+                setTimeout(() => {
+                    const sections = document.querySelectorAll('.section');
+                    sections.forEach((section, index) => {
+                        setTimeout(() => {
+                            const sectionContent = section.querySelector('.section-content');
+                            section.classList.add('active');
+                            sectionContent.classList.add('show');
+                        }, index * 80);
+                    });
+                }, 100);
+            }, 200);
+
+            if (window.innerWidth <= 768) {
+                toggleSidebar();
+            }
+        }
+
+        function renderSection(icon, title, content, alert = false, index) {
+            // CONSISTENT TEMPLATE: All sections use same structure
+            return `
+                <div class="section">
+                    <div class="section-header" onclick="toggleSection(this)">
+                        <span class="section-icon">${icon}</span>
+                        <span class="section-title">${title}</span>
+                        <span class="section-arrow">▼</span>
+                    </div>
+                    <div class="section-content">
+                        <div class="info-grid">
+                            ${content}
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderPlaceholder(title, message) {
+            return `
+                <div class="placeholder">
+                    <p>${title}</p>
+                    <p>${message}</p>
+                </div>
+            `;
+        }
+
+        function toggleSection(header) {
+            const section = header.parentElement;
+            const content = header.nextElementSibling;
+
+            section.classList.toggle('active');
+            content.classList.toggle('show');
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            document.querySelectorAll('.nav-item').forEach(item => {
+                item.addEventListener('click', function() {
+                    const tabId = this.getAttribute('data-tab');
+                    switchTab(tabId, this);
+                });
+            });
+
+            setTimeout(() => {
+                document.getElementById('loadingOverlay').classList.add('hidden');
+                setTimeout(() => {
+                    animateAllNumbers();
+                }, 300);
+            }, 1000);
+
+            setTimeout(() => {
+                const firstTab = document.querySelector('.nav-item[data-tab="overview"]');
+                if (firstTab) {
+                    switchTab('overview', firstTab);
+                }
+            }, 1500);
+        });
+    </script>
+</body>
+</html>
