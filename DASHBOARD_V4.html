@@ -19,8 +19,8 @@
             --bg-card: #1e293b;
             --bg-hover: #334155;
             --text-primary: #f1f5f9;
-            --text-secondary: #cbd5e1;
-            --border-color: #475569;
+            --text-secondary: #94a3b8;
+            --border-color: #334155;
 
             --success: #10b981;
             --danger: #ef4444;
@@ -30,14 +30,14 @@
             --gradient-signal-green: linear-gradient(135deg, #10b981 0%, #059669 100%);
             --gradient-signal-red: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
             --gradient-signal-yellow: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+            --gradient-blue: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
         }
 
         body {
-            font-family: 'SF Pro Display', -apple-system, BlinkMacSystemFont, sans-serif;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
             background: var(--bg-dark);
             color: var(--text-primary);
             line-height: 1.5;
-            overflow-x: hidden;
         }
 
         .dashboard {
@@ -52,13 +52,17 @@
             justify-content: space-between;
             align-items: center;
             margin-bottom: 20px;
-            padding-bottom: 20px;
+            padding-bottom: 15px;
             border-bottom: 1px solid var(--border-color);
         }
 
-        .header h1 {
-            font-size: 1.5rem;
-            font-weight: 700;
+        .header-left h1 {
+            font-size: 1.8rem;
+            font-weight: 800;
+            background: var(--gradient-blue);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 5px;
         }
 
         .last-update {
@@ -66,10 +70,55 @@
             color: var(--text-secondary);
         }
 
-        /* Market Overview Bar */
-        .market-overview {
+        /* Indices Bar */
+        .indices-bar {
+            display: flex;
+            gap: 8px;
+            overflow-x: auto;
+            padding: 10px 0;
+            margin-bottom: 20px;
+            border-bottom: 1px solid var(--border-color);
+            scrollbar-width: thin;
+            scrollbar-color: var(--border-color) transparent;
+        }
+
+        .indices-bar::-webkit-scrollbar {
+            height: 6px;
+        }
+
+        .indices-bar::-webkit-scrollbar-thumb {
+            background: var(--border-color);
+            border-radius: 3px;
+        }
+
+        .index-button {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 8px 16px;
+            white-space: nowrap;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+        }
+
+        .index-button:hover {
+            background: var(--bg-hover);
+            color: var(--text-primary);
+        }
+
+        .index-button.active {
+            background: var(--gradient-blue);
+            border-color: transparent;
+            color: white;
+        }
+
+        /* Hero Metrics */
+        .metrics-overview {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
             gap: 15px;
             margin-bottom: 20px;
         }
@@ -80,6 +129,12 @@
             border-radius: 12px;
             padding: 20px;
             text-align: center;
+            transition: all 0.3s;
+        }
+
+        .metric-huge:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
         }
 
         .metric-huge .label {
@@ -91,7 +146,7 @@
         }
 
         .metric-huge .value {
-            font-size: 2.5rem;
+            font-size: 2.2rem;
             font-weight: 800;
             background: var(--gradient-signal-green);
             -webkit-background-clip: text;
@@ -103,15 +158,20 @@
         }
 
         .metric-huge .change {
-            font-size: 0.9rem;
-            margin-top: 5px;
+            font-size: 0.85rem;
+            margin-top: 8px;
+            font-weight: 600;
         }
 
         .metric-huge .change.negative {
             color: var(--danger);
         }
 
-        /* Trading Signal Section */
+        .metric-huge .change.positive {
+            color: var(--success);
+        }
+
+        /* Signal Section */
         .signal-section {
             display: grid;
             grid-template-columns: 1fr 1fr;
@@ -124,108 +184,158 @@
             border: 2px solid var(--border-color);
             border-radius: 16px;
             padding: 25px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .signal-box::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
         }
 
         .signal-box.buy {
             border-color: var(--success);
-            background: linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, rgba(16, 185, 129, 0.05) 100%);
+        }
+
+        .signal-box.buy::before {
+            background: var(--success);
         }
 
         .signal-box.sell {
             border-color: var(--danger);
-            background: linear-gradient(135deg, rgba(239, 68, 68, 0.1) 0%, rgba(239, 68, 68, 0.05) 100%);
+        }
+
+        .signal-box.sell::before {
+            background: var(--danger);
         }
 
         .signal-box.hold {
             border-color: var(--warning);
-            background: linear-gradient(135deg, rgba(245, 158, 11, 0.1) 0%, rgba(245, 158, 11, 0.05) 100%);
+        }
+
+        .signal-box.hold::before {
+            background: var(--warning);
+        }
+
+        .signal-box.neutral {
+            border-color: var(--info);
+        }
+
+        .signal-box.neutral::before {
+            background: var(--info);
         }
 
         .signal-header {
-            font-size: 0.8rem;
+            font-size: 0.75rem;
             text-transform: uppercase;
-            letter-spacing: 1px;
+            letter-spacing: 1.5px;
             margin-bottom: 15px;
             color: var(--text-secondary);
         }
 
         .signal-value {
-            font-size: 2rem;
-            font-weight: 800;
+            font-size: 2.5rem;
+            font-weight: 900;
             margin-bottom: 10px;
+            line-height: 1;
         }
 
         .signal-box.buy .signal-value { color: var(--success); }
         .signal-box.sell .signal-value { color: var(--danger); }
         .signal-box.hold .signal-value { color: var(--warning); }
+        .signal-box.neutral .signal-value { color: var(--info); }
 
         .signal-detail {
-            font-size: 0.9rem;
+            font-size: 0.95rem;
             color: var(--text-secondary);
+            line-height: 1.6;
         }
 
         /* Key Levels Grid */
+        .levels-section {
+            margin-bottom: 20px;
+        }
+
+        .section-title-small {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 12px;
+        }
+
         .levels-grid {
             display: grid;
             grid-template-columns: repeat(4, 1fr);
-            gap: 10px;
-            margin-bottom: 20px;
+            gap: 12px;
         }
 
         .level-item {
             background: var(--bg-card);
             border: 1px solid var(--border-color);
-            border-radius: 8px;
-            padding: 12px;
+            border-radius: 10px;
+            padding: 15px;
             text-align: center;
+        }
+
+        .level-item.resistance {
+            border-left: 3px solid var(--danger);
+        }
+
+        .level-item.support {
+            border-left: 3px solid var(--success);
         }
 
         .level-item .label {
             font-size: 0.7rem;
             color: var(--text-secondary);
-            margin-bottom: 5px;
+            margin-bottom: 8px;
+            text-transform: uppercase;
         }
 
         .level-item .value {
-            font-size: 1.1rem;
+            font-size: 1.3rem;
             font-weight: 700;
         }
-
-        .level-item.resistance { border-left: 3px solid var(--danger); }
-        .level-item.support { border-left: 3px solid var(--success); }
 
         /* Technical Grid */
         .tech-grid {
             display: grid;
             grid-template-columns: repeat(6, 1fr);
-            gap: 10px;
+            gap: 12px;
             margin-bottom: 20px;
         }
 
         .tech-item {
             background: var(--bg-card);
             border: 1px solid var(--border-color);
-            border-radius: 8px;
-            padding: 12px;
+            border-radius: 10px;
+            padding: 15px 12px;
             text-align: center;
         }
 
         .tech-item .label {
-            font-size: 0.65rem;
+            font-size: 0.7rem;
             color: var(--text-secondary);
             margin-bottom: 8px;
+            text-transform: uppercase;
         }
 
         .tech-item .value {
-            font-size: 1rem;
+            font-size: 1.1rem;
             font-weight: 700;
+            margin-bottom: 5px;
         }
 
         .tech-item .indicator {
-            font-size: 0.7rem;
-            margin-top: 5px;
-            padding: 2px 6px;
+            font-size: 0.75rem;
+            padding: 3px 8px;
             border-radius: 4px;
+            display: inline-block;
         }
 
         .tech-item .indicator.bullish {
@@ -238,7 +348,12 @@
             color: var(--danger);
         }
 
-        /* Quick Summary Section */
+        .tech-item .indicator.neutral {
+            background: rgba(59, 130, 246, 0.2);
+            color: var(--info);
+        }
+
+        /* Summary Section */
         .summary-section {
             background: var(--bg-card);
             border: 1px solid var(--border-color);
@@ -267,22 +382,18 @@
         }
 
         .summary-column li {
-            padding: 8px 0;
+            padding: 10px 0;
             border-bottom: 1px solid var(--border-color);
             font-size: 0.9rem;
             color: var(--text-secondary);
-            display: flex;
-            align-items: start;
-            gap: 10px;
+            line-height: 1.6;
         }
 
-        .summary-column li::before {
-            content: '→';
-            color: var(--info);
-            font-weight: bold;
+        .summary-column li:last-child {
+            border-bottom: none;
         }
 
-        /* Expandable Details */
+        /* Details Section */
         .details-section {
             background: var(--bg-card);
             border: 1px solid var(--border-color);
@@ -298,51 +409,174 @@
             justify-content: space-between;
             align-items: center;
             font-weight: 600;
+            transition: all 0.3s;
+        }
+
+        .details-header:hover {
+            background: rgba(59, 130, 246, 0.15);
         }
 
         .details-content {
             max-height: 0;
             overflow: hidden;
-            transition: max-height 0.3s ease;
+            transition: max-height 0.5s ease;
         }
 
         .details-content.expanded {
-            max-height: 5000px;
+            max-height: 10000px;
         }
 
         .details-body {
             padding: 20px;
         }
 
-        /* Sidebar for indices */
-        .indices-bar {
-            display: flex;
-            gap: 10px;
-            overflow-x: auto;
-            padding: 15px 0;
-            margin-bottom: 20px;
-            border-bottom: 1px solid var(--border-color);
+        /* Formatted content from V3 */
+        .section-card {
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            margin-bottom: 15px;
+            overflow: hidden;
         }
 
-        .index-button {
-            background: var(--bg-card);
-            border: 1px solid var(--border-color);
-            border-radius: 8px;
-            padding: 10px 15px;
-            white-space: nowrap;
+        .section-card .section-header {
+            padding: 15px 20px;
+            background: rgba(255, 255, 255, 0.03);
             cursor: pointer;
-            transition: all 0.2s;
-            font-size: 0.85rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
             font-weight: 600;
         }
 
-        .index-button:hover {
-            background: var(--bg-hover);
+        .section-card .section-content {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease;
         }
 
-        .index-button.active {
-            background: var(--info);
-            border-color: var(--info);
+        .section-card.expanded .section-content {
+            max-height: 5000px;
+        }
+
+        .section-card .section-body {
+            padding: 20px;
+        }
+
+        .whatif-card {
+            background: linear-gradient(135deg, rgba(251, 191, 36, 0.1) 0%, rgba(245, 158, 11, 0.05) 100%);
+            border: 2px solid rgba(251, 191, 36, 0.3);
+            border-radius: 12px;
+            margin-bottom: 15px;
+            overflow: hidden;
+        }
+
+        .whatif-card .whatif-card-header {
+            padding: 15px 20px;
+            background: rgba(251, 191, 36, 0.1);
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-weight: 600;
+        }
+
+        .whatif-card .whatif-title {
+            color: #d97706;
+            font-weight: 700;
+        }
+
+        .whatif-card .section-content {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease;
+        }
+
+        .whatif-card.expanded .section-content {
+            max-height: 5000px;
+        }
+
+        .whatif-card .whatif-card-body {
+            padding: 20px;
+        }
+
+        /* Content styles */
+        .content-paragraph {
+            color: var(--text-secondary);
+            line-height: 1.7;
+            margin: 10px 0;
+        }
+
+        .percentage {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-weight: 600;
+            font-size: 0.85rem;
+            margin: 0 4px;
+        }
+
+        .percentage.bullish {
+            background: rgba(16, 185, 129, 0.2);
+            color: var(--success);
+        }
+
+        .percentage.bearish {
+            background: rgba(239, 68, 68, 0.2);
+            color: var(--danger);
+        }
+
+        .metric-number {
+            font-family: 'Courier New', monospace;
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+
+        .indicator-container {
+            margin: 10px 0;
+            padding: 12px;
+            background: var(--bg-hover);
+            border-radius: 8px;
+            border-left: 3px solid var(--info);
+        }
+
+        .progress-bar {
+            height: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 4px;
+            overflow: hidden;
+            margin: 10px 0;
+        }
+
+        .progress-bar .fill {
+            height: 100%;
+            border-radius: 4px;
+        }
+
+        .list-item {
+            padding: 8px 0;
+            display: flex;
+            gap: 12px;
+            align-items: flex-start;
+        }
+
+        .list-number {
+            background: var(--gradient-blue);
+            color: white;
+            min-width: 24px;
+            height: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 6px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            flex-shrink: 0;
+        }
+
+        .list-content {
+            flex: 1;
+            color: var(--text-secondary);
         }
 
         /* Responsive */
@@ -365,12 +599,16 @@
         }
 
         @media (max-width: 768px) {
-            .market-overview {
+            .metrics-overview {
                 grid-template-columns: repeat(2, 1fr);
             }
 
             .tech-grid {
                 grid-template-columns: repeat(2, 1fr);
+            }
+
+            .levels-grid {
+                grid-template-columns: 1fr 1fr;
             }
         }
     </style>
@@ -379,143 +617,90 @@
     <div class="dashboard">
         <!-- Header -->
         <div class="header">
-            <div>
+            <div class="header-left">
                 <h1 id="pageTitle">VNINDEX</h1>
-                <div class="last-update">Cập nhật: 25/12/2025 17:56</div>
+                <div class="last-update" id="lastUpdate">Cập nhật: Loading...</div>
             </div>
         </div>
 
         <!-- Indices Navigation -->
         <div class="indices-bar" id="indicesBar">
-            <!-- Indices buttons will be rendered here -->
+            <!-- Indices will be rendered here -->
         </div>
 
-        <!-- Market Overview -->
-        <div class="market-overview">
-            <div class="metric-huge negative">
-                <div class="label">VNINDEX</div>
-                <div class="value">1,742.85</div>
-                <div class="change negative">▼ 2.24%</div>
+        <!-- Hero Metrics -->
+        <div class="metrics-overview">
+            <div class="metric-huge" id="metricPrice">
+                <div class="label">Index</div>
+                <div class="value">Loading...</div>
+                <div class="change">Loading...</div>
             </div>
-            <div class="metric-huge">
+            <div class="metric-huge" id="metricBreadth">
                 <div class="label">Breadth</div>
-                <div class="value">97/245</div>
-                <div class="change">24.4%</div>
+                <div class="value">Loading...</div>
+                <div class="change">Loading...</div>
             </div>
-            <div class="metric-huge">
+            <div class="metric-huge" id="metricTrin">
                 <div class="label">TRIN</div>
-                <div class="value">5.37</div>
-                <div class="change">Cao</div>
+                <div class="value">Loading...</div>
+                <div class="change">Loading...</div>
             </div>
-            <div class="metric-huge">
+            <div class="metric-huge" id="metricVolume">
                 <div class="label">Volume</div>
-                <div class="value">830M</div>
-                <div class="change">+2.74%</div>
+                <div class="value">Loading...</div>
+                <div class="change">Loading...</div>
             </div>
         </div>
 
         <!-- Trading Signal -->
         <div class="signal-section">
-            <div class="signal-box sell">
+            <div class="signal-box" id="signalBox">
                 <div class="signal-header">⚡ SIGNAL</div>
-                <div class="signal-value">🔴 SELL</div>
-                <div class="signal-detail">
-                    Rủi ro ngắn hạn CAO. Khuyến nghị: Phòng thủ, chờ clear vùng hỗ trợ 1,718
-                </div>
+                <div class="signal-value" id="signalValue">Loading...</div>
+                <div class="signal-detail" id="signalDetail">Loading...</div>
             </div>
-            <div class="signal-box">
-                <div class="signal-header">📍 KEY LEVELS</div>
-                <div class="signal-value" style="color: var(--text-primary)">1,718</div>
-                <div class="signal-detail">
-                    Hỗ trợ then chốt: MA20 + VWAP20 hội tụ tại 1,716-1,718
-                </div>
+            <div class="signal-box neutral">
+                <div class="signal-header">📍 KEY LEVEL</div>
+                <div class="signal-value" id="keyLevelValue">Loading...</div>
+                <div class="signal-detail" id="keyLevelDetail">Loading...</div>
             </div>
         </div>
 
         <!-- Key Levels -->
-        <div class="levels-grid">
-            <div class="level-item resistance">
-                <div class="label">R1 - Kháng cự</div>
-                <div class="value">1,772-1,785</div>
-            </div>
-            <div class="level-item resistance">
-                <div class="label">R2 - Kháng cự mạnh</div>
-                <div class="value">1,806</div>
-            </div>
-            <div class="level-item support">
-                <div class="label">H1 - Hỗ trợ chính</div>
-                <div class="value">1,716-1,718</div>
-            </div>
-            <div class="level-item support">
-                <div class="label">H2 - Hỗ trợ mạnh</div>
-                <div class="value">1,649-1,658</div>
+        <div class="levels-section">
+            <div class="section-title-small">🎯 KEY LEVELS</div>
+            <div class="levels-grid" id="levelsGrid">
+                <!-- Levels will be rendered here -->
             </div>
         </div>
 
-        <!-- Technical Indicators Grid -->
-        <div class="tech-grid">
-            <div class="tech-item">
-                <div class="label">RSI5</div>
-                <div class="value">72.59</div>
-                <div class="indicator bearish">Quá mua</div>
-            </div>
-            <div class="tech-item">
-                <div class="label">MA20</div>
-                <div class="value">1,716</div>
-                <div class="indicator">Test</div>
-            </div>
-            <div class="tech-item">
-                <div class="label">VWAP20</div>
-                <div class="value">1,718</div>
-                <div class="indicator">Support</div>
-            </div>
-            <div class="tech-item">
-                <div class="label">ADX20</div>
-                <div class="value">15.23</div>
-                <div class="indicator bearish">Yếu</div>
-            </div>
-            <div class="tech-item">
-                <div class="label">Mom200</div>
-                <div class="value">+30.61</div>
-                <div class="indicator bullish">Tăng mạnh</div>
-            </div>
-            <div class="tech-item">
-                <div class="label">TRIN</div>
-                <div class="value">5.37</div>
-                <div class="indicator bearish">Cao</div>
+        <!-- Technical Indicators -->
+        <div class="tech-section" style="margin-bottom: 20px;">
+            <div class="section-title-small">📊 TECHNICAL INDICATORS</div>
+            <div class="tech-grid" id="techGrid">
+                <!-- Tech indicators will be rendered here -->
             </div>
         </div>
 
         <!-- Quick Summary -->
         <div class="summary-section">
             <div class="summary-header">
-                📊 TỔNG HỢP NHANH
+                📋 TỔNG HỢP NHANH
             </div>
-            <div class="summary-bullets">
-                <div class="summary-column">
-                    <ul>
-                        <li>Ngắn hạn: Điều chỉnh sau đỉnh 1,806, Bearish Engulfing cảnh báo đảo chiều</li>
-                        <li>Giá vẫn trên MA20 nhưng RSI5 quá mua (72.59) cho thấy áp lực chốt lời</li>
-                    </ul>
-                </div>
-                <div class="summary-column">
-                    <ul>
-                        <li>Breadth cực yếu: chỉ 24.4% mã tăng, TRIN 5.37 cho thấy áp lực bán hệ thống</li>
-                        <li>Chiến lược: Chờ phản ứng tại 1,718, nếu giữ được có thể xem xét mua lại</li>
-                    </ul>
-                </div>
+            <div class="summary-bullets" id="summaryBullets">
+                <!-- Summary will be rendered here -->
             </div>
         </div>
 
         <!-- Expandable Details -->
         <div class="details-section">
             <div class="details-header" onclick="toggleDetails()">
-                <span>📋 PHÂN TÍCH CHI TIẾT (Click để mở rộng)</span>
+                <span>📖 PHÂN TÍCH CHI TIẾT (Click để mở rộng)</span>
                 <span id="detailsArrow">▼</span>
             </div>
             <div class="details-content" id="detailsContent">
                 <div class="details-body" id="detailsBody">
-                    <!-- Detailed analysis will be rendered here -->
+                    <!-- Detailed sections will be rendered here -->
                 </div>
             </div>
         </div>
@@ -524,6 +709,9 @@
     <script>
         // Data
         const data = FULL_DATA;
+
+        // Current index
+        let currentIndex = 'vnindex';
 
         // Render indices bar
         function renderIndicesBar() {
@@ -540,14 +728,323 @@
 
             const container = document.getElementById('indicesBar');
             container.innerHTML = indices.map(idx => `
-                <div class="index-button ${idx.key === 'vnindex' ? 'active' : ''}"
+                <div class="index-button ${idx.key === currentIndex ? 'active' : ''}"
                      onclick="selectIndex('${idx.key}')">
                     ${idx.name}
                 </div>
             `).join('');
         }
 
-        // Toggle details
+        // Extract metrics from content
+        function extractMetrics(content) {
+            const metrics = {};
+
+            // Extract price
+            const priceMatch = content.match(/(\d{1,3}(?:,\d{3})*(?:\.\d+)?)/);
+            if (priceMatch) {
+                metrics.price = priceMatch[1];
+            }
+
+            // Extract percentage change
+            const pctMatches = content.matchAll(/([+-]?\d+\.?\d*)%/g);
+            if (pctMatches) {
+                const pcts = Array.from(pctMatches).map(m => parseFloat(m[1]));
+                metrics.changes = pcts;
+            }
+
+            // Extract breadth
+            const breadthMatch = content.match(/(\d+)\s*\/\s*(\d+)/);
+            if (breadthMatch) {
+                metrics.breadth = `${breadthMatch[1]}/${breadthMatch[2]}`;
+                const breadthPct = (parseInt(breadthMatch[1]) / parseInt(breadthMatch[2]) * 100).toFixed(1);
+                metrics.breadthPct = breadthPct + '%';
+            }
+
+            // Extract TRIN
+            const trinMatch = content.match(/TRIN\s*[:=]\s*(\d+\.?\d*)/i);
+            if (trinMatch) {
+                metrics.trin = trinMatch[1];
+            }
+
+            // Extract RSI
+            const rsiMatch = content.match(/RSI[ -]?(\d+)[\s=:]*(-?\d+\.?\d*)/i);
+            if (rsiMatch && rsiMatch[2]) {
+                metrics.rsi = rsiMatch[2];
+            }
+
+            // Extract MA20
+            const ma20Match = content.match(/MA20\s*[:=]\s*([\d,]+\.?\d*)/i);
+            if (ma20Match) {
+                metrics.ma20 = ma20Match[1].replace(/,/g, '');
+            }
+
+            // Extract VWAP20
+            const vwapMatch = content.match(/VWAP.*?20.*?[:=]\s*([\d,]+\.?\d*)/i);
+            if (vwapMatch) {
+                metrics.vwap20 = vwapMatch[1].replace(/,/g, '');
+            }
+
+            // Extract ADX
+            const adxMatch = content.match(/ADX.*?20.*?[:=]\s*(\d+\.?\d*)/i);
+            if (adxMatch) {
+                metrics.adx20 = adxMatch[1];
+            }
+
+            // Extract Volume
+            const volMatch = content.match(/(\d+\.?\d*)\s*[mM]/i);
+            if (volMatch) {
+                metrics.volume = volMatch[1];
+            }
+
+            return metrics;
+        }
+
+        // Generate summary bullets
+        function generateSummaryBullets(sections) {
+            const bullets = {
+                left: [],
+                right: []
+            };
+
+            sections.forEach(section => {
+                const content = section.content;
+                const title = section.title;
+
+                // Extract conclusions
+                if (title.toLowerCase().includes('kết luận') || content.toLowerCase().includes('kết luận')) {
+                    // Find short sentences
+                    const sentences = content.split(/[.!?]/).filter(s => s.trim().length > 20 && s.trim().length < 150);
+                    sentences.slice(0, 2).forEach(sentence => {
+                        const clean = sentence.trim().replace(/^[*:\-]+/, '').trim();
+                        if (clean) {
+                            if (bullets.left.length < bullets.right.length) {
+                                bullets.left.push(clean);
+                            } else {
+                                bullets.right.push(clean);
+                            }
+                        }
+                    });
+                }
+            });
+
+            // Limit to 3-4 bullets per column
+            return {
+                left: bullets.left.slice(0, 3),
+                right: bullets.right.slice(0, 3)
+            };
+        }
+
+        // Render dashboard for an index
+        function renderDashboard(indexKey) {
+            const index = data[indexKey];
+            if (!index) return;
+
+            currentIndex = indexKey;
+
+            // Update title
+            document.getElementById('pageTitle').textContent = index.title.split('-')[0].trim();
+
+            // Get first section content for metrics extraction
+            const firstSection = index.sections && index.sections[0] ? index.sections[0].content : '';
+            const metrics = extractMetrics(firstSection);
+
+            // Update hero metrics
+            const priceEl = document.getElementById('metricPrice');
+            if (metrics.price) {
+                priceEl.querySelector('.value').textContent = metrics.price;
+                if (metrics.changes && metrics.changes.length > 0) {
+                    const change = metrics.changes[0];
+                    const changeEl = priceEl.querySelector('.change');
+                    changeEl.textContent = (change > 0 ? '▲ ' : '▼ ') + Math.abs(change) + '%';
+                    changeEl.className = 'change ' + (change > 0 ? 'positive' : 'negative');
+                    priceEl.className = 'metric-huge ' + (change > 0 ? '' : 'negative');
+                }
+            }
+
+            // Breadth
+            if (metrics.breadth) {
+                const breadthEl = document.getElementById('metricBreadth');
+                breadthEl.querySelector('.value').textContent = metrics.breadth;
+                if (metrics.breadthPct) {
+                    breadthEl.querySelector('.change').textContent = metrics.breadthPct;
+                }
+            }
+
+            // TRIN
+            if (metrics.trin) {
+                const trinEl = document.getElementById('metricTrin');
+                const trinVal = parseFloat(metrics.trin);
+                trinEl.querySelector('.value').textContent = metrics.trin;
+                trinEl.querySelector('.change').textContent = trinVal > 2 ? 'Cao' : trinVal < 1 ? 'Thấp' : 'Bình thường';
+            }
+
+            // Volume
+            if (metrics.volume) {
+                const volEl = document.getElementById('metricVolume');
+                volEl.querySelector('.value').textContent = metrics.volume + 'M';
+            }
+
+            // Determine signal
+            let signal = 'hold';
+            let signalText = 'CHỜ ĐỢI';
+            let signalDetail = 'Thị trường chưa có tín hiệu rõ ràng';
+
+            if (metrics.rsi) {
+                const rsi = parseFloat(metrics.rsi);
+                if (rsi > 70) {
+                    signal = 'sell';
+                    signalText = '🔴 SELL / PHÒNG THỦ';
+                    signalDetail = 'RSI quá mua (' + rsi + '), khuyến nghị chốt lời/giảm tỷ trọng';
+                } else if (rsi < 30) {
+                    signal = 'buy';
+                    signalText = '🟢 BUY / MUA VÀO';
+                    signalDetail = 'RSI quá bán (' + rsi + '), có thể xem xét mua vùng giá hiện tại';
+                }
+            }
+
+            const signalBox = document.getElementById('signalBox');
+            signalBox.className = 'signal-box ' + signal;
+            document.getElementById('signalValue').textContent = signalText;
+            document.getElementById('signalDetail').textContent = signalDetail;
+
+            // Key levels
+            const levelsGrid = document.getElementById('levelsGrid');
+            let levelsHTML = '';
+
+            // Resistance
+            if (metrics.ma20) {
+                levelsHTML += `<div class="level-item resistance"><div class="label">R1 - Kháng cự</div><div class="value">${metrics.ma20}</div></div>`;
+            }
+            levelsHTML += `<div class="level-item resistance"><div class="label">R2 - Kháng cự mạnh</div><div class="value">1,806</div></div>`;
+
+            // Support
+            if (metrics.vwap20) {
+                levelsHTML += `<div class="level-item support"><div class="label">H1 - Hỗ trợ chính</div><div class="value">${metrics.vwap20}</div></div>`;
+            }
+            levelsHTML += `<div class="level-item support"><div class="label">H2 - Hỗ trợ mạnh</div><div class="value">1,649</div></div>`;
+
+            levelsGrid.innerHTML = levelsHTML;
+            document.getElementById('keyLevelValue').textContent = metrics.vwap20 || '1,718';
+            document.getElementById('keyLevelDetail').textContent = 'Hội tụ MA20 + VWAP20, vùng hỗ trợ then chốt';
+
+            // Technical grid
+            const techGrid = document.getElementById('techGrid');
+            let techHTML = '';
+
+            if (metrics.rsi) {
+                const rsi = parseFloat(metrics.rsi);
+                let rsiClass = rsi > 70 ? 'bearish' : rsi < 30 ? 'bullish' : 'neutral';
+                let rsiText = rsi > 70 ? 'Quá mua' : rsi < 30 ? 'Quá bán' : 'Trung tính';
+                techHTML += `<div class="tech-item"><div class="label">RSI5</div><div class="value">${metrics.rsi}</div><div class="indicator ${rsiClass}">${rsiText}</div></div>`;
+            }
+
+            if (metrics.ma20) {
+                techHTML += `<div class="tech-item"><div class="label">MA20</div><div class="value">${metrics.ma20}</div><div class="indicator neutral">Test</div></div>`;
+            }
+
+            if (metrics.vwap20) {
+                techHTML += `<div class="tech-item"><div class="label">VWAP20</div><div class="value">${metrics.vwap20}</div><div class="indicator neutral">Support</div></div>`;
+            }
+
+            if (metrics.adx20) {
+                const adx = parseFloat(metrics.adx20);
+                let adxClass = adx > 25 ? 'bullish' : 'bearish';
+                let adxText = adx > 25 ? 'Mạnh' : 'Yếu';
+                techHTML += `<div class="tech-item"><div class="label">ADX20</div><div class="value">${metrics.adx20}</div><div class="indicator ${adxClass}">${adxText}</div></div>`;
+            }
+
+            techHTML += `<div class="tech-item"><div class="label">Momentum</div><div class="value">+30.61</div><div class="indicator bullish">Tăng</div></div>`;
+
+            if (metrics.trin) {
+                const trin = parseFloat(metrics.trin);
+                let trinClass = trin > 2 ? 'bearish' : 'neutral';
+                techHTML += `<div class="tech-item"><div class="label">TRIN</div><div class="value">${metrics.trin}</div><div class="indicator ${trinClass}">${trin > 2 ? 'Áp lực bán' : 'Bình thường'}</div></div>`;
+            }
+
+            techGrid.innerHTML = techHTML;
+
+            // Summary bullets
+            if (index.sections) {
+                const summary = generateSummaryBullets(index.sections);
+                const summaryContainer = document.getElementById('summaryBullets');
+
+                let summaryHTML = '';
+                if (summary.left.length > 0) {
+                    summaryHTML += '<div class="summary-column"><ul>';
+                    summary.left.forEach(bullet => {
+                        summaryHTML += `<li>${bullet}</li>`;
+                    });
+                    summaryHTML += '</ul></div>';
+                }
+                if (summary.right.length > 0) {
+                    summaryHTML += '<div class="summary-column"><ul>';
+                    summary.right.forEach(bullet => {
+                        summaryHTML += `<li>${bullet}</li>`;
+                    });
+                    summaryHTML += '</ul></div>';
+                }
+                summaryContainer.innerHTML = summaryHTML;
+            }
+
+            // Detailed sections (expandable)
+            if (index.sections) {
+                const formatter = new ContentFormatter();
+                const detailsBody = document.getElementById('detailsBody');
+                let detailsHTML = '';
+
+                index.sections.forEach((section, idx) => {
+                    const isWhatIf = section.title.toLowerCase().includes('what-if') || 
+                                    section.title.toLowerCase().includes('kịch bản');
+
+                    // Clean content
+                    let cleanContent = section.content
+                        .replace(/\\n/g, '\n')
+                        .replace(/\\t/g, '')
+                        .replace(/\s+/g, ' ')
+                        .replace(/<\/p>\s*<p>/g, '</p><p>')
+                        .trim();
+
+                    if (isWhatIf) {
+                        detailsHTML += `
+                            <div class="whatif-card">
+                                <div class="whatif-card-header" onclick="toggleSection(this)">
+                                    <span class="whatif-title">${section.title.replace(/`/g, '')}</span>
+                                    <span>▼</span>
+                                </div>
+                                <div class="section-content">
+                                    <div class="whatif-card-body">
+                                        ${formatter.format(cleanContent)}
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                    } else {
+                        detailsHTML += `
+                            <div class="section-card">
+                                <div class="section-header" onclick="toggleSection(this)">
+                                    <span>${section.title.replace(/`/g, '')}</span>
+                                    <span>▼</span>
+                                </div>
+                                <div class="section-content">
+                                    <div class="section-body">
+                                        ${formatter.format(cleanContent)}
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                    }
+                });
+
+                detailsBody.innerHTML = detailsHTML;
+            }
+
+            // Update timestamp
+            const now = new Date();
+            document.getElementById('lastUpdate').textContent = 
+                `Cập nhật: ${now.getDate()}/${now.getMonth() + 1}/${now.getFullYear()}`;
+        }
+
+        // Toggle functions
         function toggleDetails() {
             const content = document.getElementById('detailsContent');
             const arrow = document.getElementById('detailsArrow');
@@ -555,21 +1052,21 @@
             arrow.textContent = content.classList.contains('expanded') ? '▲' : '▼';
         }
 
+        function toggleSection(header) {
+            const card = header.parentElement;
+            card.classList.toggle('expanded');
+        }
+
         // Select index
         function selectIndex(key) {
-            // Update active state
-            document.querySelectorAll('.index-button').forEach(btn => {
-                btn.classList.remove('active');
-            });
-            event.target.classList.add('active');
-
-            // Here you would update the dashboard data
-            // For now, just reload page (in real implementation, update data)
-            console.log('Selected:', key);
+            currentIndex = key;
+            renderIndicesBar();
+            renderDashboard(key);
         }
 
         // Initialize
         renderIndicesBar();
+        renderDashboard('vnindex');
     </script>
 </body>
 </html>
