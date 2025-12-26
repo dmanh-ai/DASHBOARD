@@ -2045,16 +2045,25 @@
             return (title || '').replace(/`/g, '').trim().toUpperCase();
         }
 
-        function htmlToPlainText(html) {
-            const div = document.createElement('div');
-            div.innerHTML = html || '';
-            return (div.textContent || div.innerText || '').replace(/\u00A0/g, ' ').replace(/\s+/g, ' ').trim();
-        }
+	        function htmlToPlainText(html) {
+	            const div = document.createElement('div');
+	            div.innerHTML = html || '';
+	            return (div.textContent || div.innerText || '').replace(/\u00A0/g, ' ').replace(/\s+/g, ' ').trim();
+	        }
 
-        function parseCompactNumberToFloat(text) {
-            if (!text) return null;
-            const raw = String(text).trim();
-            const m = raw.match(/^([0-9]+(?:[.,][0-9]+)?)\s*([KMB]|triệu|tỷ)?$/i);
+	        function escapeHtml(text) {
+	            return String(text == null ? '' : text)
+	                .replace(/&/g, '&amp;')
+	                .replace(/</g, '&lt;')
+	                .replace(/>/g, '&gt;')
+	                .replace(/\"/g, '&quot;')
+	                .replace(/'/g, '&#39;');
+	        }
+
+	        function parseCompactNumberToFloat(text) {
+	            if (!text) return null;
+	            const raw = String(text).trim();
+	            const m = raw.match(/^([0-9]+(?:[.,][0-9]+)?)\s*([KMB]|triệu|tỷ)?$/i);
             if (!m) {
                 // Fallback: strip commas
                 const n = Number(raw.replace(/,/g, ''));
@@ -2174,40 +2183,43 @@
             return `rgb(${r}, ${g}, ${b})`;
         }
 
-        function renderIndexHeatmap(rows) {
-            const usable = rows.filter(r => r.changePct != null && r.volumeValue != null);
-            const maxAbsChange = usable.length ? Math.max(...usable.map(r => Math.abs(r.changePct))) : 1;
-            const maxVolume = usable.length ? Math.max(...usable.map(r => r.volumeValue)) : 1;
+	        function renderIndexHeatmap(rows) {
+	            const usable = rows.filter(r => r.changePct != null && r.volumeValue != null);
+	            const maxAbsChange = usable.length ? Math.max(...usable.map(r => Math.abs(r.changePct))) : 1;
+	            const maxVolume = usable.length ? Math.max(...usable.map(r => r.volumeValue)) : 1;
 
-            const tiles = rows.map(r => {
-                const bg = tileBackgroundForChangeVolume(r.changePct, r.volumeValue, maxAbsChange, maxVolume);
-                const change = r.changeText || 'N/A';
-                const vol = r.volumeText || 'N/A';
-                const title = `${r.label} | ${change} | Vol ${vol}`;
-                return `
-                    <button type="button" class="heatmap-tile heatmap-tile-btn" style="background:${bg}" title="${title.replace(/\"/g,'&quot;')}" onclick="openIndexPopup('${r.key}')">
-                        <div class="symbol">${r.label}</div>
-                        <div class="metric">${change} · Vol ${vol}</div>
-                    </button>
-                `;
-            }).join('');
+	            const tiles = rows.map(r => {
+	                const bg = tileBackgroundForChangeVolume(r.changePct, r.volumeValue, maxAbsChange, maxVolume);
+	                const change = r.changeText || 'N/A';
+	                const vol = r.volumeText || 'N/A';
+	                const title = `${r.label} | ${change} | Vol ${vol}`;
+	                return `
+	                    <button type="button" class="heatmap-tile heatmap-tile-btn" style="background:${bg}" title="${escapeHtml(title)}" onclick="openIndexPopup('${r.key}')">
+	                        <div class="symbol">${r.label}</div>
+	                        <div class="metric">${change} · Vol ${vol}</div>
+	                    </button>
+	                `;
+	            }).join('');
 
             return `<div class="heatmap-index-grid">${tiles}</div>`;
         }
 
-        function renderStockHeatmapTable(points, title) {
-            if (!points || !points.length) {
-                return `
-                    <div class="block">
-                        <div class="block-header">${title}</div>
-                        <div class="block-body"><div class="info-box"><p>Không có dữ liệu.</p></div></div>
-                    </div>
-                `;
-            }
+	        function renderStockHeatmapTable(points, title) {
+	            if (!points || !points.length) {
+	                return `
+	                    <div class="block">
+	                        <div class="block-header">${escapeHtml(title)}</div>
+	                        <div class="block-body"><div class="info-box"><p>Không có dữ liệu.</p></div></div>
+	                    </div>
+	                `;
+	            }
 
-            const maxAbsChange = Math.max(...points.map(p => Math.abs(p.change_pct))) || 1;
-            const cols = 6;
-            const rows = Math.ceil(points.length / cols);
+	            const changeSeries = points
+	                .map(p => Number(p && p.change_pct))
+	                .filter(v => Number.isFinite(v));
+	            const maxAbsChange = (changeSeries.length ? Math.max(...changeSeries.map(v => Math.abs(v))) : 0) || 1;
+	            const cols = 6;
+	            const rows = Math.ceil(points.length / cols);
 
             let html = '';
             let idx = 0;
@@ -2218,49 +2230,52 @@
                         rowHtml += '<td></td>';
                         continue;
                     }
-                    const p = points[idx++];
-                    const isUp = p.change_pct >= 0;
-                    const bg = isUp ? '#d4efdf' : '#f9d6d5';
-                    const changeFactor = Math.min(Math.abs(p.change_pct) / maxAbsChange, 1);
-                    const sizePercent = 60 + Math.round(40 * changeFactor);
-                    const changeStr = (p.change_pct >= 0 ? '+' : '') + p.change_pct.toFixed(2) + '%';
-                    const priceStr = (p.price != null ? Number(p.price).toFixed(2) : 'N/A');
-                    const valueStr = p.value != null ? formatCompactNumber(Number(p.value)) : 'N/A';
-                    const volumeStr = p.volume != null ? formatCompactNumber(Number(p.volume)) : 'N/A';
-                    const tooltip = `${p.symbol} | ${changeStr} | Price ${priceStr} | Val ${valueStr}`;
+	                    const p = points[idx++];
+	                    const symbol = (p && p.symbol != null ? String(p.symbol) : '').trim();
+	                    const changePct = Number(p && p.change_pct);
+	                    const changeOk = Number.isFinite(changePct);
+	                    const isUp = changeOk ? changePct >= 0 : true;
+	                    const bg = isUp ? '#d4efdf' : '#f9d6d5';
+	                    const changeFactor = changeOk ? Math.min(Math.abs(changePct) / maxAbsChange, 1) : 0;
+	                    const sizePercent = 60 + Math.round(40 * changeFactor);
+	                    const changeStr = changeOk ? ((changePct >= 0 ? '+' : '') + changePct.toFixed(2) + '%') : 'N/A';
+	                    const priceStr = (p && p.price != null && Number.isFinite(Number(p.price))) ? Number(p.price).toFixed(2) : 'N/A';
+	                    const valueStr = p && p.value != null && Number.isFinite(Number(p.value)) ? formatCompactNumber(Number(p.value)) : 'N/A';
+	                    const volumeStr = p && p.volume != null && Number.isFinite(Number(p.volume)) ? formatCompactNumber(Number(p.volume)) : 'N/A';
+	                    const tooltip = `${symbol || 'N/A'} | ${changeStr} | Price ${priceStr} | Val ${valueStr}`;
 
-                    rowHtml += `
-                        <td class="heatmap-cell" style="background-color:${bg}" title="${tooltip.replace(/\"/g,'&quot;')}">
-                            <button type="button" class="heatmap-cell-btn"
-                                    data-symbol="${p.symbol}"
-                                    data-change-pct="${p.change_pct}"
-                                    data-price="${priceStr}"
-                                    data-value="${valueStr}"
-                                    data-volume="${volumeStr}"
-                                    onclick="openVnindexStockPopupFromEl(this)">
-                                <div class="heatmap-symbol" style="width:${sizePercent}%">${p.symbol}</div>
-                                <div class="heatmap-metric" style="width:${sizePercent}%">${changeStr} · Val ${valueStr}</div>
-                            </button>
-                        </td>
-                    `;
+	                    rowHtml += `
+	                        <td class="heatmap-cell" style="background-color:${bg}" title="${escapeHtml(tooltip)}">
+	                            <button type="button" class="heatmap-cell-btn"
+	                                    data-symbol="${escapeHtml(symbol || 'N/A')}"
+	                                    data-change-pct="${changeOk ? String(changePct) : ''}"
+	                                    data-price="${escapeHtml(priceStr)}"
+	                                    data-value="${escapeHtml(valueStr)}"
+	                                    data-volume="${escapeHtml(volumeStr)}"
+	                                    onclick="openVnindexStockPopupFromEl(this)">
+	                                <div class="heatmap-symbol" style="width:${sizePercent}%">${escapeHtml(symbol || 'N/A')}</div>
+	                                <div class="heatmap-metric" style="width:${sizePercent}%">${changeStr} · Val ${valueStr}</div>
+	                            </button>
+	                        </td>
+	                    `;
                 }
                 html += `<tr>${rowHtml}</tr>`;
             }
 
-            return `
-                <div class="block" data-popup-title="${title.replace(/\"/g,'&quot;')}">
-                    <div class="block-header">
-                        <span>${title}</span>
-                        <button type="button" class="block-expand" onclick="openBlockPopup(this)">Xem lớn</button>
-                    </div>
-                    <div class="block-body">
-                        <table class="heatmap-table" role="presentation" cellpadding="0" cellspacing="0">
-                            ${html}
-                        </table>
-                    </div>
-                </div>
-            `;
-        }
+	            return `
+	                <div class="block" data-popup-title="${escapeHtml(title)}">
+	                    <div class="block-header">
+	                        <span>${escapeHtml(title)}</span>
+	                        <button type="button" class="block-expand" onclick="openBlockPopup(this)">Xem lớn</button>
+	                    </div>
+	                    <div class="block-body">
+	                        <table class="heatmap-table" role="presentation" cellpadding="0" cellspacing="0">
+	                            ${html}
+	                        </table>
+	                    </div>
+	                </div>
+	            `;
+	        }
 
         function buildIndexSummaryHtml() {
             const rows = getSummaryIndexRows();
@@ -2275,49 +2290,99 @@
             `;
         }
 
-        function buildMarketOverviewExtrasHtml() {
-            const rows = getSummaryIndexRows();
-            const summaryCards = renderSummaryCards(rows);
-            const indexHeatmap = renderIndexHeatmap(rows);
+	        function buildMarketOverviewExtrasHtml() {
+	            try {
+	                const rows = getSummaryIndexRows();
+	                const summaryCards = renderSummaryCards(rows);
+	                const indexHeatmap = renderIndexHeatmap(rows);
 
-            const stockData = window.UI_GLM_VNINDEX_HEATMAP || null;
-            const gainers = stockData && Array.isArray(stockData.gainers) ? stockData.gainers : [];
-            const losers = stockData && Array.isArray(stockData.losers) ? stockData.losers : [];
-            const dateText = stockData && stockData.date ? ` (date: ${stockData.date})` : '';
+	                const stockData = window.UI_GLM_VNINDEX_HEATMAP || null;
+	                const gainers = stockData && Array.isArray(stockData.gainers) ? stockData.gainers : [];
+	                const losers = stockData && Array.isArray(stockData.losers) ? stockData.losers : [];
+	                const dateText = stockData && stockData.date ? ` (date: ${stockData.date})` : '';
 
-            const gainersBlock = renderStockHeatmapTable(
-                gainers,
-                `🔥 Heatmap cổ phiếu VNINDEX TĂNG GIÁ (giá & giá trị giao dịch)${dateText}`
-            );
+	                const gainersBlock = renderStockHeatmapTable(
+	                    gainers,
+	                    `🔥 Heatmap cổ phiếu VNINDEX TĂNG GIÁ (giá & giá trị giao dịch)${dateText}`
+	                );
 
-            const losersBlock = renderStockHeatmapTable(
-                losers,
-                `🔥 Heatmap cổ phiếu VNINDEX GIẢM GIÁ (giá & giá trị giao dịch)${dateText}`
-            );
+	                const losersBlock = renderStockHeatmapTable(
+	                    losers,
+	                    `🔥 Heatmap cổ phiếu VNINDEX GIẢM GIÁ (giá & giá trị giao dịch)${dateText}`
+	                );
 
-            return `
-                <div class="overview-extras">
-                    <div class="block">
-                        <div class="block-header">📊 THỐNG KÊ CÁC CHỈ SỐ</div>
-                        <div class="block-body">${summaryCards}</div>
-                    </div>
-                    <div class="block" data-popup-title="🔥 Heatmap giá &amp; khối lượng (cuối ngày)">
-                        <div class="block-header">
-                            <span>🔥 Heatmap giá &amp; khối lượng (cuối ngày)</span>
-                            <button type="button" class="block-expand" onclick="openBlockPopup(this)">Xem lớn</button>
-                        </div>
-                        <div class="block-body">${indexHeatmap}</div>
-                    </div>
-                    ${gainersBlock}
-                    ${losersBlock}
-                </div>
-            `;
-        }
+	                return `
+	                    <div class="overview-extras">
+	                        <div class="block">
+	                            <div class="block-header">📊 THỐNG KÊ CÁC CHỈ SỐ</div>
+	                            <div class="block-body">${summaryCards}</div>
+	                        </div>
+	                        <div class="block" data-popup-title="🔥 Heatmap giá &amp; khối lượng (cuối ngày)">
+	                            <div class="block-header">
+	                                <span>🔥 Heatmap giá &amp; khối lượng (cuối ngày)</span>
+	                                <button type="button" class="block-expand" onclick="openBlockPopup(this)">Xem lớn</button>
+	                            </div>
+	                            <div class="block-body">${indexHeatmap}</div>
+	                        </div>
+	                        ${gainersBlock}
+	                        ${losersBlock}
+	                    </div>
+	                `;
+	            } catch (err) {
+	                const message = (err && err.message) ? err.message : String(err);
+	                return `
+	                    <div class="overview-extras">
+	                        <div class="block">
+	                            <div class="block-header">⚠️ Lỗi render heatmap</div>
+	                            <div class="block-body">
+	                                <div class="info-box">
+	                                    <p>Không render được heatmap do lỗi JS.</p>
+	                                    <p><strong>Chi tiết:</strong> ${escapeHtml(message)}</p>
+	                                </div>
+	                            </div>
+	                        </div>
+	                    </div>
+	                `;
+	            }
+	        }
 
-        // Render section list in middle column
-        function renderSectionList(indexKey) {
-            const index = data[indexKey];
-            if (!index || !index.sections) {
+	        function tryAutoSelectFromUrl() {
+	            try {
+	                const params = new URLSearchParams(window.location.search || '');
+	                const indexKey = (params.get('index') || '').trim();
+	                if (!indexKey) return;
+
+	                const sectionIndexRaw = params.get('section');
+	                const sectionTitleRaw = params.get('sectionTitle');
+
+	                if (!data || !data[indexKey]) return;
+	                selectIndex(indexKey);
+
+	                const indexData = data[indexKey];
+	                const sections = processSections(indexData);
+
+	                if (sectionTitleRaw) {
+	                    const target = normalizeTitle(decodeURIComponent(sectionTitleRaw));
+	                    const foundIndex = sections.findIndex(s => normalizeTitle(s.title) === target);
+	                    if (foundIndex >= 0) selectSection(foundIndex);
+	                    return;
+	                }
+
+	                if (sectionIndexRaw != null && sectionIndexRaw !== '') {
+	                    const sectionIndex = Number(sectionIndexRaw);
+	                    if (Number.isFinite(sectionIndex) && sectionIndex >= 0 && sectionIndex < sections.length) {
+	                        selectSection(sectionIndex);
+	                    }
+	                }
+	            } catch (e) {
+	                // no-op
+	            }
+	        }
+
+	        // Render section list in middle column
+	        function renderSectionList(indexKey) {
+	            const index = data[indexKey];
+	            if (!index || !index.sections) {
                 document.getElementById('sectionList').innerHTML = '<div class="no-sections">Không có dữ liệu</div>';
                 return;
             }
@@ -2451,9 +2516,10 @@
             });
         });
 
-        // Initialize
-        renderSidebar();
-        // Don't auto-select any index - let user choose
+	        // Initialize
+	        renderSidebar();
+	        tryAutoSelectFromUrl();
+	        // Don't auto-select any index by default - let user choose
 
         // ========== DONATE MODAL FUNCTIONS ==========
         function showDonateModal() {
