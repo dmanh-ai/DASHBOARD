@@ -1430,7 +1430,37 @@
             background: rgba(255, 255, 255, 0.04);
         }
 
+        .idx-card-btn {
+            appearance: none;
+            -webkit-appearance: none;
+            display: block;
+            width: 100%;
+            text-align: left;
+            cursor: pointer;
+            border: 1px solid var(--glass-border);
+            border-radius: 14px;
+            padding: 12px;
+            background: rgba(255, 255, 255, 0.04);
+            color: inherit;
+            transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+        }
+
+        .idx-card-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 12px 30px rgba(0, 0, 0, 0.10);
+        }
+
+        .idx-card-btn:focus {
+            outline: none;
+            border-color: rgba(59, 130, 246, 0.6);
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.18);
+        }
+
         [data-theme="dark"] .idx-card {
+            background: rgba(255, 255, 255, 0.02);
+        }
+
+        [data-theme="dark"] .idx-card-btn {
             background: rgba(255, 255, 255, 0.02);
         }
 
@@ -1465,6 +1495,12 @@
             color: var(--text-secondary);
             font-size: 0.85rem;
             white-space: nowrap;
+        }
+
+        .idx-hint {
+            margin-top: 10px;
+            color: var(--text-secondary);
+            font-size: 0.85rem;
         }
 
         .idx-bars {
@@ -1516,6 +1552,146 @@
 
         .bar-fill.neutral {
             background: linear-gradient(90deg, rgba(148, 163, 184, 0.85), rgba(148, 163, 184, 0.45));
+        }
+
+        /* Index detail modal */
+        .detail-modal {
+            display: none;
+            position: fixed;
+            z-index: 10001;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(8px);
+            animation: fadeIn 0.2s ease;
+        }
+
+        .detail-modal-content {
+            background: var(--bg-card);
+            margin: 3% auto;
+            padding: 26px 22px;
+            border-radius: 22px;
+            width: 92%;
+            max-width: 720px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.28);
+            position: relative;
+            border: 1px solid var(--glass-border);
+            animation: slideUp 0.25s ease;
+        }
+
+        .detail-close {
+            position: absolute;
+            right: 14px;
+            top: 12px;
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: rgba(148, 163, 184, 0.15);
+            border: 1px solid var(--glass-border);
+            font-size: 20px;
+            font-weight: 900;
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .detail-close:hover {
+            background: rgba(59, 130, 246, 0.15);
+            color: var(--primary);
+            transform: rotate(90deg);
+        }
+
+        .detail-title {
+            font-size: 1.15rem;
+            font-weight: 900;
+            letter-spacing: 0.4px;
+            margin-bottom: 10px;
+        }
+
+        .detail-subtitle {
+            color: var(--text-secondary);
+            margin-bottom: 14px;
+        }
+
+        .detail-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin: 14px 0 18px;
+        }
+
+        .detail-actions button {
+            border: 1px solid var(--glass-border);
+            background: rgba(59, 130, 246, 0.10);
+            color: var(--text-primary);
+            border-radius: 12px;
+            padding: 10px 12px;
+            font-weight: 800;
+            cursor: pointer;
+        }
+
+        .detail-actions button:hover {
+            background: rgba(59, 130, 246, 0.16);
+        }
+
+        .detail-metrics {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 10px;
+            margin-bottom: 14px;
+        }
+
+        @media (max-width: 720px) {
+            .detail-metrics {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .detail-metric {
+            border: 1px solid var(--glass-border);
+            border-radius: 14px;
+            padding: 12px;
+            background: rgba(255, 255, 255, 0.03);
+        }
+
+        .detail-metric .k {
+            color: var(--text-secondary);
+            font-size: 0.78rem;
+            text-transform: uppercase;
+            letter-spacing: 0.6px;
+            font-weight: 800;
+        }
+
+        .detail-metric .v {
+            margin-top: 8px;
+            font-weight: 900;
+        }
+
+        .detail-sections {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .detail-sections button {
+            width: 100%;
+            text-align: left;
+            border: 1px solid var(--glass-border);
+            background: rgba(148, 163, 184, 0.10);
+            color: var(--text-primary);
+            border-radius: 12px;
+            padding: 10px 12px;
+            cursor: pointer;
+            font-weight: 800;
+        }
+
+        .detail-sections button:hover {
+            background: rgba(148, 163, 184, 0.14);
         }
     </style>
 </head>
@@ -1824,19 +2000,18 @@
                 const price = r.priceText || '—';
                 const change = r.changeText || '—';
 
-                const volText = r.volumeText || (r.volumeValue != null ? formatCompactNumber(r.volumeValue) : '—');
                 const changeW = r.changePct == null ? 0 : Math.max(8, Math.round(100 * Math.min(Math.abs(r.changePct) / maxAbsChange, 1)));
                 const volW = r.volumeValue == null ? 0 : Math.max(8, Math.round(100 * Math.min(r.volumeValue / maxVolume, 1)));
 
                 return `
-                    <div class="idx-card">
+                    <button type="button" class="idx-card-btn" onclick="openIndexDetailModal('${r.key}')">
                         <div class="idx-top">
                             <div class="idx-code">${r.label}</div>
                             <div class="idx-price">${price}</div>
                         </div>
                         <div class="idx-meta">
                             <div><span class="chip ${cls}">${change}</span></div>
-                            <div class="idx-volume">Vol ${volText}</div>
+                            <div class="idx-volume"></div>
                         </div>
                         <div class="idx-bars">
                             <div class="mini-bar">
@@ -1848,7 +2023,8 @@
                                 <div class="bar-track"><div class="bar-fill neutral" style="width:${volW}%"></div></div>
                             </div>
                         </div>
-                    </div>
+                        <div class="idx-hint">Nhấn để xem chi tiết</div>
+                    </button>
                 `;
             }).join('');
 
@@ -2136,6 +2312,70 @@
         renderSidebar();
         // Don't auto-select any index - let user choose
 
+        // ========== INDEX DETAIL MODAL ==========
+        function openIndexInDashboard(indexKey, sectionIdx = null) {
+            closeIndexDetailModal();
+            selectIndex(indexKey);
+            if (sectionIdx != null) {
+                selectSection(sectionIdx);
+            }
+        }
+
+        function openIndexDetailModal(indexKey) {
+            const modal = document.getElementById('indexDetailModal');
+            const content = document.getElementById('indexDetailContent');
+            const index = data[indexKey];
+
+            if (!modal || !content) return;
+
+            if (!index) {
+                content.innerHTML = `<div class="info-box"><p>Không tìm thấy dữ liệu cho index: <strong>${indexKey}</strong></p></div>`;
+                modal.style.display = 'block';
+                document.body.style.overflow = 'hidden';
+                return;
+            }
+
+            const rows = getSummaryIndexRows();
+            const row = rows.find(r => r.key === indexKey) || { label: indexKey.toUpperCase() };
+            const metrics = parseIndexMetrics(indexKey) || {};
+
+            const price = metrics.priceText || 'N/A';
+            const change = metrics.changeText || 'N/A';
+            const volText = metrics.volumeText || (metrics.volumeValue != null ? formatCompactNumber(metrics.volumeValue) : 'N/A');
+
+            const sections = Array.isArray(index.sections) ? index.sections : [];
+            const sectionButtons = sections.map((s, i) => {
+                const title = (s.title || '').replace(/`/g, '');
+                return `<button type="button" onclick="openIndexInDashboard('${indexKey}', ${i})">${title || `Section ${i + 1}`}</button>`;
+            }).join('');
+
+            content.innerHTML = `
+                <div class="detail-title">${row.label}</div>
+                <div class="detail-subtitle">${index.title || ''}</div>
+                <div class="detail-actions">
+                    <button type="button" onclick="openIndexInDashboard('${indexKey}', 0)">Mở index</button>
+                    <button type="button" onclick="closeIndexDetailModal()">Đóng</button>
+                </div>
+                <div class="detail-metrics">
+                    <div class="detail-metric"><div class="k">Giá</div><div class="v">${price}</div></div>
+                    <div class="detail-metric"><div class="k">Thay đổi</div><div class="v">${change}</div></div>
+                    <div class="detail-metric"><div class="k">Khối lượng</div><div class="v">${volText}</div></div>
+                </div>
+                <div class="detail-title" style="font-size: 1rem; margin-top: 8px;">Sections</div>
+                <div class="detail-sections">${sectionButtons || '<div class="info-box"><p>Không có section.</p></div>'}</div>
+            `;
+
+            modal.style.display = 'block';
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeIndexDetailModal() {
+            const modal = document.getElementById('indexDetailModal');
+            if (!modal) return;
+            modal.style.display = 'none';
+            document.body.style.overflow = 'auto';
+        }
+
         // ========== DONATE MODAL FUNCTIONS ==========
         function showDonateModal() {
             const modal = document.getElementById('donateModal');
@@ -2149,21 +2389,30 @@
             document.body.style.overflow = 'auto'; // Enable scrolling
         }
 
-        // Close modal when clicking outside
-        window.onclick = function(event) {
-            const modal = document.getElementById('donateModal');
-            if (event.target === modal) {
-                closeDonateModal();
-            }
-        }
+        // Close modals when clicking outside
+        window.addEventListener('click', function(event) {
+            const donateModal = document.getElementById('donateModal');
+            if (event.target === donateModal) closeDonateModal();
 
-        // Close modal with Escape key
+            const detailModal = document.getElementById('indexDetailModal');
+            if (event.target === detailModal) closeIndexDetailModal();
+        });
+
+        // Close modals with Escape key
         document.addEventListener('keydown', function(event) {
-            if (event.key === 'Escape') {
-                closeDonateModal();
-            }
+            if (event.key !== 'Escape') return;
+            closeDonateModal();
+            closeIndexDetailModal();
         });
     </script>
+
+    <!-- Index Detail Modal -->
+    <div id="indexDetailModal" class="detail-modal">
+        <div class="detail-modal-content">
+            <button class="detail-close" onclick="closeIndexDetailModal()">&times;</button>
+            <div id="indexDetailContent"></div>
+        </div>
+    </div>
 
     <!-- Donate Modal -->
     <div id="donateModal" class="donate-modal">
