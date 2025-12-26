@@ -743,6 +743,20 @@
             letter-spacing: 0.3px;
         }
 
+        .whatif-card .arrow {
+            font-size: 0.7rem;
+            color: #d97706;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            padding: 8px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.6);
+        }
+
+        .whatif-card.expanded .arrow {
+            transform: rotate(180deg);
+            background: rgba(251, 191, 36, 0.3);
+        }
+
         .whatif-card-body {
             padding: 24px;
             background: var(--glass-bg);
