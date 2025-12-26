@@ -1,0 +1,1622 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>📊 Market Dashboard - Professional</title>
+    <script src="full_data.js"></script>
+    <script src="scripts/content_formatter.js"></script>
+    <script>
+        // Content Formatter - Transform plain text to visual data
+
+class ContentFormatter {
+    constructor() {
+        this.patterns = {
+            // Numbers: prices, percentages, ratios
+            price: /(\d{1,3}(?:,\d{3})*(?:\.\d+)?)/g,
+            percentage: /([+-]?\d+\.?\d*)%/g,
+            number: /\b(\d+\.?\d*)\b/g,
+
+            // Technical indicators - Enhanced patterns
+            rsi: /RSI[ -]?(\d+)[\s=:]*(-?\d+\.?\d*)?/gi,
+            atr: /ATR[ -]?(\d+)[\s=:]*(-?\d+\.?\d*)?/gi,
+            ma: /MA[ -]?(\d+)[\s\(=:]*(-?[\d,]+\.?\d*)?/gi,
+            momentum: /Mom[ -]?(\d+)[\s\(=:]*([+-]?\d+\.?\d*)?/gi,
+            adx: /ADX[ -]?(\d+)[\s=:]*(-?[\d,]+\.?\d*)?/gi,
+            vwma: /VWAP[ -]?(\d+)[\s\(=:]*(-?[\d,]+\.?\d*)?/gi,
+
+            // Keywords
+            bullish: /tăng|bullish|positive|kháng cự|sức mạnh|hồi phục|phục hồi|đột biến|phòng thủ|ổn định/gi,
+            bearish: /giảm|bearish|negative|áp lực|bán|tháo chạy|điều chỉnh|yếu|xấu/gi,
+            warning: /cảnh báo|rủi ro|thận trọng|canh giác|nguy hiểm/gi,
+
+            // Section markers
+            conclusion: /^kết luận:/gmi,
+            evidence: /^dẫn chứng|^ý nghĩa/gi,
+            conditions: /^điều kiện/gmi,
+
+            // Subsection headers - detect patterns like "1. Ngắn hạn (1-5 phiên):", "Ngắn hạn:", etc.
+            subsection: /^<p>(\d+\.\s*)?([A-ZÀ-Ỹ][a-zà-ỹ]*(\s+\([^)]+\))?|Ngắn\s+hạn|Trung\s+hạn|Dài\s+hạn)(\s*\(.*?\))?\s*:<\/p>/gmi
+        };
+    }
+
+    // Format content với visual elements
+    format(content) {
+        if (!content) return '';
+
+        // Strip existing HTML tags to get plain text
+        let plainText = this.stripHtml(content);
+
+        let formatted = plainText;
+
+        // Remove backticks from title
+        formatted = formatted.replace(/`([^`]+)`/g, '$1');
+
+        // Format numbers
+        formatted = this.formatNumbers(formatted);
+
+        // Format percentages
+        formatted = this.formatPercentages(formatted);
+
+        // Format technical indicators
+        formatted = this.formatIndicators(formatted);
+
+        // Format lists
+        formatted = this.formatLists(formatted);
+
+        // Format subsections (headers like "1. Ngắn hạn (1-5 phiên):")
+        formatted = this.formatSubsections(formatted);
+
+        // Add color coding
+        formatted = this.colorCode(formatted);
+
+        // Format sections
+        formatted = this.formatSections(formatted);
+
+        return formatted;
+    }
+
+    // Strip HTML tags to get plain text, but preserve structure
+    stripHtml(html) {
+        // Remove the outer info-box div but keep inner content
+        let cleaned = html.replace(/<div class=['"]info-box['"]>/gi, '');
+        cleaned = cleaned.replace(/<\/div>\s*$/gi, ''); // Remove closing div at end
+
+        // Convert <p> tags to newlines
+        cleaned = cleaned.replace(/<p>/gi, '');
+        cleaned = cleaned.replace(/<\/p>/gi, '\n\n');
+
+        // Remove any remaining HTML tags
+        const tmp = document.createElement('div');
+        tmp.innerHTML = cleaned;
+        return tmp.textContent || tmp.innerText || '';
+    }
+
+    formatNumbers(text) {
+        return text.replace(this.patterns.price, (match, number) => {
+            const num = parseFloat(number.replace(/,/g, ''));
+            if (isNaN(num)) return match;
+
+            // Format based on magnitude
+            // CHỈ convert số cực lớn (>= 1M) thành M/K format
+            // Giá chỉ số (1,000-10,000) giữ nguyên dấu phẩy
+            if (num >= 1000000) {
+                return `<span class="metric-number">${(num/1000000).toFixed(2)}M</span>`;
+            } else if (num >= 10000) {
+                // Số 5 chữ số trở lên: format with K
+                return `<span class="metric-number">${(num/1000).toFixed(1)}K</span>`;
+            } else if (num >= 1000) {
+                // Số 4 chữ số (giá chỉ số): GIỮ NGUYÊN dấu phẩy
+                // Nếu match có dấu phẩy, giữ nguyên, ngược lại add dấu phẩy
+                if (match.includes(',')) {
+                    return `<span class="metric-number">${match}</span>`;
+                }
+                return `<span class="metric-number">${num.toLocaleString('en-US')}</span>`;
+            } else if (num >= 1) {
+                return `<span class="metric-number">${num.toLocaleString('en-US')}</span>`;
+            }
+            return match;
+        });
+    }
+
+    formatPercentages(text) {
+        return text.replace(this.patterns.percentage, (match, pct) => {
+            const num = parseFloat(pct);
+            if (isNaN(num)) return match;
+
+            const className = num > 0 ? 'bullish' : num < 0 ? 'bearish' : 'neutral';
+            const icon = num > 0 ? '📈' : num < 0 ? '📉' : '➡️';
+
+            return `<span class="percentage ${className}" title="${pct}">${icon} ${pct}</span>`;
+        });
+    }
+
+    formatIndicators(text) {
+        // Format RSI with progress bar - pattern: /RSI[ -]?(\d+)[\s=:]*(-?\d+\.?\d*)?/gi
+        text = text.replace(this.patterns.rsi, (match, period, value) => {
+            if (!value) return match; // No value provided
+            const num = parseFloat(value);
+            if (isNaN(num)) return match;
+
+            const level = num > 70 ? 'overbought' : num < 30 ? 'oversold' : 'neutral';
+            const color = num > 70 ? 'var(--danger)' : num < 30 ? 'var(--success)' : 'var(--warning)';
+            const label = num > 70 ? 'Quá mua' : num < 30 ? 'Quá bán' : 'Trung tính';
+
+            return `
+                <div class="indicator-container">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                        <div class="indicator-label">RSI${period}</div>
+                        <div class="indicator-value" style="font-size: 1.2rem;">${num.toFixed(2)}</div>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="fill ${level}" style="width: ${Math.min(100, num)}%; background: ${color};"></div>
+                    </div>
+                    <div style="text-align: center; font-size: 0.75rem; margin-top: 4px; color: var(--text-secondary);">${label}</div>
+                </div>
+            `;
+        });
+
+        // Format MA with level
+        text = text.replace(this.patterns.ma, (match, period, value) => {
+            if (!value) return `<span class="ma-indicator"><strong>MA${period}</strong></span>`;
+            const num = parseFloat(value.replace(/,/g, ''));
+            if (isNaN(num)) return match;
+
+            return `<span class="ma-indicator"><strong>MA${period}:</strong> <span class="ma-value">${num.toLocaleString('en-US')}</span></span>`;
+        });
+
+        // Format Momentum
+        text = text.replace(this.patterns.momentum, (match, period, value) => {
+            if (!value) return `<span class="momentum">Mom${period}</span>`;
+            const num = parseFloat(value);
+            if (isNaN(num)) return match;
+
+            const className = num > 0 ? 'bullish' : num < 0 ? 'bearish' : 'neutral';
+            const icon = num > 0 ? '📈' : num < 0 ? '📉' : '➡️';
+
+            return `<span class="momentum ${className}">${icon} Mom${period}: ${value}</span>`;
+        });
+
+        // Format ADX
+        text = text.replace(this.patterns.adx, (match, period, value) => {
+            if (!value) return `<span class="ma-indicator"><strong>ADX${period}</strong></span>`;
+            const num = parseFloat(value.replace(/,/g, ''));
+            if (isNaN(num)) return match;
+
+            const strength = num > 25 ? 'Mạnh' : num > 20 ? 'Trung bình' : 'Yếu';
+            const color = num > 25 ? 'var(--success)' : num > 20 ? 'var(--warning)' : 'var(--text-secondary)';
+
+            return `<span class="ma-indicator"><strong>ADX${period}:</strong> <span class="ma-value" style="color: ${color};">${num.toFixed(2)} (${strength})</span></span>`;
+        });
+
+        // Format ATR
+        text = text.replace(this.patterns.atr, (match, period, value) => {
+            if (!value) return `<span class="ma-indicator"><strong>ATR${period}</strong></span>`;
+            const num = parseFloat(value);
+            if (isNaN(num)) return match;
+
+            return `<span class="ma-indicator"><strong>ATR${period}:</strong> <span class="ma-value">${num.toFixed(2)}</span></span>`;
+        });
+
+        // Format VWAP
+        text = text.replace(this.patterns.vwma, (match, period, value) => {
+            if (!value) return `<span class="ma-indicator"><strong>VWAP${period}</strong></span>`;
+            const num = parseFloat(value.replace(/,/g, ''));
+            if (isNaN(num)) return match;
+
+            return `<span class="ma-indicator"><strong>VWAP${period}:</strong> <span class="ma-value">${num.toLocaleString('en-US')}</span></span>`;
+        });
+
+        return text;
+    }
+
+    formatLists(text) {
+        // Split by paragraphs first
+        const paragraphs = text.split('\n\n');
+
+        return paragraphs.map(para => {
+            // Check if it's a numbered list
+            const lines = para.split('\n');
+
+            // Check for numbered items
+            if (lines.some(line => /^\d+\.\s/.test(line))) {
+                return `<div class="formatted-list numbered">${lines.map(line => {
+                    const match = line.match(/^(\d+)\.\s+(.*)/);
+                    if (match) {
+                        // Check if content has a header like "Ngắn hạn:", "Trung hạn:"
+                        const content = match[2];
+                        const headerMatch = content.match(/^([^:]+):\s*(.*)/);
+
+                        if (headerMatch) {
+                            const header = headerMatch[1];
+                            const body = headerMatch[2];
+                            return `<div class="list-item numbered">
+                                <span class="list-number">${match[1]}</span>
+                                <span class="list-content">
+                                    <span class="list-header">${header}</span>
+                                    <span class="list-body">${this.formatInline(body)}</span>
+                                </span>
+                            </div>`;
+                        }
+
+                        return `<div class="list-item numbered"><span class="list-number">${match[1]}</span><span class="list-content">${this.formatInline(content)}</span></div>`;
+                    }
+                    return `<div class="list-item">${line}</div>`;
+                }).join('')}</div>`;
+            }
+
+            // Check for bullet points
+            if (lines.some(line => /^[\-\•]\s/.test(line))) {
+                return `<div class="formatted-list bulleted">${lines.map(line => {
+                    const match = line.match(/^[\-\•]\s+(.*)/);
+                    if (match) {
+                        // Check if content has a header
+                        const content = match[1];
+                        const headerMatch = content.match(/^([^:]+):\s*(.*)/);
+
+                        if (headerMatch) {
+                            const header = headerMatch[1];
+                            const body = headerMatch[2];
+                            return `<div class="list-item bulleted">
+                                <span class="list-bullet">•</span>
+                                <span class="list-content">
+                                    <span class="list-header">${header}</span>
+                                    <span class="list-body">${this.formatInline(body)}</span>
+                                </span>
+                            </div>`;
+                        }
+
+                        return `<div class="list-item bulleted"><span class="list-bullet">•</span><span class="list-content">${this.formatInline(content)}</span></div>`;
+                    }
+                    return `<div class="list-item">${line}</div>`;
+                }).join('')}</div>`;
+            }
+
+            // Regular paragraph
+            return `<p class="content-paragraph">${this.formatInline(para)}</p>`;
+        }).join('\n\n');
+    }
+
+    formatInline(text) {
+        // Bold key terms
+        text = text.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+
+        // Highlight keywords
+        text = text.replace(this.patterns.bullish, '<span class="text-success">$&</span>');
+        text = text.replace(this.patterns.bearish, '<span class="text-danger">$&</span>');
+        text = text.replace(this.patterns.warning, '<span class="text-warning">$&</span>');
+
+        return text;
+    }
+
+    formatSubsections(text) {
+        // Detect and format subsection headers like "1. Ngắn hạn (1-5 phiên): content" or "Ngắn hạn: content"
+        // EXCLUDE headers that should NOT have styled boxes: Yếu tố, Hướng đi, Điều kiện, etc.
+        const subsectionPattern = /^<p>(\d+\.\s*)?([A-ZÀ-Ỹ][^:]*?)(\s*\([^)]+\))?\s*:\s*(.+?)<\/p>$/gmi;
+
+        return text.replace(subsectionPattern, (match, number, title, parens, content) => {
+            // Extract the title text (remove number, clean up)
+            let fullTitle = title;
+            if (parens) {
+                fullTitle += parens;
+            }
+            if (number) {
+                fullTitle = number + fullTitle;
+            }
+
+            const titleLower = title.toLowerCase();
+
+            // EXCLUDE these headers - they should remain as plain text, NOT get styled boxes
+            const excludeHeaders = [
+                'yếu tố', 'hướng đi', 'điều kiện', 'mục tiêu', 'diễn biến',
+                'dấu hiệu', 'hành động', 'kết luận', 'dẫn chứng', 'ý nghĩa',
+                'xác suất', 'độ tin cậy', 'lưu ý', 'giai thich'
+            ];
+
+            const shouldExclude = excludeHeaders.some(keyword => titleLower.includes(keyword));
+
+            if (shouldExclude) {
+                // Return as plain paragraph with bold title
+                return `<p><strong>${fullTitle}:</strong> ${this.formatInline(content)}</p>`;
+            }
+
+            // Determine icon based on keywords
+            let icon = '📌';
+            if (titleLower.includes('ngắn hạn')) icon = '⚡';
+            else if (titleLower.includes('trung hạn')) icon = '📊';
+            else if (titleLower.includes('dài hạn')) icon = '🎯';
+            else if (titleLower.includes('phân tích')) icon = '🔍';
+
+            // Return header box + content paragraph
+            return `<div class="subsection-box">
+                <span class="subsection-icon">${icon}</span>
+                <span class="subsection-header">${fullTitle}:</span>
+            </div>
+            <p class="content-paragraph">${this.formatInline(content)}</p>`;
+        });
+    }
+
+    colorCode(text) {
+        return text;
+    }
+
+    formatSections(text) {
+        const lines = text.split('\n');
+
+        return lines.map(line => {
+            const trimmedLine = line.trim();
+
+            // Section headers - Enhanced with icons and backgrounds
+            if (this.patterns.conclusion.test(trimmedLine)) {
+                return `<div class="conclusion-box">
+                    <span class="conclusion-icon">📌</span>
+                    <span class="conclusion-text">${trimmedLine.replace(/^Kết luận:\s*/i, '')}</span>
+                </div>`;
+            }
+            if (this.patterns.evidence.test(trimmedLine)) {
+                return `<div class="evidence-box">
+                    <span class="evidence-icon">📊</span>
+                    <span class="evidence-text">${trimmedLine}</span>
+                </div>`;
+            }
+            if (this.patterns.conditions.test(trimmedLine)) {
+                return `<div class="conditions-box">
+                    <span class="conditions-icon">⚠️</span>
+                    <span class="conditions-text">${trimmedLine}</span>
+                </div>`;
+            }
+
+            return line;
+        }).join('\n');
+    }
+}
+
+// Export để dùng trong DASHBOARD
+window.ContentFormatter = ContentFormatter;
+
+    </script>
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            /* Colors */
+            --primary: #2563eb;
+            --success: #10b981;
+            --danger: #ef4444;
+            --warning: #f59e0b;
+            --info: #3b82f6;
+            --purple: #8b5cf6;
+
+            /* Light Theme Colors */
+            --bg-dark: #f8fafc;
+            --bg-card: #ffffff;
+            --bg-hover: #f1f5f9;
+            --text-primary: #0f172a;
+            --text-secondary: #334155;
+            --border-color: #e2e8f0;
+
+            /* Gradients */
+            --gradient-green: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            --gradient-red: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+            --gradient-blue: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+            --gradient-purple: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: var(--bg-dark);
+            color: var(--text-primary);
+            line-height: 1.6;
+            overflow-x: hidden;
+        }
+
+        /* Layout */
+        .dashboard {
+            display: grid;
+            grid-template-columns: 280px 1fr;
+            min-height: 100vh;
+            gap: 0;
+        }
+
+        /* Sidebar */
+        .sidebar {
+            background: var(--bg-card);
+            border-right: 1px solid var(--border-color);
+            padding: 20px 0;
+            overflow-y: auto;
+            height: 100vh;
+            position: sticky;
+            top: 0;
+            box-shadow: 2px 0 8px rgba(0, 0, 0, 0.05);
+        }
+
+        .sidebar-header {
+            padding: 0 20px 20px;
+            border-bottom: 1px solid var(--border-color);
+            margin-bottom: 20px;
+        }
+
+        .sidebar-header h2 {
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: var(--primary);
+            margin-bottom: 5px;
+        }
+
+        .sidebar-header .date {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+        }
+
+        .search-box {
+            padding: 0 20px 15px;
+        }
+
+        .search-input {
+            width: 100%;
+            padding: 10px 15px;
+            background: var(--bg-hover);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            color: var(--text-primary);
+            font-size: 0.9rem;
+            transition: all 0.2s;
+        }
+
+        .search-input:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+            background: var(--bg-card);
+        }
+
+        .index-list {
+            padding: 0 10px;
+        }
+
+        .index-item {
+            padding: 16px 20px;
+            margin: 4px 0;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            border: 1px solid transparent;
+            font-weight: 500;
+            font-size: 0.95rem;
+            letter-spacing: 0.3px;
+        }
+
+        .index-item:hover {
+            background: var(--bg-hover);
+            border-color: var(--border-color);
+            transform: translateX(4px);
+        }
+
+        .index-item.active {
+            background: var(--gradient-blue);
+            border-color: transparent;
+            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+            font-weight: 600;
+        }
+
+        /* Main Content */
+        .main-content {
+            padding: 30px;
+            overflow-y: auto;
+            height: 100vh;
+        }
+
+        .page-header {
+            margin-bottom: 30px;
+        }
+
+        .page-header h1 {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 10px;
+            background: var(--gradient-blue);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .last-update {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+        }
+
+        /* Metrics Grid */
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+
+        .metric-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 20px;
+            transition: all 0.3s;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+
+        .metric-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+            border-color: var(--primary);
+        }
+
+        .metric-card.positive {
+            border-left: 4px solid var(--success);
+        }
+
+        .metric-card.negative {
+            border-left: 4px solid var(--danger);
+        }
+
+        .metric-card .label {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 8px;
+        }
+
+        .metric-card .value {
+            font-size: 1.8rem;
+            font-weight: 700;
+            margin-bottom: 5px;
+        }
+
+        .metric-card .change {
+            font-size: 0.9rem;
+            font-weight: 600;
+            padding: 4px 8px;
+            border-radius: 6px;
+            display: inline-block;
+        }
+
+        .metric-card .change.positive {
+            background: #dcfce7;
+            color: #166534;
+        }
+
+        .metric-card .change.negative {
+            background: #fee2e2;
+            color: #dc2626;
+        }
+
+        /* Section Cards */
+        .sections-container {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .section-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            overflow: hidden;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            margin-bottom: 16px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+
+        .section-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 12px 24px rgba(0, 0, 0, 0.12);
+            border-color: var(--primary);
+        }
+
+        .section-card.alert {
+            border-left: 4px solid var(--warning);
+        }
+
+        .section-header {
+            padding: 24px 28px;
+            background: linear-gradient(135deg, var(--bg-card) 0%, var(--bg-hover) 100%);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            user-select: none;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        .section-header::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 28px;
+            right: 28px;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, var(--border-color), transparent);
+            opacity: 0.5;
+        }
+
+        .section-card.expanded .section-header::after {
+            opacity: 0;
+        }
+
+        .section-header:hover {
+            background: linear-gradient(135deg, rgba(37, 99, 235, 0.08) 0%, rgba(37, 99, 235, 0.04) 100%);
+        }
+
+        .section-header .left {
+            display: flex;
+            align-items: center;
+            gap: 0;
+            flex: 1;
+        }
+
+        .section-header .title {
+            font-size: 1.05rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            letter-spacing: 0.3px;
+            text-transform: uppercase;
+        }
+
+        .section-header .arrow {
+            font-size: 0.7rem;
+            color: var(--text-secondary);
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            padding: 8px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .section-card.expanded .section-header .arrow {
+            transform: rotate(180deg);
+            background: rgba(59, 130, 246, 0.2);
+            color: var(--primary);
+        }
+
+        .section-content {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.5s cubic-bezier(0.4, 0, 0.2, 1),
+                        opacity 0.3s ease;
+            opacity: 0;
+        }
+
+        .section-card.expanded .section-content {
+            max-height: 5000px;
+            opacity: 1;
+        }
+
+        .section-body {
+            padding: 28px;
+            animation: fadeIn 0.4s ease;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Formatted Content Styles */
+        .section-header {
+            font-size: 1rem;
+            font-weight: 600;
+            color: var(--primary);
+            margin: 20px 0 15px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid var(--border-color);
+        }
+
+        .section-header.conclusion {
+            color: var(--info);
+        }
+
+        .section-header.evidence {
+            color: var(--success);
+        }
+
+        .section-header.conditions {
+            color: var(--warning);
+        }
+
+        /* Formatted Lists */
+        .formatted-list {
+            margin: 15px 0;
+        }
+
+        .list-item {
+            padding: 8px 0;
+            display: flex;
+            gap: 12px;
+            align-items: flex-start;
+        }
+
+        .list-number {
+            background: var(--gradient-blue);
+            color: white;
+            min-width: 24px;
+            height: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 6px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            flex-shrink: 0;
+        }
+
+        .list-bullet {
+            color: var(--primary);
+            font-size: 1.2rem;
+            flex-shrink: 0;
+        }
+
+        .list-content {
+            flex: 1;
+            color: var(--text-secondary);
+            line-height: 1.7;
+            font-size: 0.9rem;
+        }
+
+        /* Numbers and Metrics */
+        .metric-number {
+            font-family: 'Courier New', monospace;
+            font-weight: 700;
+            color: var(--text-primary);
+            padding: 0 4px;
+        }
+
+        .percentage {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-weight: 600;
+            font-size: 0.85rem;
+            margin: 0 4px;
+        }
+
+        .percentage.bullish {
+            background: #dcfce7;
+            color: #166534;
+        }
+
+        .percentage.bearish {
+            background: #fee2e2;
+            color: #dc2626;
+        }
+
+        .percentage.neutral {
+            background: #dbeafe;
+            color: #1e40af;
+        }
+
+        /* Indicators */
+        .indicator-container {
+            margin: 10px 0;
+            padding: 12px;
+            background: var(--bg-hover);
+            border-radius: 8px;
+            border-left: 3px solid var(--primary);
+        }
+
+        .indicator-label {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            margin-bottom: 8px;
+        }
+
+        .indicator-value {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            text-align: center;
+            margin: 10px 0;
+        }
+
+        .ma-indicator {
+            display: inline-block;
+            padding: 4px 12px;
+            background: #dbeafe;
+            border-radius: 6px;
+            margin: 0 4px;
+        }
+
+        .ma-value {
+            color: var(--text-primary);
+            font-weight: 600;
+        }
+
+        .momentum {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 6px;
+            font-weight: 600;
+            margin: 0 4px;
+        }
+
+        .momentum.bullish {
+            background: #dcfce7;
+            color: #166534;
+        }
+
+        .momentum.bearish {
+            background: #fee2e2;
+            color: #dc2626;
+        }
+
+        .momentum.neutral {
+            background: #dbeafe;
+            color: #1e40af;
+        }
+
+        /* Text highlights */
+        .text-success {
+            color: var(--success);
+            font-weight: 600;
+        }
+
+        .text-danger {
+            color: var(--danger);
+            font-weight: 600;
+        }
+
+        .text-warning {
+            color: var(--warning);
+            font-weight: 600;
+        }
+
+        /* Paragraph */
+        .content-paragraph {
+            color: var(--text-secondary);
+            line-height: 1.7;
+            margin: 10px 0;
+        }
+
+        .content-paragraph strong {
+            color: var(--primary);
+            font-weight: 600;
+        }
+
+        .info-box {
+            background: var(--bg-hover);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 15px;
+        }
+
+        .info-box:last-child {
+            margin-bottom: 0;
+        }
+
+        .info-box h4 {
+            color: var(--primary);
+            font-size: 0.95rem;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .info-box p {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            line-height: 1.7;
+            margin-bottom: 8px;
+        }
+
+        .info-box p:last-child {
+            margin-bottom: 0;
+        }
+
+        .info-box strong {
+            color: var(--success);
+            font-weight: 600;
+        }
+
+        .info-box ul {
+            margin: 10px 0;
+            padding-left: 20px;
+        }
+
+        .info-box li {
+            color: var(--text-secondary);
+            margin: 5px 0;
+            line-height: 1.6;
+        }
+
+        /* Highlights */
+        .highlight {
+            color: #166534;
+            font-weight: 600;
+            padding: 2px 6px;
+            background: #dcfce7;
+            border-radius: 4px;
+        }
+
+        .warning {
+            color: #b45309;
+            font-weight: 600;
+            padding: 2px 6px;
+            background: #fef3c7;
+            border-radius: 4px;
+        }
+
+        .danger {
+            color: #dc2626;
+            font-weight: 600;
+            padding: 2px 6px;
+            background: #fee2e2;
+            border-radius: 4px;
+        }
+
+        /* Progress Bar */
+        .progress-bar {
+            height: 8px;
+            background: #e2e8f0;
+            border-radius: 4px;
+            overflow: hidden;
+            margin: 10px 0;
+        }
+
+        .progress-bar .fill {
+            height: 100%;
+            border-radius: 4px;
+            transition: width 0.3s;
+        }
+
+        .progress-bar .fill.bullish {
+            background: var(--gradient-green);
+        }
+
+        .progress-bar .fill.bearish {
+            background: var(--gradient-red);
+        }
+
+        /* Badge */
+        .badge {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .badge.success {
+            background: #dcfce7;
+            color: #166534;
+        }
+
+        .badge.warning {
+            background: #fef3c7;
+            color: #b45309;
+        }
+
+        .badge.danger {
+            background: #fee2e2;
+            color: #dc2626;
+        }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: var(--bg-hover);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--primary);
+        }
+
+        /* What-If Section */
+        .whatif-card {
+            background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%);
+            border: 2px solid #fbbf24;
+            border-radius: 16px;
+            overflow: hidden;
+            transition: all 0.3s ease;
+            margin-bottom: 16px;
+            box-shadow: 0 4px 12px rgba(251, 191, 36, 0.15);
+        }
+
+        .whatif-card:hover {
+            box-shadow: 0 8px 20px rgba(251, 191, 36, 0.25);
+            border-color: #f59e0b;
+            transform: translateY(-2px);
+        }
+
+        .whatif-card-header {
+            padding: 20px 24px;
+            background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            user-select: none;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        .whatif-card-header::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 24px;
+            right: 24px;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, #fde68a, transparent);
+            opacity: 0.5;
+        }
+
+        .whatif-card.expanded .whatif-card-header::after {
+            opacity: 0;
+        }
+
+        .whatif-card-header:hover {
+            background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+        }
+
+        .whatif-title {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: #92400e;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+        }
+
+        .whatif-card .arrow {
+            font-size: 0.7rem;
+            color: #d97706;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            padding: 8px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.6);
+        }
+
+        .whatif-card.expanded .whatif-card-header .arrow {
+            transform: rotate(180deg);
+            background: rgba(251, 191, 36, 0.3);
+        }
+
+        .whatif-card.expanded .section-content {
+            max-height: 5000px;
+            opacity: 1;
+        }
+
+        .whatif-card-body {
+            padding: 24px;
+            background: white;
+        }
+
+        /* Enhanced Section Boxes */
+        .conclusion-box {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 16px 20px;
+            border-radius: 12px;
+            border-left: 5px solid var(--info);
+            background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+            margin: 16px 0;
+            box-shadow: 0 2px 8px rgba(59, 130, 246, 0.15);
+        }
+
+        .conclusion-icon {
+            font-size: 1.4rem;
+            width: 36px;
+            height: 36px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 8px;
+            background: white;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .conclusion-text {
+            font-weight: 600;
+            color: #0f172a;
+            font-size: 1rem;
+            line-height: 1.5;
+        }
+
+        .evidence-box {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 16px 20px;
+            border-radius: 12px;
+            border-left: 5px solid var(--success);
+            background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+            margin: 16px 0;
+            box-shadow: 0 2px 8px rgba(16, 185, 129, 0.15);
+        }
+
+        .evidence-icon {
+            font-size: 1.4rem;
+            width: 36px;
+            height: 36px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 8px;
+            background: white;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .evidence-text {
+            font-weight: 600;
+            color: #0f172a;
+            font-size: 1rem;
+            line-height: 1.5;
+        }
+
+        .conditions-box {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 16px 20px;
+            border-radius: 12px;
+            border-left: 5px solid var(--warning);
+            background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%);
+            margin: 16px 0;
+            box-shadow: 0 2px 8px rgba(245, 158, 11, 0.15);
+        }
+
+        .conditions-icon {
+            font-size: 1.4rem;
+            width: 36px;
+            height: 36px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 8px;
+            background: white;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .conditions-text {
+            font-weight: 600;
+            color: #0f172a;
+            font-size: 1rem;
+            line-height: 1.5;
+        }
+
+        /* Enhanced List Styles */
+        .formatted-list {
+            margin: 20px 0;
+        }
+
+        .formatted-list.numbered {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .list-item {
+            padding: 12px 0;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .list-item:last-child {
+            border-bottom: none;
+        }
+
+        .list-item.numbered {
+            display: flex;
+            gap: 16px;
+            padding: 16px 0;
+            align-items: flex-start;
+        }
+
+        .list-number {
+            flex-shrink: 0;
+            width: 32px;
+            height: 32px;
+            background: var(--gradient-blue);
+            color: white;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 0.95rem;
+        }
+
+        .list-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .list-header {
+            font-weight: 700;
+            color: var(--text-primary);
+            background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%);
+            padding: 6px 12px;
+            border-radius: 6px;
+            border-left: 4px solid var(--primary);
+            white-space: nowrap;
+            display: inline-block;
+            font-size: 0.9rem;
+            letter-spacing: 0.3px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+        }
+
+        .list-body {
+            color: var(--text-secondary);
+            line-height: 1.6;
+            font-size: 0.95rem;
+        }
+
+        .content-paragraph {
+            color: var(--text-secondary);
+            line-height: 1.7;
+            margin: 12px 0;
+            font-size: 0.95rem;
+        }
+
+        /* Subsection Boxes - For standalone headers like "1. Ngắn hạn (1-5 phiên):" */
+        .subsection-box {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 14px 18px;
+            border-radius: 10px;
+            background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+            border-left: 4px solid var(--primary);
+            margin: 16px 0;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
+            transition: all 0.2s ease;
+        }
+
+        .subsection-box:hover {
+            background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            transform: translateX(2px);
+        }
+
+        .subsection-icon {
+            font-size: 1.3rem;
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 8px;
+            background: white;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
+            flex-shrink: 0;
+        }
+
+        .subsection-header {
+            font-weight: 700;
+            color: var(--text-primary);
+            font-size: 0.95rem;
+            letter-spacing: 0.3px;
+            line-height: 1.4;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .dashboard {
+                grid-template-columns: 1fr;
+            }
+
+            .sidebar {
+                display: none;
+            }
+
+            .metrics-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .conclusion-box,
+            .evidence-box,
+            .conditions-box {
+                flex-direction: column;
+                text-align: left;
+                gap: 10px;
+            }
+
+            .list-item.numbered {
+                flex-direction: column;
+                gap: 10px;
+            }
+
+            .list-header {
+                white-space: normal;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard">
+        <!-- Sidebar -->
+        <div class="sidebar">
+            <div class="sidebar-header">
+                <h2>Market Dashboard</h2>
+                <div class="date">25/12/2025</div>
+            </div>
+
+            <div class="search-box">
+                <input type="text" class="search-input" placeholder="Search indices..." id="searchInput">
+            </div>
+
+            <div class="index-list" id="indexList">
+                <!-- Indices sẽ được render ở đây -->
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="main-content">
+            <div class="page-header">
+                <h1 id="pageTitle">VNINDEX - PHÂN TÍCH ĐẦY ĐỦ</h1>
+                <div class="last-update">Cập nhật: 25/12/2025 17:56</div>
+            </div>
+
+            <!-- Metrics Cards -->
+            <div class="metrics-grid">
+                <div class="metric-card positive">
+                    <div class="label">VNINDEX</div>
+                    <div class="value">1,742.85</div>
+                    <div class="change negative">-2.24%</div>
+                </div>
+
+                <div class="metric-card">
+                    <div class="label">Breadth</div>
+                    <div class="value">97/245</div>
+                    <div class="change negative">24.4%</div>
+                </div>
+
+                <div class="metric-card">
+                    <div class="label">TRIN</div>
+                    <div class="value">5.37</div>
+                    <div class="change warning">Cao</div>
+                </div>
+
+                <div class="metric-card">
+                    <div class="label">Volume</div>
+                    <div class="value">830M</div>
+                    <div class="change">Tăng 2.74%</div>
+                </div>
+            </div>
+
+            <!-- Sections Container -->
+            <div class="sections-container" id="sectionsContainer">
+                <!-- Sections sẽ được render ở đây -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Data từ full_data.js
+        const data = FULL_DATA;
+
+        // Render sidebar
+        function renderSidebar() {
+            const indices = [
+                { key: 'overview', name: 'TỔNG HỢP' },
+                { key: 'vnindex', name: 'VNINDEX' },
+                { key: 'vn30', name: 'VN30' },
+                { key: 'vn100', name: 'VN100' },
+                { key: 'vnmidcap', name: 'VNMIDCAP' },
+                { key: 'vnreal', name: 'VNREAL' },
+                { key: 'vnit', name: 'VNIT' },
+                { key: 'vnheal', name: 'VNHEAL' },
+                { key: 'vnfin', name: 'VNFIN' },
+                { key: 'vnene', name: 'VNENE' },
+                { key: 'vncons', name: 'VNCONS' },
+                { key: 'vnmat', name: 'VNMAT' },
+                { key: 'vncond', name: 'VNCOND' },
+                { key: 'vnsml', name: 'VNSML' },
+                { key: 'vnfinselect', name: 'VNFINSELECT' },
+                { key: 'vndiamond', name: 'VNDIAMOND' }
+            ];
+
+            const container = document.getElementById('indexList');
+            container.innerHTML = indices.map(idx => `
+                <div class="index-item ${idx.key === 'vnindex' ? 'active' : ''}"
+                     onclick="selectIndex('${idx.key}')"
+                     data-index="${idx.key}">
+                    <span class="name">${idx.name}</span>
+                </div>
+            `).join('');
+        }
+
+        // Render sections
+        function renderSections(indexKey) {
+            const index = data[indexKey];
+            if (!index || !index.sections) return;
+
+            document.getElementById('pageTitle').innerHTML = index.title;
+
+            const formatter = new ContentFormatter();
+
+            // Process sections to extract embedded what-if content
+            const processedSections = [];
+            const whatIfSections = [];
+
+            index.sections.forEach((section, idx) => {
+                const titleLower = section.title.toLowerCase();
+                const contentLower = section.content.toLowerCase();
+
+                // Check if title is what-if
+                const isWhatIfTitle =
+                    titleLower.includes('what-if') ||
+                    titleLower.includes('kịch bản') ||
+                    (titleLower.includes('điều kiện') && titleLower.includes('sai'));
+
+                if (isWhatIfTitle) {
+                    // Direct what-if section
+                    whatIfSections.push(section);
+                } else if (contentLower.includes('kịch bản') && contentLower.includes('what-if')) {
+                    // Embedded what-if content - split it
+                    // Match pattern: "Kịch Bản" followed by "What-if" (with possible quotes/spaces)
+                    const splitPattern = /kịch\s+bản[\s\S]{0,50}?what-if/i;
+                    const splitMatch = section.content.match(splitPattern);
+
+                    if (splitMatch && splitMatch.index !== undefined) {
+                        const splitIndex = splitMatch.index;
+                        const mainContent = section.content.substring(0, splitIndex).trim();
+                        const whatIfContent = section.content.substring(splitIndex).trim();
+
+                        // Debug: Log để xem content
+                        console.log('=== WHAT-IF SPLIT DEBUG ===');
+                        console.log('Section:', section.title);
+                        console.log('Split match:', splitMatch[0]);
+                        console.log('Main content length:', mainContent.length);
+                        console.log('What-if content length:', whatIfContent.length);
+                        console.log('What-if content preview:', whatIfContent.substring(0, 200));
+
+
+                        // Add main content section
+                        processedSections.push({
+                            ...section,
+                            content: mainContent
+                        });
+
+                        // Add what-if section
+                        whatIfSections.push({
+                            title: 'Kịch Bản What-if',
+                            content: whatIfContent,
+                            alert: false
+                        });
+                    } else {
+                        // Split failed - use indexOf method
+                        const keywordIndex = contentLower.indexOf('kịch bản');
+                        if (keywordIndex !== -1) {
+                            const whatIfIndex = contentLower.indexOf('what-if', keywordIndex);
+                            if (whatIfIndex !== -1) {
+                                const originalContent = section.content;
+                                const actualKeywordIndex = originalContent.toLowerCase().indexOf('kịch bản');
+                                const actualWhatIfIndex = originalContent.toLowerCase().indexOf('what-if', actualKeywordIndex);
+
+                                const mainContent = originalContent.substring(0, actualWhatIfIndex).trim();
+                                const whatIfContent = originalContent.substring(actualWhatIfIndex).trim();
+
+                                console.log('=== WHAT-IF SPLIT (indexOf) ===');
+                                console.log('What-if content length:', whatIfContent.length);
+                                console.log('What-if preview:', whatIfContent.substring(0, 200));
+
+                                processedSections.push({
+                                    ...section,
+                                    content: mainContent
+                                });
+
+                                whatIfSections.push({
+                                    title: 'Kịch Bản What-if',
+                                    content: whatIfContent,
+                                    alert: false
+                                });
+                            } else {
+                                processedSections.push(section);
+                            }
+                        } else {
+                            processedSections.push(section);
+                        }
+                    }
+                } else {
+                    processedSections.push(section);
+                }
+            });
+
+            const container = document.getElementById('sectionsContainer');
+            let html = '';
+
+            // Render regular sections first
+            processedSections.forEach((section, idx) => {
+                html += `
+                    <div class="section-card ${section.alert ? 'alert' : ''}">
+                        <div class="section-header" onclick="toggleSection(this)">
+                            <div class="left">
+                                <span class="title">${section.title.replace(/`/g, '')}</span>
+                                ${section.alert ? '<span class="badge warning">KHUYẾN NGHỊ</span>' : ''}
+                            </div>
+                            <span class="arrow">▼</span>
+                        </div>
+                        <div class="section-content">
+                            <div class="section-body">
+                                ${formatter.format(section.content)}
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+
+            // Render what-if sections at the end
+            whatIfSections.forEach((section, idx) => {
+                html += `
+                    <div class="whatif-card">
+                        <div class="whatif-card-header" onclick="toggleSection(this)">
+                            <span class="whatif-title">${section.title.replace(/`/g, '')}</span>
+                            <span class="arrow">▼</span>
+                        </div>
+                        <div class="section-content">
+                            <div class="whatif-card-body">
+                                ${formatter.format(section.content)}
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+
+            container.innerHTML = html;
+        }
+
+        // Toggle section
+        function toggleSection(header) {
+            const card = header.parentElement;
+            card.classList.toggle('expanded');
+        }
+
+        // Select index
+        function selectIndex(key) {
+            // Update active state
+            document.querySelectorAll('.index-item').forEach(item => {
+                item.classList.remove('active');
+            });
+            document.querySelector(`[data-index="${key}"]`).classList.add('active');
+
+            // Render sections
+            renderSections(key);
+        }
+
+        // Search functionality
+        document.getElementById('searchInput').addEventListener('input', function(e) {
+            const query = e.target.value.toLowerCase();
+            document.querySelectorAll('.index-item').forEach(item => {
+                const name = item.querySelector('.name').textContent.toLowerCase();
+                item.style.display = name.includes(query) ? 'flex' : 'none';
+            });
+        });
+
+        // Initialize
+        renderSidebar();
+        renderSections('vnindex');
+    </script>
+</body>
+</html>
