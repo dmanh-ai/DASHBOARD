@@ -848,6 +848,25 @@
             return metrics;
         }
 
+        // Extract metrics from ALL sections (for breadth, TRIN, volume that may be in later sections)
+        function extractMetricsFromAllSections(sections) {
+            const metrics = {};
+
+            if (!sections || sections.length === 0) {
+                return metrics;
+            }
+
+            // Combine all section content into one string for searching
+            let allContent = '';
+            sections.forEach(section => {
+                if (section.content) {
+                    allContent += section.content + ' ';
+                }
+            });
+
+            return extractMetrics(allContent);
+        }
+
         // Generate summary bullets from sections
         function generateSummaryBullets(sections) {
             const bullets = {
@@ -918,9 +937,8 @@
             // Update title
             document.getElementById('pageTitle').textContent = index.title.split('-')[0].trim();
 
-            // Get first section content for metrics extraction
-            const firstSection = index.sections && index.sections[0] ? index.sections[0].content : '';
-            const metrics = extractMetrics(firstSection);
+            // Extract metrics from ALL sections (breadth, TRIN, volume may be in later sections)
+            const metrics = extractMetricsFromAllSections(index.sections);
 
             // Update hero metrics
             const priceEl = document.getElementById('metricPrice');
