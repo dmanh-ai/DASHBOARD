@@ -16,10 +16,10 @@ class ContentFormatter {
             adx: /ADX[ -]?(\d+)[\s=:]*(-?[\d,]+\.?\d*)?/gi,
             vwma: /VWAP[ -]?(\d+)[\s\(=:]*(-?[\d,]+\.?\d*)?/gi,
 
-            // Keywords
-            bullish: /tăng|bullish|positive|kháng cự|sức mạnh|hồi phục|phục hồi|đột biến|phòng thủ|ổn định/gi,
-            bearish: /giảm|bearish|negative|áp lực|bán|tháo chạy|điều chỉnh|yếu|xấu/gi,
-            warning: /cảnh báo|rủi ro|thận trọng|canh giác|nguy hiểm/gi,
+            // Keywords - Enhanced to avoid false positives
+            bullish: /\btăng\b|bullish|positive|kháng cự|sức mạnh|hồi phục|phục hồi|đột biến|phòng thủ|ổn định/gi,
+            bearish: /\bgiảm\b|bearish|negative|áp lực|\bbán\b|tháo chạy|\bđiều chỉnh\b|yếu(?!\s*tố)|xấu/gi,
+            warning: /\bcảnh báo\b|rủi ro|thận trọng|canh giác|nguy hiểm/gi,
 
             // Section markers
             conclusion: /^kết luận:/gmi,
