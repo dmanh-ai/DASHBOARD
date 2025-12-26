@@ -377,6 +377,15 @@
             gap: 20px;
         }
 
+        .summary-column h4 {
+            font-size: 0.85rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 12px;
+            color: var(--primary);
+        }
+
         .summary-column ul {
             list-style: none;
         }
@@ -391,6 +400,14 @@
 
         .summary-column li:last-child {
             border-bottom: none;
+        }
+
+        .no-summary {
+            grid-column: 1 / -1;
+            text-align: center;
+            padding: 40px;
+            color: var(--text-secondary);
+            font-style: italic;
         }
 
         /* Details Section */
@@ -831,38 +848,63 @@
             return metrics;
         }
 
-        // Generate summary bullets
+        // Generate summary bullets from sections
         function generateSummaryBullets(sections) {
             const bullets = {
                 left: [],
                 right: []
             };
 
-            sections.forEach(section => {
-                const content = section.content;
-                const title = section.title;
+            if (!sections || sections.length === 0) {
+                return bullets;
+            }
 
-                // Extract conclusions
-                if (title.toLowerCase().includes('kết luận') || content.toLowerCase().includes('kết luận')) {
-                    // Find short sentences
-                    const sentences = content.split(/[.!?]/).filter(s => s.trim().length > 20 && s.trim().length < 150);
-                    sentences.slice(0, 2).forEach(sentence => {
-                        const clean = sentence.trim().replace(/^[*:\-]+/, '').trim();
-                        if (clean) {
-                            if (bullets.left.length < bullets.right.length) {
-                                bullets.left.push(clean);
-                            } else {
-                                bullets.right.push(clean);
-                            }
+            // Process each section
+            sections.forEach(section => {
+                if (!section.content) return;
+
+                // Clean content - remove escaped HTML and normalize
+                let cleanContent = section.content
+                    .replace(/\\n/g, '\n')
+                    .replace(/\\t/g, ' ')
+                    .replace(/<div[^>]*>/gi, '')
+                    .replace(/<\/div>/gi, '')
+                    .replace(/<p>/gi, '')
+                    .replace(/<\/p>/gi, '\n')
+                    .replace(/\s+/g, ' ')
+                    .trim();
+
+                const lines = cleanContent.split('\n').map(l => l.trim()).filter(l => l);
+
+                // Extract "Kết luận" lines
+                lines.forEach(line => {
+                    // Look for conclusion lines
+                    if (line.toLowerCase().startsWith('kết luận:')) {
+                        const conclusion = line.replace(/^kết luận:\s*/i, '').trim();
+                        if (conclusion.length > 20 && conclusion.length < 200) {
+                            bullets.left.push(conclusion);
                         }
-                    });
-                }
+                    }
+                    // Look for numbered evidence points (1. 2. 3.)
+                    else if (/^\d+\.\s/.test(line)) {
+                        // Extract key points from numbered lists
+                        const clean = line.replace(/^\d+\.\s*/, '').trim();
+                        // Keep it short - truncate if too long
+                        if (clean.length > 30 && clean.length < 300) {
+                            let summary = clean;
+                            if (summary.length > 120) {
+                                summary = summary.substring(0, 120) + '...';
+                            }
+                            bullets.right.push(summary);
+                        }
+                    }
+                });
             });
 
-            // Limit to 3-4 bullets per column
+            // Limit to 3 bullets per column and balance them
             return {
-                left: bullets.left.slice(0, 3),
-                right: bullets.right.slice(0, 3)
+                left: bullets.left.slice(0, 4),
+                right: bullets.right.slice(0, 4)
             };
         }
 
@@ -1001,19 +1043,25 @@
                 const summaryContainer = document.getElementById('summaryBullets');
 
                 let summaryHTML = '';
-                if (summary.left.length > 0) {
-                    summaryHTML += '<div class="summary-column"><ul>';
-                    summary.left.forEach(bullet => {
-                        summaryHTML += `<li>${bullet}</li>`;
-                    });
-                    summaryHTML += '</ul></div>';
-                }
-                if (summary.right.length > 0) {
-                    summaryHTML += '<div class="summary-column"><ul>';
-                    summary.right.forEach(bullet => {
-                        summaryHTML += `<li>${bullet}</li>`;
-                    });
-                    summaryHTML += '</ul></div>';
+
+                // If no bullets found, show message
+                if (summary.left.length === 0 && summary.right.length === 0) {
+                    summaryHTML = '<div class="no-summary">Không có tóm tắt nhanh. Xem chi tiết bên dưới.</div>';
+                } else {
+                    if (summary.left.length > 0) {
+                        summaryHTML += '<div class="summary-column"><h4>📌 KẾT LUẬN</h4><ul>';
+                        summary.left.forEach(bullet => {
+                            summaryHTML += `<li>${bullet}</li>`;
+                        });
+                        summaryHTML += '</ul></div>';
+                    }
+                    if (summary.right.length > 0) {
+                        summaryHTML += '<div class="summary-column"><h4>📊 DẪN CHỨNG</h4><ul>';
+                        summary.right.forEach(bullet => {
+                            summaryHTML += `<li>${bullet}</li>`;
+                        });
+                        summaryHTML += '</ul></div>';
+                    }
                 }
                 summaryContainer.innerHTML = summaryHTML;
             }
