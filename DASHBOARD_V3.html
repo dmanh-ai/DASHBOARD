@@ -3,10 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>📊 Market Dashboard V3 - Premium</title>
-    <script src="full_data.js"></script>
-    <script src="vnindex_heatmap_data.js"></script>
-    <script src="scripts/content_formatter.js"></script>
+	    <title>📊 Market Dashboard V3 - Premium</title>
+	    <script src="full_data.js"></script>
+	    <script src="vnindex_heatmap_data.js"></script>
+	    <script src="vnindex_company_meta.js"></script>
+	    <script src="scripts/content_formatter.js"></script>
 
     <style>
         * {
@@ -1928,37 +1929,49 @@
             openUiModal({ tone, title, subtitle, bodyHtml, large: false });
         }
 
-        function openVnindexStockPopupFromEl(el) {
-            if (!el || !el.dataset) return;
+	        function openVnindexStockPopupFromEl(el) {
+	            if (!el || !el.dataset) return;
 
-            const symbol = el.dataset.symbol || 'N/A';
-            const price = el.dataset.price || 'N/A';
-            const value = el.dataset.value || 'N/A';
-            const volume = el.dataset.volume || 'N/A';
+	            const symbol = el.dataset.symbol || 'N/A';
+	            const price = el.dataset.price || 'N/A';
+	            const value = el.dataset.value || 'N/A';
+	            const volume = el.dataset.volume || 'N/A';
 
-            const changePct = Number(el.dataset.changePct);
-            const tone = _getToneFromChange(Number.isFinite(changePct) ? changePct : null);
-            const cls = tone;
-            const changeStr = Number.isFinite(changePct) ? ((changePct >= 0 ? '+' : '') + changePct.toFixed(2) + '%') : 'N/A';
+	            const changePct = Number(el.dataset.changePct);
+	            const tone = _getToneFromChange(Number.isFinite(changePct) ? changePct : null);
+	            const cls = tone;
+	            const changeStr = Number.isFinite(changePct) ? ((changePct >= 0 ? '+' : '') + changePct.toFixed(2) + '%') : 'N/A';
 
-            const bodyHtml = `
-                <div class="ui-actions">
-                    <button type="button" onclick="closeUiModal()">Đóng</button>
-                </div>
-                <div class="ui-metrics">
-                    <div class="ui-metric"><div class="k">Giá</div><div class="v">${price}</div></div>
-                    <div class="ui-metric"><div class="k">Thay đổi</div><div class="v"><span class="chip ${cls}">${changeStr}</span></div></div>
-                    <div class="ui-metric"><div class="k">Giá trị GD</div><div class="v">${value}</div></div>
-                </div>
-                <div class="ui-metrics">
-                    <div class="ui-metric"><div class="k">Khối lượng</div><div class="v">${volume}</div></div>
-                    <div class="ui-metric"><div class="k">Symbol</div><div class="v">${symbol}</div></div>
-                    <div class="ui-metric"><div class="k">Nguồn</div><div class="v">VNINDEX constituents</div></div>
-                </div>
-            `;
+	            const metaAll = (typeof window !== 'undefined' && window.UI_GLM_COMPANY_META) ? window.UI_GLM_COMPANY_META : null;
+	            const meta = metaAll && symbol && metaAll[symbol] ? metaAll[symbol] : null;
+	            const companyName = meta && meta.name ? String(meta.name) : 'N/A';
+	            const sectorRaw = meta && meta.sector ? String(meta.sector) : 'N/A';
+	            const sectorParts = sectorRaw && sectorRaw.includes('/') ? sectorRaw.split('/') : null;
+	            const sectorVi = sectorParts && sectorParts[1] ? sectorParts[1] : sectorRaw;
+	            const sectorEn = sectorParts && sectorParts[0] ? sectorParts[0] : '';
 
-            openUiModal({ tone, title: symbol, subtitle: 'VNINDEX stock heatmap', bodyHtml, large: false });
-        }
+	            const bodyHtml = `
+	                <div class="ui-actions">
+	                    <button type="button" onclick="closeUiModal()">Đóng</button>
+	                </div>
+	                <div class="ui-metrics">
+	                    <div class="ui-metric"><div class="k">Giá</div><div class="v">${escapeHtml(price)}</div></div>
+	                    <div class="ui-metric"><div class="k">Thay đổi</div><div class="v"><span class="chip ${cls}">${escapeHtml(changeStr)}</span></div></div>
+	                    <div class="ui-metric"><div class="k">Giá trị GD</div><div class="v">${escapeHtml(value)}</div></div>
+	                </div>
+	                <div class="ui-metrics">
+	                    <div class="ui-metric"><div class="k">Doanh nghiệp</div><div class="v">${escapeHtml(companyName)}</div></div>
+	                    <div class="ui-metric"><div class="k">Ngành</div><div class="v">${escapeHtml(sectorVi)}${sectorEn ? `<span style="color: var(--text-secondary); font-weight: 800;"> (${escapeHtml(sectorEn)})</span>` : ''}</div></div>
+	                    <div class="ui-metric"><div class="k">Mã</div><div class="v">${escapeHtml(symbol)}</div></div>
+	                </div>
+	                <div class="ui-metrics">
+	                    <div class="ui-metric"><div class="k">Khối lượng</div><div class="v">${escapeHtml(volume)}</div></div>
+	                    <div class="ui-metric"><div class="k">Nguồn</div><div class="v">HOSE monthly DB</div></div>
+	                </div>
+	            `;
+
+	            openUiModal({ tone, title: symbol, subtitle: 'VNINDEX stock heatmap', bodyHtml, large: false });
+	        }
 
         function openBlockPopup(btnEl) {
             if (!btnEl) return;
@@ -2242,7 +2255,12 @@
 	                    const priceStr = (p && p.price != null && Number.isFinite(Number(p.price))) ? Number(p.price).toFixed(2) : 'N/A';
 	                    const valueStr = p && p.value != null && Number.isFinite(Number(p.value)) ? formatCompactNumber(Number(p.value)) : 'N/A';
 	                    const volumeStr = p && p.volume != null && Number.isFinite(Number(p.volume)) ? formatCompactNumber(Number(p.volume)) : 'N/A';
-	                    const tooltip = `${symbol || 'N/A'} | ${changeStr}`;
+	                    const metaAll = (typeof window !== 'undefined' && window.UI_GLM_COMPANY_META) ? window.UI_GLM_COMPANY_META : null;
+	                    const meta = metaAll && symbol && metaAll[symbol] ? metaAll[symbol] : null;
+	                    const sectorRaw = meta && meta.sector ? String(meta.sector) : '';
+	                    const sectorParts = sectorRaw && sectorRaw.includes('/') ? sectorRaw.split('/') : null;
+	                    const sectorVi = sectorParts && sectorParts[1] ? sectorParts[1] : sectorRaw;
+	                    const tooltip = `${symbol || 'N/A'} | ${changeStr}${sectorVi ? ' | ' + sectorVi : ''}`;
 
 	                    rowHtml += `
 	                        <td class="heatmap-cell" style="background-color:${bg}" title="${escapeHtml(tooltip)}">
