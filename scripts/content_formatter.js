@@ -22,7 +22,7 @@ class ContentFormatter {
             warning: /\bcảnh báo\b|rủi ro|thận trọng|canh giác|nguy hiểm/gi,
 
             // Section markers
-            conclusion: /^kết luận:/gmi,
+            conclusion: /kết\s+luận\s*:/gmi,
             evidence: /^dẫn chứng|^ý nghĩa/gi,
             conditions: /^điều kiện/gmi
         };
