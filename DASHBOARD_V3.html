@@ -9,6 +9,7 @@
 	    <script src="index_heatmap_data.js"></script>
 	    <script src="vnindex_company_meta.js"></script>
 	    <script src="vnindex_price_20d.js"></script>
+	    <script src="index_ohlcv.js"></script>
 	    <script src="scripts/content_formatter.js"></script>
 
     <style>
@@ -1773,6 +1774,87 @@
         .sparkline-line.positive { stroke: rgba(16, 185, 129, 0.95); }
         .sparkline-line.negative { stroke: rgba(239, 68, 68, 0.95); }
         .sparkline-line.neutral  { stroke: rgba(59, 130, 246, 0.95); }
+
+        .ohlcv-panel {
+            margin-top: 14px;
+            border: 1px solid var(--glass-border);
+            border-radius: 16px;
+            background: rgba(255, 255, 255, 0.04);
+            overflow: hidden;
+        }
+
+        [data-theme="dark"] .ohlcv-panel {
+            background: rgba(255, 255, 255, 0.02);
+        }
+
+        .ohlcv-toolbar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            padding: 12px 14px;
+            border-bottom: 1px solid var(--glass-border);
+            background: var(--gradient-glass);
+        }
+
+        .ohlcv-toolbar .title {
+            font-weight: 900;
+            letter-spacing: 0.2px;
+        }
+
+        .ohlcv-controls {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .ohlcv-controls label {
+            color: var(--text-secondary);
+            font-weight: 900;
+            font-size: 0.85rem;
+            white-space: nowrap;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .ohlcv-controls select {
+            border: 1px solid var(--glass-border);
+            background: rgba(59, 130, 246, 0.08);
+            color: var(--text-primary);
+            border-radius: 12px;
+            padding: 6px 10px;
+            font-weight: 900;
+            cursor: pointer;
+        }
+
+        .ohlcv-body {
+            padding: 12px 14px 14px;
+        }
+
+        .ohlcv-canvas {
+            width: 100%;
+            display: block;
+            border-radius: 14px;
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid rgba(0, 0, 0, 0.06);
+        }
+
+        [data-theme="dark"] .ohlcv-canvas {
+            border-color: rgba(255, 255, 255, 0.08);
+        }
+
+        .ohlcv-meta {
+            margin-top: 10px;
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+            font-weight: 800;
+            display: flex;
+            justify-content: space-between;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
     </style>
 </head>
 <body data-theme="light">
@@ -2481,6 +2563,223 @@
 	            return `<div class="overview-extras" style="margin-top: 0;">${renderStockHeatmapTable(points, title)}</div>`;
 	        }
 
+	        function getIndexOhlcvPayload(indexKey) {
+	            const payload = (typeof window !== 'undefined' && window.UI_GLM_INDEX_OHLCV) ? window.UI_GLM_INDEX_OHLCV : null;
+	            const indices = payload && payload.indices ? payload.indices : null;
+	            const idx = indices && indexKey ? indices[indexKey] : null;
+	            if (!idx || !Array.isArray(idx.bars) || !idx.bars.length) return null;
+	            return {
+	                asof: payload.asof || '',
+	                name: idx.name || '',
+	                method: idx.method || '',
+	                constituents: idx.constituents || null,
+	                bars: idx.bars,
+	            };
+	        }
+
+	        function renderIndexOhlcvPanelHtml(panelId, indexKey) {
+	            const saved = Number(localStorage.getItem('ui_glm_ohlcv_lookback') || '50');
+	            const lookback = [20, 50, 100, 200].includes(saved) ? saved : 50;
+	            const payload = getIndexOhlcvPayload(indexKey);
+	            if (!payload) {
+	                return `<div class="info-box"><p>Không có dữ liệu OHLCV cho index này.</p></div>`;
+	            }
+
+	            const metaLeft = payload.asof ? `As-of: ${escapeHtml(payload.asof)}` : '';
+	            const metaRight = payload.constituents ? `Constituents: ${escapeHtml(payload.constituents)} (${escapeHtml(payload.name)})` : '';
+
+	            return `
+	                <div class="ohlcv-panel" id="${panelId}">
+	                    <div class="ohlcv-toolbar">
+	                        <div class="title">Biểu đồ nến &amp; khối lượng</div>
+	                        <div class="ohlcv-controls">
+	                            <label>Số phiên
+	                                <select data-role="lookback">
+	                                    ${[20,50,100,200].map(n => `<option value="${n}" ${n===lookback?'selected':''}>${n}</option>`).join('')}
+	                                </select>
+	                            </label>
+	                        </div>
+	                    </div>
+	                    <div class="ohlcv-body">
+	                        <canvas class="ohlcv-canvas" data-role="price" height="320"></canvas>
+	                        <div style="height: 10px;"></div>
+	                        <canvas class="ohlcv-canvas" data-role="volume" height="120"></canvas>
+	                        <div class="ohlcv-meta">
+	                            <div>${metaLeft}</div>
+	                            <div>${metaRight}</div>
+	                        </div>
+	                    </div>
+	                </div>
+	            `;
+	        }
+
+	        function drawIndexOhlcv(panelEl, indexKey, lookback) {
+	            const payload = getIndexOhlcvPayload(indexKey);
+	            if (!payload) return;
+	            const barsAll = payload.bars;
+	            const n = Math.min(Number(lookback) || 50, 200);
+	            const bars = barsAll.slice(-Math.min(n, barsAll.length));
+	            if (bars.length < 2) return;
+
+	            const priceCanvas = panelEl.querySelector('canvas[data-role="price"]');
+	            const volCanvas = panelEl.querySelector('canvas[data-role="volume"]');
+	            if (!priceCanvas || !volCanvas) return;
+
+	            const dpr = Math.max(1, Math.floor(window.devicePixelRatio || 1));
+	            const resizeCanvas = (canvas) => {
+	                const rect = canvas.getBoundingClientRect();
+	                const w = Math.max(200, Math.floor(rect.width));
+	                const h = Math.max(80, Math.floor(rect.height));
+	                canvas.width = w * dpr;
+	                canvas.height = h * dpr;
+	                const ctx = canvas.getContext('2d');
+	                ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+	                return { ctx, w, h };
+	            };
+
+	            const theme = document.body.getAttribute('data-theme') || 'light';
+	            const grid = theme === 'dark' ? 'rgba(148, 163, 184, 0.22)' : 'rgba(148, 163, 184, 0.30)';
+	            const axis = theme === 'dark' ? 'rgba(226, 232, 240, 0.75)' : 'rgba(15, 23, 42, 0.55)';
+	            const text = theme === 'dark' ? 'rgba(226, 232, 240, 0.85)' : 'rgba(15, 23, 42, 0.75)';
+	            const up = 'rgba(16, 185, 129, 0.92)';
+	            const down = 'rgba(239, 68, 68, 0.92)';
+	            const wick = theme === 'dark' ? 'rgba(226, 232, 240, 0.6)' : 'rgba(15, 23, 42, 0.45)';
+
+	            // ---- Price (candles)
+	            const { ctx: pctx, w: pw, h: ph } = resizeCanvas(priceCanvas);
+	            pctx.clearRect(0, 0, pw, ph);
+
+	            const padL = 44, padR = 10, padT = 12, padB = 24;
+	            const innerW = pw - padL - padR;
+	            const innerH = ph - padT - padB;
+
+	            const highs = bars.map(b => b.h).filter(v => Number.isFinite(v));
+	            const lows = bars.map(b => b.l).filter(v => Number.isFinite(v));
+	            const maxH = Math.max(...highs);
+	            const minL = Math.min(...lows);
+	            const span = (maxH - minL) || 1;
+
+	            const y = (v) => padT + (innerH - ((v - minL) / span) * innerH);
+	            const xStep = innerW / bars.length;
+	            const candleW = Math.max(4, Math.min(14, xStep * 0.6));
+
+	            // grid lines
+	            pctx.strokeStyle = grid;
+	            pctx.lineWidth = 1;
+	            for (let i = 0; i <= 4; i++) {
+	                const yy = padT + (innerH * i / 4);
+	                pctx.beginPath();
+	                pctx.moveTo(padL, yy);
+	                pctx.lineTo(pw - padR, yy);
+	                pctx.stroke();
+	            }
+
+	            // axis labels
+	            pctx.fillStyle = text;
+	            pctx.font = '800 11px system-ui, -apple-system, Segoe UI, Roboto, Arial';
+	            for (let i = 0; i <= 4; i++) {
+	                const v = maxH - (span * i / 4);
+	                const yy = padT + (innerH * i / 4);
+	                pctx.fillText(v.toFixed(2), 6, yy + 4);
+	            }
+
+	            // candles
+	            for (let i = 0; i < bars.length; i++) {
+	                const b = bars[i];
+	                const cx = padL + i * xStep + xStep / 2;
+	                const isUp = b.c >= b.o;
+	                const col = isUp ? up : down;
+
+	                // wick
+	                pctx.strokeStyle = wick;
+	                pctx.beginPath();
+	                pctx.moveTo(cx, y(b.h));
+	                pctx.lineTo(cx, y(b.l));
+	                pctx.stroke();
+
+	                // body
+	                const yO = y(b.o);
+	                const yC = y(b.c);
+	                const top = Math.min(yO, yC);
+	                const hh = Math.max(2, Math.abs(yC - yO));
+	                pctx.fillStyle = col;
+	                pctx.fillRect(cx - candleW / 2, top, candleW, hh);
+	            }
+
+	            // bottom axis line
+	            pctx.strokeStyle = axis;
+	            pctx.beginPath();
+	            pctx.moveTo(padL, padT + innerH);
+	            pctx.lineTo(pw - padR, padT + innerH);
+	            pctx.stroke();
+
+	            // ---- Volume (bars)
+	            const { ctx: vctx, w: vw, h: vh } = resizeCanvas(volCanvas);
+	            vctx.clearRect(0, 0, vw, vh);
+	            const vPadL = 44, vPadR = 10, vPadT = 10, vPadB = 22;
+	            const vInnerW = vw - vPadL - vPadR;
+	            const vInnerH = vh - vPadT - vPadB;
+
+	            const vols = bars.map(b => b.v).filter(v => Number.isFinite(v));
+	            const maxV = Math.max(...vols) || 1;
+	            const vy = (v) => vPadT + (vInnerH - (v / maxV) * vInnerH);
+
+	            // grid line
+	            vctx.strokeStyle = grid;
+	            vctx.beginPath();
+	            vctx.moveTo(vPadL, vPadT + vInnerH);
+	            vctx.lineTo(vw - vPadR, vPadT + vInnerH);
+	            vctx.stroke();
+
+	            // label
+	            vctx.fillStyle = text;
+	            vctx.font = '800 11px system-ui, -apple-system, Segoe UI, Roboto, Arial';
+	            vctx.fillText('Vol', 8, vPadT + 10);
+
+	            const vStep = vInnerW / bars.length;
+	            const barW = Math.max(3, Math.min(14, vStep * 0.6));
+	            for (let i = 0; i < bars.length; i++) {
+	                const b = bars[i];
+	                const cx = vPadL + i * vStep + vStep / 2;
+	                const isUp = b.c >= b.o;
+	                const col = isUp ? 'rgba(16, 185, 129, 0.70)' : 'rgba(239, 68, 68, 0.70)';
+	                const top = vy(b.v);
+	                const hh = (vPadT + vInnerH) - top;
+	                vctx.fillStyle = col;
+	                vctx.fillRect(cx - barW / 2, top, barW, Math.max(1, hh));
+	            }
+	        }
+
+	        function initIndexOhlcvPanel(panelId, indexKey) {
+	            const panelEl = document.getElementById(panelId);
+	            if (!panelEl) return;
+	            const select = panelEl.querySelector('select[data-role=\"lookback\"]');
+	            const payload = getIndexOhlcvPayload(indexKey);
+	            if (!payload) return;
+
+	            const redraw = () => {
+	                const lookback = Number(select && select.value ? select.value : (localStorage.getItem('ui_glm_ohlcv_lookback') || '50'));
+	                drawIndexOhlcv(panelEl, indexKey, lookback);
+	            };
+
+	            if (select) {
+	                select.addEventListener('change', () => {
+	                    localStorage.setItem('ui_glm_ohlcv_lookback', String(select.value));
+	                    redraw();
+	                });
+	            }
+
+	            // Only one active resize handler
+	            window.__uiGlmOhlcvResize = window.__uiGlmOhlcvResize || null;
+	            if (window.__uiGlmOhlcvResize) {
+	                window.removeEventListener('resize', window.__uiGlmOhlcvResize);
+	            }
+	            window.__uiGlmOhlcvResize = () => redraw();
+	            window.addEventListener('resize', window.__uiGlmOhlcvResize);
+
+	            redraw();
+	        }
+
         function buildIndexSummaryHtml() {
             const rows = getSummaryIndexRows();
             const cardsHtml = renderSummaryCards(rows);
@@ -2673,6 +2972,10 @@
             contentDiv.style.display = 'block';
 
 	            const isUiHeatmapSection = section.__uiType === 'heatmap_gainers' || section.__uiType === 'heatmap_losers';
+	            const normalizedSectionTitle = normalizeTitle(section.title);
+	            const isTrendChartSection =
+	                normalizedSectionTitle === 'XU HƯỚNG GIÁ' ||
+	                normalizedSectionTitle === 'XU HƯỚNG KHỐI LƯỢNG';
 
 	            // Clean and format content
 	            const formatter = new ContentFormatter();
@@ -2709,11 +3012,25 @@
 	                        </div>
 	                    </div>
 	                `;
+	            } else if (isTrendChartSection) {
+	                const panelId = `ohlcv_${currentIndex}_${sectionIndex}`;
+	                const panelHtml = renderIndexOhlcvPanelHtml(panelId, currentIndex);
+
+	                contentDiv.innerHTML = `
+	                    <div class="section-card">
+	                        <div class="section-body">
+	                            ${panelHtml}
+	                            <div style="height: 12px;"></div>
+	                            ${formatter.format(cleanContent)}
+	                        </div>
+	                    </div>
+	                `;
+	                setTimeout(() => initIndexOhlcvPanel(panelId, currentIndex), 0);
 	            } else {
-                const isMarketOverview =
-                    currentIndex === 'overview' &&
-                    normalizeTitle(section.title) === 'TỔNG QUAN THỊ TRƯỜNG';
-                const extras = isMarketOverview ? buildMarketOverviewExtrasHtml() : '';
+	                const isMarketOverview =
+	                    currentIndex === 'overview' &&
+	                    normalizeTitle(section.title) === 'TỔNG QUAN THỊ TRƯỜNG';
+	                const extras = isMarketOverview ? buildMarketOverviewExtrasHtml() : '';
 
                 const isRanking =
                     currentIndex === 'overview' &&
