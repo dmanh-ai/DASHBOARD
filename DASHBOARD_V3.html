@@ -7,6 +7,7 @@
 	    <script src="full_data.js"></script>
 	    <script src="vnindex_heatmap_data.js"></script>
 	    <script src="vnindex_company_meta.js"></script>
+	    <script src="vnindex_price_20d.js"></script>
 	    <script src="scripts/content_formatter.js"></script>
 
     <style>
@@ -1713,6 +1714,60 @@
         .ui-large .heatmap-table { border-spacing: 10px; }
         .ui-large .heatmap-symbol { font-size: 0.95rem; }
         .ui-large .heatmap-metric { font-size: 0.9rem; }
+
+        .sparkline-wrap {
+            margin-top: 12px;
+            border: 1px solid var(--glass-border);
+            border-radius: 14px;
+            padding: 12px 12px;
+            background: rgba(255, 255, 255, 0.04);
+        }
+
+        [data-theme="dark"] .sparkline-wrap {
+            background: rgba(255, 255, 255, 0.02);
+        }
+
+        .sparkline-header {
+            display: flex;
+            align-items: baseline;
+            justify-content: space-between;
+            gap: 10px;
+            margin-bottom: 8px;
+        }
+
+        .sparkline-title {
+            font-weight: 900;
+            letter-spacing: 0.2px;
+        }
+
+        .sparkline-sub {
+            color: var(--text-secondary);
+            font-weight: 800;
+            font-size: 0.85rem;
+            white-space: nowrap;
+        }
+
+        .sparkline-svg {
+            width: 100%;
+            height: 68px;
+            display: block;
+        }
+
+        .sparkline-grid {
+            stroke: rgba(148, 163, 184, 0.35);
+            stroke-width: 1;
+        }
+
+        .sparkline-line {
+            fill: none;
+            stroke-width: 2.5;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+        }
+
+        .sparkline-line.positive { stroke: rgba(16, 185, 129, 0.95); }
+        .sparkline-line.negative { stroke: rgba(239, 68, 68, 0.95); }
+        .sparkline-line.neutral  { stroke: rgba(59, 130, 246, 0.95); }
     </style>
 </head>
 <body data-theme="light">
@@ -1950,6 +2005,52 @@
 	            const sectorVi = sectorParts && sectorParts[1] ? sectorParts[1] : sectorRaw;
 	            const sectorEn = sectorParts && sectorParts[0] ? sectorParts[0] : '';
 
+	            function _sparklinePath(values, width, height, pad) {
+	                const pts = (values || []).map(v => Number(v)).filter(v => Number.isFinite(v));
+	                if (pts.length < 2) return '';
+	                const min = Math.min(...pts);
+	                const max = Math.max(...pts);
+	                const span = (max - min) || 1;
+	                const n = pts.length;
+	                const w = Math.max(10, width - pad * 2);
+	                const h = Math.max(10, height - pad * 2);
+	                return pts.map((v, i) => {
+	                    const x = pad + (n === 1 ? 0 : (i * w / (n - 1)));
+	                    const y = pad + (h - ((v - min) / span) * h);
+	                    return `${x.toFixed(1)},${y.toFixed(1)}`;
+	                }).join(' ');
+	            }
+
+	            function _renderSparkline(values, tone) {
+	                const pts = (values || []).map(v => Number(v)).filter(v => Number.isFinite(v));
+	                if (pts.length < 2) return '';
+	                const w = 420;
+	                const h = 68;
+	                const pad = 6;
+	                const poly = _sparklinePath(pts, w, h, pad);
+	                if (!poly) return '';
+	                const last = pts[pts.length - 1];
+	                const first = pts[0];
+	                const dPct = first ? ((last - first) / first) * 100 : null;
+	                const deltaStr = dPct == null || !Number.isFinite(dPct) ? '' : `(${dPct >= 0 ? '+' : ''}${dPct.toFixed(2)}%)`;
+	                return `
+	                    <div class="sparkline-wrap">
+	                        <div class="sparkline-header">
+	                            <div class="sparkline-title">Giá 20 phiên</div>
+	                            <div class="sparkline-sub">Close: ${escapeHtml(last.toFixed(2))} ${escapeHtml(deltaStr)}</div>
+	                        </div>
+	                        <svg class="sparkline-svg" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none" aria-label="Sparkline 20 phiên">
+	                            <path class="sparkline-grid" d="M0 ${h - 1} H${w}" />
+	                            <polyline class="sparkline-line ${tone}" points="${poly}"></polyline>
+	                        </svg>
+	                    </div>
+	                `;
+	            }
+
+	            const p20 = (typeof window !== 'undefined' && window.UI_GLM_PRICE_20D && window.UI_GLM_PRICE_20D.series) ? window.UI_GLM_PRICE_20D.series : null;
+	            const p20Series = p20 && symbol && p20[symbol] && Array.isArray(p20[symbol].c) ? p20[symbol].c : null;
+	            const sparklineHtml = p20Series ? _renderSparkline(p20Series, tone) : '';
+
 	            const bodyHtml = `
 	                <div class="ui-actions">
 	                    <button type="button" onclick="closeUiModal()">Đóng</button>
@@ -1968,6 +2069,7 @@
 	                    <div class="ui-metric"><div class="k">Khối lượng</div><div class="v">${escapeHtml(volume)}</div></div>
 	                    <div class="ui-metric"><div class="k">Nguồn</div><div class="v">HOSE monthly DB</div></div>
 	                </div>
+	                ${sparklineHtml}
 	            `;
 
 	            openUiModal({ tone, title: symbol, subtitle: 'VNINDEX stock heatmap', bodyHtml, large: false });
@@ -2389,6 +2491,41 @@
 	            }
 	        }
 
+	        function tryAutoOpenStockPopupFromUrl() {
+	            try {
+	                if (!document.getElementById('uiModal')) {
+	                    setTimeout(tryAutoOpenStockPopupFromUrl, 50);
+	                    return;
+	                }
+
+	                const params = new URLSearchParams(window.location.search || '');
+	                const symbol = (params.get('stockPopup') || '').trim().toUpperCase();
+	                if (!symbol) return;
+
+	                const stockData = (typeof window !== 'undefined' && window.UI_GLM_VNINDEX_HEATMAP) ? window.UI_GLM_VNINDEX_HEATMAP : null;
+	                if (!stockData) {
+	                    setTimeout(tryAutoOpenStockPopupFromUrl, 50);
+	                    return;
+	                }
+
+	                const pool = []
+	                    .concat(Array.isArray(stockData.gainers) ? stockData.gainers : [])
+	                    .concat(Array.isArray(stockData.losers) ? stockData.losers : []);
+	                const p = pool.find(x => x && String(x.symbol || '').toUpperCase() === symbol);
+	                if (!p) return;
+
+	                const btn = document.createElement('button');
+	                btn.dataset.symbol = String(p.symbol || symbol);
+	                btn.dataset.changePct = String(p.change_pct ?? '');
+	                btn.dataset.price = (p.price != null && Number.isFinite(Number(p.price))) ? Number(p.price).toFixed(2) : 'N/A';
+	                btn.dataset.value = (p.value != null && Number.isFinite(Number(p.value))) ? formatCompactNumber(Number(p.value)) : 'N/A';
+	                btn.dataset.volume = (p.volume != null && Number.isFinite(Number(p.volume))) ? formatCompactNumber(Number(p.volume)) : 'N/A';
+	                openVnindexStockPopupFromEl(btn);
+	            } catch (e) {
+	                // no-op
+	            }
+	        }
+
 	        // Render section list in middle column
 	        function renderSectionList(indexKey) {
 	            const index = data[indexKey];
@@ -2526,10 +2663,13 @@
             });
         });
 
-	        // Initialize
-	        renderSidebar();
-	        tryAutoSelectFromUrl();
-	        // Don't auto-select any index by default - let user choose
+			        // Initialize
+			        renderSidebar();
+			        setTimeout(() => {
+			            tryAutoSelectFromUrl();
+			            tryAutoOpenStockPopupFromUrl();
+			        }, 0);
+			        // Don't auto-select any index by default - let user choose
 
         // ========== DONATE MODAL FUNCTIONS ==========
         function showDonateModal() {
