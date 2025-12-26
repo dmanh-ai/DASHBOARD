@@ -1307,6 +1307,25 @@
             font-weight: 800;
             background: var(--gradient-glass);
             border-bottom: 1px solid var(--glass-border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+        }
+
+        .block-expand {
+            border: 1px solid var(--glass-border);
+            background: rgba(59, 130, 246, 0.10);
+            color: var(--text-primary);
+            border-radius: 999px;
+            padding: 6px 10px;
+            font-weight: 800;
+            cursor: pointer;
+            white-space: nowrap;
+        }
+
+        .block-expand:hover {
+            background: rgba(59, 130, 246, 0.16);
         }
 
         .overview-extras .block-body {
@@ -1381,6 +1400,18 @@
             background: rgba(148, 163, 184, 0.10);
         }
 
+        .heatmap-tile-btn {
+            appearance: none;
+            -webkit-appearance: none;
+            width: 100%;
+            text-align: left;
+            border: 0;
+            padding: 0;
+            background: transparent;
+            color: inherit;
+            cursor: pointer;
+        }
+
         .heatmap-tile .symbol {
             font-weight: 900;
             letter-spacing: 0.3px;
@@ -1402,6 +1433,17 @@
             padding: 10px 10px;
             border: 1px solid rgba(0, 0, 0, 0.06);
             text-align: center;
+        }
+
+        .heatmap-cell-btn {
+            appearance: none;
+            -webkit-appearance: none;
+            width: 100%;
+            border: 0;
+            background: transparent;
+            padding: 0;
+            color: inherit;
+            cursor: pointer;
         }
 
         .heatmap-symbol {
@@ -1428,6 +1470,28 @@
             border-radius: 14px;
             padding: 10px 10px;
             background: rgba(255, 255, 255, 0.04);
+        }
+
+        .idx-card-btn {
+            appearance: none;
+            -webkit-appearance: none;
+            width: 100%;
+            display: block;
+            text-align: left;
+            cursor: pointer;
+            color: inherit;
+            transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+        }
+
+        .idx-card-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 12px 30px rgba(0, 0, 0, 0.10);
+        }
+
+        .idx-card-btn:focus {
+            outline: none;
+            border-color: rgba(59, 130, 246, 0.6);
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.18);
         }
 
         [data-theme="dark"] .idx-card {
@@ -1466,59 +1530,6 @@
             color: var(--text-secondary);
             font-size: 0.82rem;
             white-space: nowrap;
-        }
-
-        .idx-card-toggle {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 10px;
-            width: 100%;
-            border: 0;
-            background: transparent;
-            color: inherit;
-            padding: 0;
-            cursor: pointer;
-        }
-
-        .idx-card-toggle:focus {
-            outline: none;
-        }
-
-        .idx-arrow {
-            width: 28px;
-            height: 28px;
-            border-radius: 10px;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            border: 1px solid var(--glass-border);
-            color: var(--text-secondary);
-            background: rgba(148, 163, 184, 0.10);
-            transition: transform 0.2s ease, background 0.2s ease;
-            flex: 0 0 auto;
-        }
-
-        .idx-card.expanded .idx-arrow {
-            transform: rotate(180deg);
-            background: rgba(59, 130, 246, 0.14);
-            color: var(--primary);
-        }
-
-        .idx-card-main {
-            flex: 1 1 auto;
-            min-width: 0;
-        }
-
-        .idx-details {
-            display: none;
-            margin-top: 10px;
-            padding-top: 10px;
-            border-top: 1px solid var(--border-color);
-        }
-
-        .idx-card.expanded .idx-details {
-            display: block;
         }
 
         .idx-bars {
@@ -1572,7 +1583,130 @@
             background: linear-gradient(90deg, rgba(148, 163, 184, 0.85), rgba(148, 163, 184, 0.45));
         }
 
-        /* (Removed) index detail modal styles */
+        /* Popup modal (for cards + heatmaps) */
+        .ui-modal {
+            display: none;
+            position: fixed;
+            z-index: 10001;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(8px);
+            animation: fadeIn 0.2s ease;
+        }
+
+        .ui-modal-content {
+            background: var(--bg-card);
+            margin: 3% auto;
+            padding: 22px 18px;
+            border-radius: 22px;
+            width: 92%;
+            max-width: 820px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.28);
+            position: relative;
+            border: 1px solid var(--glass-border);
+            animation: slideUp 0.25s ease;
+        }
+
+        .ui-modal.positive .ui-modal-content { border-top: 5px solid rgba(16, 185, 129, 0.9); }
+        .ui-modal.negative .ui-modal-content { border-top: 5px solid rgba(239, 68, 68, 0.9); }
+        .ui-modal.neutral .ui-modal-content { border-top: 5px solid rgba(148, 163, 184, 0.9); }
+
+        .ui-close {
+            position: absolute;
+            right: 14px;
+            top: 12px;
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: rgba(148, 163, 184, 0.15);
+            border: 1px solid var(--glass-border);
+            font-size: 20px;
+            font-weight: 900;
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .ui-close:hover {
+            background: rgba(59, 130, 246, 0.15);
+            color: var(--primary);
+            transform: rotate(90deg);
+        }
+
+        .ui-title {
+            font-size: 1.1rem;
+            font-weight: 900;
+            letter-spacing: 0.3px;
+        }
+
+        .ui-subtitle {
+            margin-top: 6px;
+            color: var(--text-secondary);
+            font-size: 0.92rem;
+        }
+
+        .ui-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin: 14px 0 18px;
+        }
+
+        .ui-actions button {
+            border: 1px solid var(--glass-border);
+            background: rgba(59, 130, 246, 0.10);
+            color: var(--text-primary);
+            border-radius: 12px;
+            padding: 10px 12px;
+            font-weight: 800;
+            cursor: pointer;
+        }
+
+        .ui-actions button:hover {
+            background: rgba(59, 130, 246, 0.16);
+        }
+
+        .ui-metrics {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 10px;
+            margin-bottom: 14px;
+        }
+
+        @media (max-width: 720px) {
+            .ui-metrics { grid-template-columns: 1fr; }
+        }
+
+        .ui-metric {
+            border: 1px solid var(--glass-border);
+            border-radius: 14px;
+            padding: 12px;
+            background: rgba(255, 255, 255, 0.03);
+        }
+
+        .ui-metric .k {
+            color: var(--text-secondary);
+            font-size: 0.78rem;
+            text-transform: uppercase;
+            letter-spacing: 0.6px;
+            font-weight: 800;
+        }
+
+        .ui-metric .v {
+            margin-top: 8px;
+            font-weight: 900;
+        }
+
+        .ui-large .heatmap-cell { padding: 14px 12px; }
+        .ui-large .heatmap-table { border-spacing: 10px; }
+        .ui-large .heatmap-symbol { font-size: 0.95rem; }
+        .ui-large .heatmap-metric { font-size: 0.9rem; }
     </style>
 </head>
 <body data-theme="light">
@@ -1698,11 +1832,137 @@
         let currentIndex = null;
         let currentSectionIndex = null;
 
-        function toggleIdxCard(buttonEl) {
-            const card = buttonEl ? buttonEl.closest('.idx-card') : null;
-            if (!card) return;
-            const expanded = card.classList.toggle('expanded');
-            buttonEl.setAttribute('aria-expanded', expanded ? 'true' : 'false');
+        function _getToneFromChange(changePct) {
+            if (changePct == null || !Number.isFinite(changePct)) return 'neutral';
+            if (changePct > 0) return 'positive';
+            if (changePct < 0) return 'negative';
+            return 'neutral';
+        }
+
+        function _updateBodyOverflow() {
+            const donateModal = document.getElementById('donateModal');
+            const uiModal = document.getElementById('uiModal');
+            const donateOpen = donateModal && donateModal.style.display === 'block';
+            const uiOpen = uiModal && uiModal.style.display === 'block';
+            document.body.style.overflow = (donateOpen || uiOpen) ? 'hidden' : 'auto';
+        }
+
+        function openUiModal({ tone = 'neutral', title = '', subtitle = '', bodyHtml = '', large = false } = {}) {
+            const modal = document.getElementById('uiModal');
+            const body = document.getElementById('uiModalBody');
+            const titleEl = document.getElementById('uiModalTitle');
+            const subtitleEl = document.getElementById('uiModalSubtitle');
+
+            if (!modal || !body || !titleEl || !subtitleEl) return;
+
+            modal.classList.remove('positive', 'negative', 'neutral');
+            modal.classList.add(tone === 'positive' ? 'positive' : (tone === 'negative' ? 'negative' : 'neutral'));
+
+            titleEl.textContent = title || '';
+            subtitleEl.textContent = subtitle || '';
+            body.innerHTML = `<div class="${large ? 'ui-large' : ''}">${bodyHtml || ''}</div>`;
+
+            modal.style.display = 'block';
+            _updateBodyOverflow();
+        }
+
+        function closeUiModal() {
+            const modal = document.getElementById('uiModal');
+            if (!modal) return;
+            modal.style.display = 'none';
+            const body = document.getElementById('uiModalBody');
+            if (body) body.innerHTML = '';
+            _updateBodyOverflow();
+        }
+
+        function openIndexPopup(indexKey) {
+            const idx = data[indexKey];
+            const metrics = parseIndexMetrics(indexKey) || {};
+            const tone = _getToneFromChange(metrics.changePct);
+
+            const price = metrics.priceText || 'N/A';
+            const change = metrics.changeText || 'N/A';
+            const volText = metrics.volumeText || (metrics.volumeValue != null ? formatCompactNumber(metrics.volumeValue) : 'N/A');
+
+            // Normalize bars within the summary set for nicer visuals.
+            const rows = getSummaryIndexRows();
+            const usableChange = rows.filter(r => r.changePct != null);
+            const usableVol = rows.filter(r => r.volumeValue != null);
+            const maxAbsChange = usableChange.length ? Math.max(...usableChange.map(r => Math.abs(r.changePct))) : 1;
+            const maxVolume = usableVol.length ? Math.max(...usableVol.map(r => r.volumeValue)) : 1;
+
+            const changeW = metrics.changePct == null ? 0 : Math.max(8, Math.round(100 * Math.min(Math.abs(metrics.changePct) / maxAbsChange, 1)));
+            const volW = metrics.volumeValue == null ? 0 : Math.max(8, Math.round(100 * Math.min(metrics.volumeValue / maxVolume, 1)));
+
+            const cls = tone;
+            const subtitle = idx && idx.title ? idx.title : '';
+
+            const bodyHtml = `
+                <div class="ui-actions">
+                    <button type="button" onclick="selectIndex('${indexKey}'); closeUiModal();">Mở phân tích</button>
+                    <button type="button" onclick="closeUiModal()">Đóng</button>
+                </div>
+                <div class="ui-metrics">
+                    <div class="ui-metric"><div class="k">Giá</div><div class="v">${price}</div></div>
+                    <div class="ui-metric"><div class="k">Thay đổi</div><div class="v"><span class="chip ${cls}">${change}</span></div></div>
+                    <div class="ui-metric"><div class="k">Khối lượng</div><div class="v">${volText}</div></div>
+                </div>
+                <div class="idx-bars" style="margin-top: 0;">
+                    <div class="mini-bar">
+                        <div class="label">Change</div>
+                        <div class="bar-track"><div class="bar-fill ${cls}" style="width:${changeW}%"></div></div>
+                    </div>
+                    <div class="mini-bar">
+                        <div class="label">Volume</div>
+                        <div class="bar-track"><div class="bar-fill neutral" style="width:${volW}%"></div></div>
+                    </div>
+                </div>
+            `;
+
+            const title = (indexKey || '').toUpperCase();
+            openUiModal({ tone, title, subtitle, bodyHtml, large: false });
+        }
+
+        function openVnindexStockPopupFromEl(el) {
+            if (!el || !el.dataset) return;
+
+            const symbol = el.dataset.symbol || 'N/A';
+            const price = el.dataset.price || 'N/A';
+            const value = el.dataset.value || 'N/A';
+            const volume = el.dataset.volume || 'N/A';
+
+            const changePct = Number(el.dataset.changePct);
+            const tone = _getToneFromChange(Number.isFinite(changePct) ? changePct : null);
+            const cls = tone;
+            const changeStr = Number.isFinite(changePct) ? ((changePct >= 0 ? '+' : '') + changePct.toFixed(2) + '%') : 'N/A';
+
+            const bodyHtml = `
+                <div class="ui-actions">
+                    <button type="button" onclick="closeUiModal()">Đóng</button>
+                </div>
+                <div class="ui-metrics">
+                    <div class="ui-metric"><div class="k">Giá</div><div class="v">${price}</div></div>
+                    <div class="ui-metric"><div class="k">Thay đổi</div><div class="v"><span class="chip ${cls}">${changeStr}</span></div></div>
+                    <div class="ui-metric"><div class="k">Giá trị GD</div><div class="v">${value}</div></div>
+                </div>
+                <div class="ui-metrics">
+                    <div class="ui-metric"><div class="k">Khối lượng</div><div class="v">${volume}</div></div>
+                    <div class="ui-metric"><div class="k">Symbol</div><div class="v">${symbol}</div></div>
+                    <div class="ui-metric"><div class="k">Nguồn</div><div class="v">VNINDEX constituents</div></div>
+                </div>
+            `;
+
+            openUiModal({ tone, title: symbol, subtitle: 'VNINDEX stock heatmap', bodyHtml, large: false });
+        }
+
+        function openBlockPopup(btnEl) {
+            if (!btnEl) return;
+            const block = btnEl.closest('.block');
+            if (!block) return;
+            const title = block.getAttribute('data-popup-title') || 'Chi tiết';
+            const body = block.querySelector('.block-body');
+            const bodyHtml = body ? body.innerHTML : '';
+            openUiModal({ tone: 'neutral', title, subtitle: '', bodyHtml, large: true });
         }
 
         // Process sections to extract what-if content
@@ -1874,11 +2134,6 @@
         }
 
         function renderSummaryCards(rows) {
-            const usableChange = rows.filter(r => r.changePct != null);
-            const usableVol = rows.filter(r => r.volumeValue != null);
-            const maxAbsChange = usableChange.length ? Math.max(...usableChange.map(r => Math.abs(r.changePct))) : 1;
-            const maxVolume = usableVol.length ? Math.max(...usableVol.map(r => r.volumeValue)) : 1;
-
             const cards = rows.map(r => {
                 const cls =
                     r.changePct == null ? 'neutral' :
@@ -1887,43 +2142,17 @@
                 const price = r.priceText || '—';
                 const change = r.changeText || '—';
 
-                const volText = r.volumeText || (r.volumeValue != null ? formatCompactNumber(r.volumeValue) : '—');
-                const changeW = r.changePct == null ? 0 : Math.max(8, Math.round(100 * Math.min(Math.abs(r.changePct) / maxAbsChange, 1)));
-                const volW = r.volumeValue == null ? 0 : Math.max(8, Math.round(100 * Math.min(r.volumeValue / maxVolume, 1)));
-
                 return `
-                    <div class="idx-card" data-index="${r.key}">
-                        <button type="button" class="idx-card-toggle" onclick="toggleIdxCard(this)" aria-expanded="false">
-                            <div class="idx-card-main">
-                                <div class="idx-top">
-                                    <div class="idx-code">${r.label}</div>
-                                    <div class="idx-price">${price}</div>
-                                </div>
-                                <div class="idx-meta">
-                                    <div><span class="chip ${cls}">${change}</span></div>
-                                    <div class="idx-volume"></div>
-                                </div>
-                            </div>
-                            <span class="idx-arrow">▾</span>
-                        </button>
-
-                        <div class="idx-details">
-                            <div class="idx-meta">
-                                <div class="idx-volume">Vol ${volText}</div>
-                                <div></div>
-                            </div>
-                            <div class="idx-bars">
-                                <div class="mini-bar">
-                                    <div class="label">Change</div>
-                                    <div class="bar-track"><div class="bar-fill ${cls}" style="width:${changeW}%"></div></div>
-                                </div>
-                                <div class="mini-bar">
-                                    <div class="label">Volume</div>
-                                    <div class="bar-track"><div class="bar-fill neutral" style="width:${volW}%"></div></div>
-                                </div>
-                            </div>
+                    <button type="button" class="idx-card idx-card-btn" onclick="openIndexPopup('${r.key}')">
+                        <div class="idx-top">
+                            <div class="idx-code">${r.label}</div>
+                            <div class="idx-price">${price}</div>
                         </div>
-                    </div>
+                        <div class="idx-meta" style="margin-top: 8px;">
+                            <div><span class="chip ${cls}">${change}</span></div>
+                            <div class="idx-volume">Chi tiết ▸</div>
+                        </div>
+                    </button>
                 `;
             }).join('');
 
@@ -1956,10 +2185,10 @@
                 const vol = r.volumeText || 'N/A';
                 const title = `${r.label} | ${change} | Vol ${vol}`;
                 return `
-                    <div class="heatmap-tile" style="background:${bg}" title="${title.replace(/\"/g,'&quot;')}">
+                    <button type="button" class="heatmap-tile heatmap-tile-btn" style="background:${bg}" title="${title.replace(/\"/g,'&quot;')}" onclick="openIndexPopup('${r.key}')">
                         <div class="symbol">${r.label}</div>
                         <div class="metric">${change} · Vol ${vol}</div>
-                    </div>
+                    </button>
                 `;
             }).join('');
 
@@ -1997,12 +2226,21 @@
                     const changeStr = (p.change_pct >= 0 ? '+' : '') + p.change_pct.toFixed(2) + '%';
                     const priceStr = (p.price != null ? Number(p.price).toFixed(2) : 'N/A');
                     const valueStr = p.value != null ? formatCompactNumber(Number(p.value)) : 'N/A';
+                    const volumeStr = p.volume != null ? formatCompactNumber(Number(p.volume)) : 'N/A';
                     const tooltip = `${p.symbol} | ${changeStr} | Price ${priceStr} | Val ${valueStr}`;
 
                     rowHtml += `
                         <td class="heatmap-cell" style="background-color:${bg}" title="${tooltip.replace(/\"/g,'&quot;')}">
-                            <div class="heatmap-symbol" style="width:${sizePercent}%">${p.symbol}</div>
-                            <div class="heatmap-metric" style="width:${sizePercent}%">${changeStr} · Val ${valueStr}</div>
+                            <button type="button" class="heatmap-cell-btn"
+                                    data-symbol="${p.symbol}"
+                                    data-change-pct="${p.change_pct}"
+                                    data-price="${priceStr}"
+                                    data-value="${valueStr}"
+                                    data-volume="${volumeStr}"
+                                    onclick="openVnindexStockPopupFromEl(this)">
+                                <div class="heatmap-symbol" style="width:${sizePercent}%">${p.symbol}</div>
+                                <div class="heatmap-metric" style="width:${sizePercent}%">${changeStr} · Val ${valueStr}</div>
+                            </button>
                         </td>
                     `;
                 }
@@ -2010,8 +2248,11 @@
             }
 
             return `
-                <div class="block">
-                    <div class="block-header">${title}</div>
+                <div class="block" data-popup-title="${title.replace(/\"/g,'&quot;')}">
+                    <div class="block-header">
+                        <span>${title}</span>
+                        <button type="button" class="block-expand" onclick="openBlockPopup(this)">Xem lớn</button>
+                    </div>
                     <div class="block-body">
                         <table class="heatmap-table" role="presentation" cellpadding="0" cellspacing="0">
                             ${html}
@@ -2060,8 +2301,11 @@
                         <div class="block-header">📊 THỐNG KÊ CÁC CHỈ SỐ</div>
                         <div class="block-body">${summaryCards}</div>
                     </div>
-                    <div class="block">
-                        <div class="block-header">🔥 Heatmap giá &amp; khối lượng (cuối ngày)</div>
+                    <div class="block" data-popup-title="🔥 Heatmap giá &amp; khối lượng (cuối ngày)">
+                        <div class="block-header">
+                            <span>🔥 Heatmap giá &amp; khối lượng (cuối ngày)</span>
+                            <button type="button" class="block-expand" onclick="openBlockPopup(this)">Xem lớn</button>
+                        </div>
                         <div class="block-body">${indexHeatmap}</div>
                     </div>
                     ${gainersBlock}
@@ -2228,14 +2472,28 @@
         window.addEventListener('click', function(event) {
             const donateModal = document.getElementById('donateModal');
             if (event.target === donateModal) closeDonateModal();
+
+            const uiModal = document.getElementById('uiModal');
+            if (event.target === uiModal) closeUiModal();
         });
 
         // Close modals with Escape key
         document.addEventListener('keydown', function(event) {
             if (event.key !== 'Escape') return;
             closeDonateModal();
+            closeUiModal();
         });
     </script>
+
+    <!-- UI Modal (cards + heatmaps) -->
+    <div id="uiModal" class="ui-modal neutral">
+        <div class="ui-modal-content">
+            <button class="ui-close" onclick="closeUiModal()">&times;</button>
+            <div class="ui-title" id="uiModalTitle"></div>
+            <div class="ui-subtitle" id="uiModalSubtitle"></div>
+            <div id="uiModalBody"></div>
+        </div>
+    </div>
 
     <!-- Donate Modal -->
     <div id="donateModal" class="donate-modal">
