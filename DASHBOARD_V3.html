@@ -95,10 +95,10 @@
             50% { opacity: 0.08; transform: scale(1.1); }
         }
 
-        /* Layout - 3 Columns */
+        /* Layout - 3 Columns: Index | Content | Section */
         .dashboard {
             display: grid;
-            grid-template-columns: 240px 280px 1fr;
+            grid-template-columns: 240px 1fr 280px;
             min-height: 100vh;
             gap: 0;
         }
@@ -241,18 +241,18 @@
             background: white;
         }
 
-        /* Section Navigation Sidebar (Column 2) */
+        /* Section Navigation Sidebar (Column 3 - Right) */
         .section-nav {
             background: var(--glass-bg);
             backdrop-filter: blur(var(--blur-amount));
             -webkit-backdrop-filter: blur(var(--blur-amount));
-            border-right: 1px solid var(--border-color);
+            border-left: 1px solid var(--border-color);
             padding: 20px 0;
             overflow-y: auto;
             height: 100vh;
             position: sticky;
             top: 0;
-            box-shadow: var(--glass-shadow);
+            box-shadow: -8px 0 32px rgba(31, 38, 135, 0.15);
         }
 
         .section-nav-header {
@@ -313,7 +313,7 @@
         .section-item::before {
             content: '';
             position: absolute;
-            left: 0;
+            right: 0;
             top: 0;
             width: 3px;
             height: 100%;
@@ -324,7 +324,7 @@
 
         .section-item:hover {
             background: var(--bg-hover);
-            transform: translateX(4px);
+            transform: translateX(-4px);
         }
 
         .section-item:hover::before {
@@ -335,7 +335,7 @@
             background: var(--gradient-purple);
             color: white;
             box-shadow: 0 4px 16px rgba(139, 92, 246, 0.4);
-            transform: translateX(4px);
+            transform: translateX(-4px);
         }
 
         .section-item.active::before {
@@ -932,10 +932,10 @@
     </button>
 
     <div class="dashboard">
-        <!-- Sidebar 1: Index List -->
+        <!-- Sidebar 1: Index List (Left) -->
         <div class="sidebar">
             <div class="sidebar-header">
-                <h2>📊 Market Dashboard</h2>
+                <h2>📊 Index</h2>
                 <div class="date">25/12/2025</div>
             </div>
 
@@ -948,21 +948,7 @@
             </div>
         </div>
 
-        <!-- Sidebar 2: Section Navigation -->
-        <div class="section-nav">
-            <div class="section-nav-header">
-                <h3 id="sectionNavTitle">Chọn mục</h3>
-                <div class="subtitle">SECTIONS</div>
-            </div>
-
-            <div class="section-list" id="sectionList">
-                <div class="no-sections">
-                    Chọn một chỉ số bên trái để xem các mục phân tích
-                </div>
-            </div>
-        </div>
-
-        <!-- Main Content: Single Section Display -->
+        <!-- Main Content: Single Section Display (Center) -->
         <div class="main-content">
             <div class="page-header">
                 <h1 id="pageTitle">Chọn chỉ số và mục để xem</h1>
@@ -976,12 +962,26 @@
 
             <!-- Empty State -->
             <div id="emptyState" style="display: block; text-align: center; padding: 100px 20px;">
-                <div style="font-size: 4rem; margin-bottom: 20px;">👈👉</div>
+                <div style="font-size: 4rem; margin-bottom: 20px;">👈 👉</div>
                 <h2 style="color: var(--text-secondary); margin-bottom: 10px;">Chưa chọn mục phân tích</h2>
                 <p style="color: var(--text-secondary); font-size: 0.9rem;">
-                    1. Chọn chỉ số ở cột bên trái<br>
-                    2. Chọn mục phân tích ở cột giữa
+                    1. Chọn chỉ số ở cột <strong>bên trái</strong><br>
+                    2. Chọn mục phân tích ở cột <strong>bên phải</strong>
                 </p>
+            </div>
+        </div>
+
+        <!-- Sidebar 2: Section Navigation (Right) -->
+        <div class="section-nav">
+            <div class="section-nav-header">
+                <h3 id="sectionNavTitle">Chọn mục</h3>
+                <div class="subtitle">SECTIONS</div>
+            </div>
+
+            <div class="section-list" id="sectionList">
+                <div class="no-sections">
+                    Chọn một chỉ số bên trái để xem các mục phân tích
+                </div>
             </div>
         </div>
     </div>
