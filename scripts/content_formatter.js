@@ -266,10 +266,14 @@ class ContentFormatter {
         // Bold key terms
         text = text.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
 
-        // Highlight keywords
-        text = text.replace(this.patterns.bullish, '<span class="text-success">$&</span>');
-        text = text.replace(this.patterns.bearish, '<span class="text-danger">$&</span>');
-        text = text.replace(this.patterns.warning, '<span class="text-warning">$&</span>');
+        // NOTE: Disabled keyword highlighting due to false positives
+        // Vietnamese has many context-dependent words that don't work well
+        // with simple pattern matching. Kept code for reference only.
+
+        // Highlight keywords - DISABLED
+        // text = text.replace(this.patterns.bullish, '<span class="text-success">$&</span>');
+        // text = text.replace(this.patterns.bearish, '<span class="text-danger">$&</span>');
+        // text = text.replace(this.patterns.warning, '<span class="text-warning">$&</span>');
 
         return text;
     }
