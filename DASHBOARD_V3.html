@@ -361,6 +361,49 @@
             color: white;
         }
 
+        /* CONCLUSION SECTION - Highlight in section list */
+        .section-item.conclusion-section {
+            background: linear-gradient(135deg, rgba(99, 102, 241, 0.15) 0%, rgba(139, 92, 246, 0.1) 100%);
+            border: 2px solid rgba(139, 92, 246, 0.4);
+            border-left: 5px solid #8b5cf6;
+            box-shadow: 0 4px 16px rgba(139, 92, 246, 0.2);
+        }
+
+        .section-item.conclusion-section .icon {
+            font-size: 1.3rem;
+            color: #8b5cf6;
+            background: linear-gradient(135deg, rgba(139, 92, 246, 0.2) 0%, rgba(99, 102, 241, 0.15) 100%);
+            animation: iconPulse 2s ease-in-out infinite;
+        }
+
+        .section-item.conclusion-section .title {
+            font-weight: 700;
+            color: var(--primary);
+            font-size: 0.9rem;
+        }
+
+        .section-item.conclusion-section:hover {
+            background: linear-gradient(135deg, rgba(99, 102, 241, 0.25) 0%, rgba(139, 92, 246, 0.2) 100%);
+            box-shadow: 0 6px 20px rgba(139, 92, 246, 0.35);
+            transform: translateX(-4px) scale(1.02);
+        }
+
+        .section-item.conclusion-section.active {
+            background: linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%);
+            color: white;
+            border-color: #8b5cf6;
+            box-shadow: 0 8px 24px rgba(139, 92, 246, 0.5);
+        }
+
+        .section-item.conclusion-section.active .icon {
+            color: white;
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .section-item.conclusion-section.active .title {
+            color: white;
+        }
+
         .no-sections {
             padding: 40px 20px;
             text-align: center;
@@ -1232,12 +1275,13 @@
             sections.forEach((section, idx) => {
                 const isWhatIf = section.title.toLowerCase().includes('what-if') ||
                                 section.title.toLowerCase().includes('kịch bản');
+                const isConclusion = section.title.toLowerCase().includes('kết luận');
 
                 html += `
-                    <div class="section-item ${isWhatIf ? 'whatif' : ''}"
+                    <div class="section-item ${isWhatIf ? 'whatif' : ''} ${isConclusion ? 'conclusion-section' : ''}"
                          onclick="selectSection(${idx})"
                          data-section="${idx}">
-                        <span class="icon">${section.icon || (isWhatIf ? '⚠️' : '📊')}</span>
+                        <span class="icon">${section.icon || (isWhatIf ? '⚠️' : (isConclusion ? '📌' : '📊'))}</span>
                         <span class="title">${section.title.replace(/`/g, '')}</span>
                     </div>
                 `;
