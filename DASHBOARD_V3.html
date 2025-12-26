@@ -1458,19 +1458,19 @@
             font-weight: 700;
         }
 
-        /* Summary charts/cards */
-        .idx-cards {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-            gap: 10px;
-        }
+	        /* Summary charts/cards */
+	        .idx-cards {
+	            display: grid;
+	            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+	            gap: 10px;
+	        }
 
-        .idx-card {
-            border: 1px solid var(--glass-border);
-            border-radius: 14px;
-            padding: 10px 10px;
-            background: rgba(255, 255, 255, 0.04);
-        }
+	        .idx-card {
+	            border: 1px solid var(--glass-border);
+	            border-radius: 14px;
+	            padding: 10px 10px;
+	            background: rgba(255, 255, 255, 0.04);
+	        }
 
         .idx-card-btn {
             appearance: none;
@@ -1498,12 +1498,12 @@
             background: rgba(255, 255, 255, 0.02);
         }
 
-        .idx-top {
-            display: flex;
-            align-items: baseline;
-            justify-content: space-between;
-            gap: 10px;
-        }
+	        .idx-top {
+	            display: flex;
+	            align-items: center;
+	            justify-content: space-between;
+	            gap: 10px;
+	        }
 
         .idx-code {
             font-weight: 900;
@@ -1511,26 +1511,12 @@
             font-size: 0.95rem;
         }
 
-        .idx-price {
-            color: var(--text-secondary);
-            font-weight: 800;
-            font-size: 0.86rem;
-            white-space: nowrap;
-        }
-
-        .idx-meta {
-            margin-top: 10px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 10px;
-        }
-
-        .idx-volume {
-            color: var(--text-secondary);
-            font-size: 0.82rem;
-            white-space: nowrap;
-        }
+	        .idx-change {
+	            display: flex;
+	            align-items: center;
+	            justify-content: flex-end;
+	            white-space: nowrap;
+	        }
 
         .idx-bars {
             margin-top: 10px;
@@ -2142,31 +2128,26 @@
             return keys.map(([key, label]) => ({ key, label, ...(parseIndexMetrics(key) || {}) }));
         }
 
-        function renderSummaryCards(rows) {
-            const cards = rows.map(r => {
-                const cls =
-                    r.changePct == null ? 'neutral' :
-                    (r.changePct > 0 ? 'positive' : (r.changePct < 0 ? 'negative' : 'neutral'));
+	        function renderSummaryCards(rows) {
+	            const cards = rows.map(r => {
+	                const cls =
+	                    r.changePct == null ? 'neutral' :
+	                    (r.changePct > 0 ? 'positive' : (r.changePct < 0 ? 'negative' : 'neutral'));
 
-                const price = r.priceText || '—';
-                const change = r.changeText || '—';
+	                const change = r.changeText || '—';
 
-                return `
-                    <button type="button" class="idx-card idx-card-btn" onclick="openIndexPopup('${r.key}')">
-                        <div class="idx-top">
-                            <div class="idx-code">${r.label}</div>
-                            <div class="idx-price">${price}</div>
-                        </div>
-                        <div class="idx-meta" style="margin-top: 8px;">
-                            <div><span class="chip ${cls}">${change}</span></div>
-                            <div class="idx-volume">Chi tiết ▸</div>
-                        </div>
-                    </button>
-                `;
-            }).join('');
+	                return `
+	                    <button type="button" class="idx-card idx-card-btn" onclick="openIndexPopup('${r.key}')">
+	                        <div class="idx-top">
+	                            <div class="idx-code">${r.label}</div>
+	                            <div class="idx-change"><span class="chip ${cls}">${change}</span></div>
+	                        </div>
+	                    </button>
+	                `;
+	            }).join('');
 
-            return `<div class="idx-cards">${cards}</div>`;
-        }
+	            return `<div class="idx-cards">${cards}</div>`;
+	        }
 
         function tileBackgroundForChangeVolume(changePct, volumeValue, maxAbsChange, maxVolume) {
             if (changePct == null || volumeValue == null) {
@@ -2196,7 +2177,7 @@
 	                return `
 	                    <button type="button" class="heatmap-tile heatmap-tile-btn" style="background:${bg}" title="${escapeHtml(title)}" onclick="openIndexPopup('${r.key}')">
 	                        <div class="symbol">${r.label}</div>
-	                        <div class="metric">${change} · Vol ${vol}</div>
+	                        <div class="metric">${change}</div>
 	                    </button>
 	                `;
 	            }).join('');
