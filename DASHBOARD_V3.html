@@ -2294,7 +2294,6 @@
 	            try {
 	                const rows = getSummaryIndexRows();
 	                const summaryCards = renderSummaryCards(rows);
-	                const indexHeatmap = renderIndexHeatmap(rows);
 
 	                const stockData = window.UI_GLM_VNINDEX_HEATMAP || null;
 	                const gainers = stockData && Array.isArray(stockData.gainers) ? stockData.gainers : [];
@@ -2316,13 +2315,6 @@
 	                        <div class="block">
 	                            <div class="block-header">📊 THỐNG KÊ CÁC CHỈ SỐ</div>
 	                            <div class="block-body">${summaryCards}</div>
-	                        </div>
-	                        <div class="block" data-popup-title="🔥 Heatmap giá &amp; khối lượng (cuối ngày)">
-	                            <div class="block-header">
-	                                <span>🔥 Heatmap giá &amp; khối lượng (cuối ngày)</span>
-	                                <button type="button" class="block-expand" onclick="openBlockPopup(this)">Xem lớn</button>
-	                            </div>
-	                            <div class="block-body">${indexHeatmap}</div>
 	                        </div>
 	                        ${gainersBlock}
 	                        ${losersBlock}
