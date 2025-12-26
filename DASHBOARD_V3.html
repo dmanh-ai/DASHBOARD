@@ -985,6 +985,16 @@
 
             // Render regular sections first
             processedSections.forEach((section, idx) => {
+                // Clean escaped HTML tags and newlines
+                let cleanContent = section.content
+                    .replace(/\\n/g, '\n')
+                    .replace(/\\t/g, '')
+                    .replace(/\s+/g, ' ')
+                    .replace(/<\/p>\s*<p>/g, '</p><p>')
+                    .replace(/<p>\s*/g, '<p>')
+                    .replace(/\s*<\/p>/g, '</p>')
+                    .trim();
+
                 html += `
                     <div class="section-card ${section.alert ? 'alert' : ''}" style="animation-delay: ${idx * 0.05}s">
                         <div class="section-header" onclick="toggleSection(this)">
@@ -996,7 +1006,7 @@
                         </div>
                         <div class="section-content">
                             <div class="section-body">
-                                ${formatter.format(section.content)}
+                                ${formatter.format(cleanContent)}
                             </div>
                         </div>
                     </div>
@@ -1005,6 +1015,16 @@
 
             // Render what-if sections at the end
             whatIfSections.forEach((section, idx) => {
+                // Clean escaped HTML tags and newlines
+                let cleanContent = section.content
+                    .replace(/\\n/g, '\n')
+                    .replace(/\\t/g, '')
+                    .replace(/\s+/g, ' ')
+                    .replace(/<\/p>\s*<p>/g, '</p><p>')
+                    .replace(/<p>\s*/g, '<p>')
+                    .replace(/\s*<\/p>/g, '</p>')
+                    .trim();
+
                 html += `
                     <div class="whatif-card">
                         <div class="whatif-card-header" onclick="toggleSection(this)">
@@ -1013,7 +1033,7 @@
                         </div>
                         <div class="section-content">
                             <div class="whatif-card-body">
-                                ${formatter.format(section.content)}
+                                ${formatter.format(cleanContent)}
                             </div>
                         </div>
                     </div>
