@@ -1541,28 +1541,7 @@
         }
 
         .idx-card-btn {
-            position: relative;
             min-height: 54px;
-        }
-
-        .idx-heatmap-pill {
-            position: absolute;
-            right: 10px;
-            bottom: 10px;
-            border: 1px solid var(--glass-border);
-            background: rgba(59, 130, 246, 0.10);
-            color: var(--text-primary);
-            border-radius: 999px;
-            padding: 4px 8px;
-            font-weight: 900;
-            font-size: 0.78rem;
-            cursor: pointer;
-            user-select: none;
-            white-space: nowrap;
-        }
-
-        .idx-heatmap-pill:hover {
-            background: rgba(59, 130, 246, 0.16);
         }
 
         .idx-bars {
@@ -2112,9 +2091,9 @@
         }
 
         // Process sections to extract what-if content
-        function processSections(indexData) {
-            const processedSections = [];
-            const whatIfSections = [];
+	        function processSections(indexData) {
+	            const processedSections = [];
+	            const whatIfSections = [];
 
             indexData.sections.forEach((section) => {
                 const titleLower = section.title.toLowerCase();
@@ -2180,8 +2159,71 @@
                 }
             });
 
-            return [...processedSections, ...whatIfSections];
-        }
+	            return [...processedSections, ...whatIfSections];
+	        }
+
+	        function indexKeyToHeatmapIndexName(indexKey) {
+	            const map = {
+	                vn30: 'VN30',
+	                vn100: 'VN100',
+	                vnmidcap: 'VNMID',
+	                vnsml: 'VNSML',
+	                vnfinselect: 'VNFINSELECT',
+	                vndiamond: 'VNDIAMOND',
+	                vnreal: 'VNREAL',
+	                vnit: 'VNIT',
+	                vnheal: 'VNHEAL',
+	                vnfin: 'VNFIN',
+	                vnene: 'VNENE',
+	                vncons: 'VNCONS',
+	                vnmat: 'VNMAT',
+	                vncond: 'VNCOND',
+	            };
+	            return map[indexKey] || null;
+	        }
+
+	        function getIndexHeatmapPayload(indexKey) {
+	            const idxName = indexKeyToHeatmapIndexName(indexKey);
+	            const payload = (typeof window !== 'undefined' && window.UI_GLM_INDEX_HEATMAPS) ? window.UI_GLM_INDEX_HEATMAPS : null;
+	            const indices = payload && payload.indices ? payload.indices : null;
+	            const asof = payload && payload.asof ? payload.asof : '';
+	            const idxData = idxName && indices && indices[idxName] ? indices[idxName] : null;
+	            if (!idxName || !idxData) return null;
+	            return {
+	                indexName: idxName,
+	                asof,
+	                gainers: Array.isArray(idxData.gainers) ? idxData.gainers : [],
+	                losers: Array.isArray(idxData.losers) ? idxData.losers : [],
+	                countPos: idxData.count_pos,
+	                countNeg: idxData.count_neg,
+	            };
+	        }
+
+	        function getSectionsForIndex(indexKey) {
+	            const indexData = data[indexKey];
+	            const base = processSections(indexData);
+	            if (!indexKey || indexKey === 'overview' || indexKey === 'vnindex') return base;
+
+	            const payload = getIndexHeatmapPayload(indexKey);
+	            if (!payload) return base;
+
+	            return base.concat([
+	                {
+	                    title: '🔥 Heatmap cổ phiếu TĂNG GIÁ',
+	                    icon: '🔥',
+	                    content: '',
+	                    alert: false,
+	                    __uiType: 'heatmap_gainers',
+	                },
+	                {
+	                    title: '🔥 Heatmap cổ phiếu GIẢM GIÁ',
+	                    icon: '🔥',
+	                    content: '',
+	                    alert: false,
+	                    __uiType: 'heatmap_losers',
+	                }
+	            ]);
+	        }
 
         // ---------------------------
         // Overview extras: summary table + heatmaps (inside `TỔNG QUAN THỊ TRƯỜNG`)
@@ -2288,98 +2330,6 @@
 	            return keys.map(([key, label]) => ({ key, label, ...(parseIndexMetrics(key) || {}) }));
 	        }
 
-	        function indexKeyToHeatmapIndexName(indexKey) {
-	            const map = {
-	                vn30: 'VN30',
-	                vn100: 'VN100',
-	                vnmidcap: 'VNMID',
-	                vnsml: 'VNSML',
-	                vnfinselect: 'VNFINSELECT',
-	                vndiamond: 'VNDIAMOND',
-	                vnreal: 'VNREAL',
-	                vnit: 'VNIT',
-	                vnheal: 'VNHEAL',
-	                vnfin: 'VNFIN',
-	                vnene: 'VNENE',
-	                vncons: 'VNCONS',
-	                vnmat: 'VNMAT',
-	                vncond: 'VNCOND',
-	            };
-	            return map[indexKey] || null;
-	        }
-
-	        function openIndexHeatmapPopup(indexKey, label) {
-	            if (!indexKey) return;
-	            if (indexKey === 'vnindex') {
-	                openUiModal({
-	                    tone: 'neutral',
-	                    title: 'VNINDEX',
-	                    subtitle: 'Heatmap',
-	                    bodyHtml: `<div class="info-box"><p>Heatmap VNINDEX đã hiển thị sẵn trong tab <strong>TỔNG HỢP</strong> → <strong>TỔNG QUAN THỊ TRƯỜNG</strong>.</p></div>`,
-	                    large: false,
-	                });
-	                return;
-	            }
-
-	            const idxName = indexKeyToHeatmapIndexName(indexKey);
-	            const payload = (typeof window !== 'undefined' && window.UI_GLM_INDEX_HEATMAPS) ? window.UI_GLM_INDEX_HEATMAPS : null;
-	            const indices = payload && payload.indices ? payload.indices : null;
-	            const asof = payload && payload.asof ? payload.asof : '';
-	            const idxData = idxName && indices && indices[idxName] ? indices[idxName] : null;
-
-	            if (!idxName || !idxData) {
-	                openUiModal({
-	                    tone: 'neutral',
-	                    title: (label || indexKey || '').toUpperCase(),
-	                    subtitle: 'Heatmap',
-	                    bodyHtml: `<div class="info-box"><p>Không có dữ liệu heatmap cho index này.</p></div>`,
-	                    large: false,
-	                });
-	                return;
-	            }
-
-	            const gainers = Array.isArray(idxData.gainers) ? idxData.gainers : [];
-	            const losers = Array.isArray(idxData.losers) ? idxData.losers : [];
-	            const dateText = asof ? ` (date: ${asof})` : '';
-
-	            const gainersBlock = renderStockHeatmapTable(gainers, `🔥 Heatmap cổ phiếu TĂNG GIÁ${dateText}`);
-	            const losersBlock = renderStockHeatmapTable(losers, `🔥 Heatmap cổ phiếu GIẢM GIÁ${dateText}`);
-
-	            const bodyHtml = `
-	                <div class="ui-actions">
-	                    <button type="button" onclick="closeUiModal()">Đóng</button>
-	                </div>
-	                <div class="overview-extras" style="margin-top: 0;">
-	                    ${gainersBlock}
-	                    ${losersBlock}
-	                </div>
-	            `;
-
-	            openUiModal({
-	                tone: 'neutral',
-	                title: (label || idxName || indexKey || '').toUpperCase(),
-	                subtitle: 'Heatmap',
-	                bodyHtml,
-	                large: true,
-	            });
-	        }
-
-	        function handleIndexCardClick(evt, indexKey, label) {
-	            try {
-	                const t = evt && evt.target ? evt.target : null;
-	                const isHeatmap = t && t.closest ? t.closest('[data-action=\"heatmap\"]') : null;
-	                if (isHeatmap) {
-	                    evt.preventDefault();
-	                    evt.stopPropagation();
-	                    openIndexHeatmapPopup(indexKey, label);
-	                    return;
-	                }
-	            } catch (e) {
-	                // no-op
-	            }
-	            openIndexPopup(indexKey);
-	        }
-
 	        function renderSummaryCards(rows) {
 	            const cards = rows.map(r => {
 	                const cls =
@@ -2387,15 +2337,13 @@
 	                    (r.changePct > 0 ? 'positive' : (r.changePct < 0 ? 'negative' : 'neutral'));
 
 	                const change = r.changeText || '—';
-	                const showHeatmap = r.key !== 'vnindex';
 
 	                return `
-	                    <button type="button" class="idx-card idx-card-btn" onclick="handleIndexCardClick(event,'${r.key}','${r.label}')">
+	                    <button type="button" class="idx-card idx-card-btn" onclick="openIndexPopup('${r.key}')">
 	                        <div class="idx-top">
 	                            <div class="idx-code">${r.label}</div>
 	                            <div class="idx-change"><span class="chip ${cls}">${change}</span></div>
 	                        </div>
-	                        ${showHeatmap ? `<span class="idx-heatmap-pill" data-action="heatmap">Heatmap ▦</span>` : ``}
 	                    </button>
 	                `;
 	            }).join('');
@@ -2517,6 +2465,22 @@
 	            `;
 	        }
 
+	        function renderIndexHeatmapSection(indexKey, kind) {
+	            const payload = getIndexHeatmapPayload(indexKey);
+	            if (!payload) {
+	                return `<div class="info-box"><p>Không có dữ liệu heatmap cho index này.</p></div>`;
+	            }
+
+	            const dateText = payload.asof ? ` (date: ${payload.asof})` : '';
+	            const points = kind === 'gainers' ? payload.gainers : payload.losers;
+	            const title =
+	                kind === 'gainers'
+	                    ? `🔥 Heatmap cổ phiếu TĂNG GIÁ${dateText}`
+	                    : `🔥 Heatmap cổ phiếu GIẢM GIÁ${dateText}`;
+
+	            return `<div class="overview-extras" style="margin-top: 0;">${renderStockHeatmapTable(points, title)}</div>`;
+	        }
+
         function buildIndexSummaryHtml() {
             const rows = getSummaryIndexRows();
             const cardsHtml = renderSummaryCards(rows);
@@ -2591,7 +2555,7 @@
 	                selectIndex(indexKey);
 
 	                const indexData = data[indexKey];
-	                const sections = processSections(indexData);
+	                const sections = getSectionsForIndex(indexKey);
 
 	                if (sectionTitleRaw) {
 	                    const target = normalizeTitle(decodeURIComponent(sectionTitleRaw));
@@ -2646,38 +2610,19 @@
 	            }
 	        }
 
-	        function tryAutoOpenIndexHeatmapPopupFromUrl() {
-	            try {
-	                if (!document.getElementById('uiModal')) {
-	                    setTimeout(tryAutoOpenIndexHeatmapPopupFromUrl, 50);
-	                    return;
-	                }
-
-	                const params = new URLSearchParams(window.location.search || '');
-	                const raw = (params.get('indexHeatmap') || params.get('indexHeatmapPopup') || '').trim();
-	                if (!raw) return;
-	                const key = raw.toLowerCase();
-	                const rows = getSummaryIndexRows();
-	                const found = rows.find(r => r.key === key);
-	                openIndexHeatmapPopup(key, found ? found.label : key.toUpperCase());
-	            } catch (e) {
-	                // no-op
-	            }
-	        }
-
 	        // Render section list in middle column
 	        function renderSectionList(indexKey) {
 	            const index = data[indexKey];
 	            if (!index || !index.sections) {
-                document.getElementById('sectionList').innerHTML = '<div class="no-sections">Không có dữ liệu</div>';
-                return;
-            }
+	                document.getElementById('sectionList').innerHTML = '<div class="no-sections">Không có dữ liệu</div>';
+	                return;
+	            }
 
             // Update section nav header
             document.getElementById('sectionNavTitle').textContent = index.title.split('-')[0].trim();
 
-            const sections = processSections(index);
-            const container = document.getElementById('sectionList');
+	            const sections = getSectionsForIndex(indexKey);
+	            const container = document.getElementById('sectionList');
 
             let html = '';
             sections.forEach((section, idx) => {
@@ -2695,18 +2640,18 @@
                 `;
             });
 
-            container.innerHTML = html;
-        }
+	            container.innerHTML = html;
+	        }
 
         // Select and display a single section
-        function selectSection(sectionIndex) {
-            if (!currentIndex) return;
+	        function selectSection(sectionIndex) {
+	            if (!currentIndex) return;
 
-            const index = data[currentIndex];
-            const sections = processSections(index);
-            const section = sections[sectionIndex];
+	            const index = data[currentIndex];
+	            const sections = getSectionsForIndex(currentIndex);
+	            const section = sections[sectionIndex];
 
-            if (!section) return;
+	            if (!section) return;
 
             currentSectionIndex = sectionIndex;
 
@@ -2727,30 +2672,44 @@
             const contentDiv = document.getElementById('singleSectionContent');
             contentDiv.style.display = 'block';
 
-            // Clean and format content
-            const formatter = new ContentFormatter();
-            let cleanContent = section.content
-                .replace(/\\n/g, '\n')
-                .replace(/\\t/g, '')
-                .replace(/\s+/g, ' ')
-                .replace(/<\/p>\s*<p>/g, '</p><p>')
-                .replace(/<p>\s*/g, '<p>')
-                .replace(/\s*<\/p>/g, '</p>')
-                .trim();
+	            const isUiHeatmapSection = section.__uiType === 'heatmap_gainers' || section.__uiType === 'heatmap_losers';
+
+	            // Clean and format content
+	            const formatter = new ContentFormatter();
+	            let cleanContent = section.content
+	                .replace(/\\n/g, '\n')
+	                .replace(/\\t/g, '')
+	                .replace(/\s+/g, ' ')
+	                .replace(/<\/p>\s*<p>/g, '</p><p>')
+	                .replace(/<p>\s*/g, '<p>')
+	                .replace(/\s*<\/p>/g, '</p>')
+	                .trim();
 
             // Render content
             const isWhatIf = section.title.toLowerCase().includes('what-if') ||
                             section.title.toLowerCase().includes('kịch bản');
 
-            if (isWhatIf) {
-                contentDiv.innerHTML = `
-                    <div class="whatif-card">
-                        <div class="whatif-card-body">
-                            ${formatter.format(cleanContent)}
-                        </div>
-                    </div>
-                `;
-            } else {
+	            if (isUiHeatmapSection) {
+	                const heatmapHtml = renderIndexHeatmapSection(
+	                    currentIndex,
+	                    section.__uiType === 'heatmap_gainers' ? 'gainers' : 'losers'
+	                );
+	                contentDiv.innerHTML = `
+	                    <div class="section-card">
+	                        <div class="section-body">
+	                            ${heatmapHtml}
+	                        </div>
+	                    </div>
+	                `;
+	            } else if (isWhatIf) {
+	                contentDiv.innerHTML = `
+	                    <div class="whatif-card">
+	                        <div class="whatif-card-body">
+	                            ${formatter.format(cleanContent)}
+	                        </div>
+	                    </div>
+	                `;
+	            } else {
                 const isMarketOverview =
                     currentIndex === 'overview' &&
                     normalizeTitle(section.title) === 'TỔNG QUAN THỊ TRƯỜNG';
@@ -2804,12 +2763,11 @@
 
 			        // Initialize
 			        renderSidebar();
-				        setTimeout(() => {
-				            tryAutoSelectFromUrl();
-				            tryAutoOpenStockPopupFromUrl();
-				            tryAutoOpenIndexHeatmapPopupFromUrl();
-				        }, 0);
-				        // Don't auto-select any index by default - let user choose
+			        setTimeout(() => {
+			            tryAutoSelectFromUrl();
+			            tryAutoOpenStockPopupFromUrl();
+			        }, 0);
+			        // Don't auto-select any index by default - let user choose
 
         // ========== DONATE MODAL FUNCTIONS ==========
         function showDonateModal() {
