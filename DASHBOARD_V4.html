@@ -747,61 +747,85 @@
         function extractMetrics(content) {
             const metrics = {};
 
+            // Clean content first - remove escaped HTML and normalize whitespace
+            // This fixes the issue with \n, \t, and HTML tags in the data
+            let cleanContent = content
+                .replace(/\\n/g, ' ')
+                .replace(/\\t/g, ' ')
+                .replace(/\s+/g, ' ')
+                .replace(/<[^>]*>/g, ' ')
+                .trim();
+
             // Extract price
-            const priceMatch = content.match(/(\d{1,3}(?:,\d{3})*(?:\.\d+)?)/);
+            const priceMatch = cleanContent.match(/(\d{1,3}(?:,\d{3})*(?:\.\d+)?)/);
             if (priceMatch) {
                 metrics.price = priceMatch[1];
             }
 
             // Extract percentage change
-            const pctMatches = content.matchAll(/([+-]?\d+\.?\d*)%/g);
+            const pctMatches = cleanContent.matchAll(/([+-]?\d+\.?\d*)%/g);
             if (pctMatches) {
                 const pcts = Array.from(pctMatches).map(m => parseFloat(m[1]));
                 metrics.changes = pcts;
             }
 
-            // Extract breadth
-            const breadthMatch = content.match(/(\d+)\s*\/\s*(\d+)/);
-            if (breadthMatch) {
+            // Extract breadth - format: "A/D 97/245"
+            const breadthMatch = cleanContent.match(/A\/D\s*(\d+)\s*\/\s*(\d+)/i);
+            if (!breadthMatch) {
+                // Fallback: try to match any "number/number" pattern
+                const fallbackBreadth = cleanContent.match(/(\d+)\s*\/\s*(\d+)/);
+                if (fallbackBreadth) {
+                    metrics.breadth = `${fallbackBreadth[1]}/${fallbackBreadth[2]}`;
+                    const breadthPct = (parseInt(fallbackBreadth[1]) / (parseInt(fallbackBreadth[1]) + parseInt(fallbackBreadth[2])) * 100).toFixed(1);
+                    metrics.breadthPct = breadthPct + '%';
+                }
+            } else {
                 metrics.breadth = `${breadthMatch[1]}/${breadthMatch[2]}`;
-                const breadthPct = (parseInt(breadthMatch[1]) / parseInt(breadthMatch[2]) * 100).toFixed(1);
+                const breadthPct = (parseInt(breadthMatch[1]) / (parseInt(breadthMatch[1]) + parseInt(breadthMatch[2])) * 100).toFixed(1);
                 metrics.breadthPct = breadthPct + '%';
             }
 
-            // Extract TRIN
-            const trinMatch = content.match(/TRIN\s*[:=]\s*(\d+\.?\d*)/i);
+            // Extract TRIN - format: "TRIN: 5.37"
+            const trinMatch = cleanContent.match(/TRIN\s*[:=]\s*(\d+\.?\d*)/i);
             if (trinMatch) {
                 metrics.trin = trinMatch[1];
             }
 
             // Extract RSI
-            const rsiMatch = content.match(/RSI[ -]?(\d+)[\s=:]*(-?\d+\.?\d*)/i);
+            const rsiMatch = cleanContent.match(/RSI[ -]?(\d+)[\s=:]*(-?\d+\.?\d*)/i);
             if (rsiMatch && rsiMatch[2]) {
                 metrics.rsi = rsiMatch[2];
             }
 
             // Extract MA20
-            const ma20Match = content.match(/MA20\s*[:=]\s*([\d,]+\.?\d*)/i);
+            const ma20Match = cleanContent.match(/MA20\s*[:=]\s*([\d,]+\.?\d*)/i);
             if (ma20Match) {
                 metrics.ma20 = ma20Match[1].replace(/,/g, '');
             }
 
             // Extract VWAP20
-            const vwapMatch = content.match(/VWAP.*?20.*?[:=]\s*([\d,]+\.?\d*)/i);
+            const vwapMatch = cleanContent.match(/VWAP.*?20.*?[:=]\s*([\d,]+\.?\d*)/i);
             if (vwapMatch) {
                 metrics.vwap20 = vwapMatch[1].replace(/,/g, '');
             }
 
             // Extract ADX
-            const adxMatch = content.match(/ADX.*?20.*?[:=]\s*(\d+\.?\d*)/i);
+            const adxMatch = cleanContent.match(/ADX.*?20.*?[:=]\s*(\d+\.?\d*)/i);
             if (adxMatch) {
                 metrics.adx20 = adxMatch[1];
             }
 
-            // Extract Volume
-            const volMatch = content.match(/(\d+\.?\d*)\s*[mM]/i);
-            if (volMatch) {
-                metrics.volume = volMatch[1];
+            // Extract Volume - handle Vietnamese format "830 triệu" or "830M"
+            // First try Vietnamese format
+            const volVietnameseMatch = cleanContent.match(/(\d+\.?\d*)\s*triệu/i);
+            if (volVietnameseMatch) {
+                metrics.volume = volVietnameseMatch[1];
+            } else {
+                // Fallback to English format "830M"
+                const volMatch = cleanContent.match(/(\d+\.?\d*)\s*[mM]/i);
+                if (volMatch) {
+                    metrics.volume = volMatch[1];
+                }
             }
 
             return metrics;
