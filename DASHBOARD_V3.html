@@ -1415,6 +1415,108 @@
             font-size: 0.85rem;
             font-weight: 700;
         }
+
+        /* Summary charts/cards */
+        .idx-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+            gap: 12px;
+        }
+
+        .idx-card {
+            border: 1px solid var(--glass-border);
+            border-radius: 14px;
+            padding: 12px;
+            background: rgba(255, 255, 255, 0.04);
+        }
+
+        [data-theme="dark"] .idx-card {
+            background: rgba(255, 255, 255, 0.02);
+        }
+
+        .idx-top {
+            display: flex;
+            align-items: baseline;
+            justify-content: space-between;
+            gap: 10px;
+        }
+
+        .idx-code {
+            font-weight: 900;
+            letter-spacing: 0.4px;
+        }
+
+        .idx-price {
+            color: var(--text-secondary);
+            font-weight: 800;
+            font-size: 0.92rem;
+            white-space: nowrap;
+        }
+
+        .idx-meta {
+            margin-top: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+        }
+
+        .idx-volume {
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+            white-space: nowrap;
+        }
+
+        .idx-bars {
+            margin-top: 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .mini-bar {
+            display: grid;
+            grid-template-columns: 70px 1fr;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .mini-bar .label {
+            color: var(--text-secondary);
+            font-size: 0.78rem;
+            font-weight: 800;
+            letter-spacing: 0.3px;
+            text-transform: uppercase;
+        }
+
+        .bar-track {
+            height: 10px;
+            border-radius: 999px;
+            background: rgba(148, 163, 184, 0.18);
+            overflow: hidden;
+            border: 1px solid rgba(0, 0, 0, 0.06);
+        }
+
+        [data-theme="dark"] .bar-track {
+            border-color: rgba(255, 255, 255, 0.08);
+        }
+
+        .bar-fill {
+            height: 100%;
+            border-radius: 999px;
+        }
+
+        .bar-fill.positive {
+            background: linear-gradient(90deg, rgba(16, 185, 129, 0.85), rgba(16, 185, 129, 0.45));
+        }
+
+        .bar-fill.negative {
+            background: linear-gradient(90deg, rgba(239, 68, 68, 0.85), rgba(239, 68, 68, 0.45));
+        }
+
+        .bar-fill.neutral {
+            background: linear-gradient(90deg, rgba(148, 163, 184, 0.85), rgba(148, 163, 184, 0.45));
+        }
     </style>
 </head>
 <body data-theme="light">
@@ -1708,34 +1810,49 @@
             return keys.map(([key, label]) => ({ key, label, ...(parseIndexMetrics(key) || {}) }));
         }
 
-        function renderSummaryTable(rows) {
-            const body = rows.map(r => {
+        function renderSummaryCards(rows) {
+            const usableChange = rows.filter(r => r.changePct != null);
+            const usableVol = rows.filter(r => r.volumeValue != null);
+            const maxAbsChange = usableChange.length ? Math.max(...usableChange.map(r => Math.abs(r.changePct))) : 1;
+            const maxVolume = usableVol.length ? Math.max(...usableVol.map(r => r.volumeValue)) : 1;
+
+            const cards = rows.map(r => {
                 const cls =
                     r.changePct == null ? 'neutral' :
                     (r.changePct > 0 ? 'positive' : (r.changePct < 0 ? 'negative' : 'neutral'));
+
+                const price = r.priceText || '—';
+                const change = r.changeText || '—';
+
+                const volText = r.volumeText || (r.volumeValue != null ? formatCompactNumber(r.volumeValue) : '—');
+                const changeW = r.changePct == null ? 0 : Math.max(8, Math.round(100 * Math.min(Math.abs(r.changePct) / maxAbsChange, 1)));
+                const volW = r.volumeValue == null ? 0 : Math.max(8, Math.round(100 * Math.min(r.volumeValue / maxVolume, 1)));
+
                 return `
-                    <tr>
-                        <td><strong>${r.label}</strong></td>
-                        <td class="right">${r.priceText || ''}</td>
-                        <td class="right"><span class="chip ${cls}">${r.changeText || ''}</span></td>
-                        <td class="right">${r.volumeText || ''}</td>
-                    </tr>
+                    <div class="idx-card">
+                        <div class="idx-top">
+                            <div class="idx-code">${r.label}</div>
+                            <div class="idx-price">${price}</div>
+                        </div>
+                        <div class="idx-meta">
+                            <div><span class="chip ${cls}">${change}</span></div>
+                            <div class="idx-volume">Vol ${volText}</div>
+                        </div>
+                        <div class="idx-bars">
+                            <div class="mini-bar">
+                                <div class="label">Change</div>
+                                <div class="bar-track"><div class="bar-fill ${cls}" style="width:${changeW}%"></div></div>
+                            </div>
+                            <div class="mini-bar">
+                                <div class="label">Volume</div>
+                                <div class="bar-track"><div class="bar-fill neutral" style="width:${volW}%"></div></div>
+                            </div>
+                        </div>
+                    </div>
                 `;
             }).join('');
 
-            return `
-                <table class="summary-table">
-                    <thead>
-                        <tr>
-                            <th>Chỉ số</th>
-                            <th class="right">Giá</th>
-                            <th class="right">Thay đổi</th>
-                            <th class="right">Khối lượng</th>
-                        </tr>
-                    </thead>
-                    <tbody>${body}</tbody>
-                </table>
-            `;
+            return `<div class="idx-cards">${cards}</div>`;
         }
 
         function tileBackgroundForChangeVolume(changePct, volumeValue, maxAbsChange, maxVolume) {
@@ -1829,9 +1946,22 @@
             `;
         }
 
+        function buildIndexSummaryHtml() {
+            const rows = getSummaryIndexRows();
+            const cardsHtml = renderSummaryCards(rows);
+            return `
+                <div class="overview-extras">
+                    <div class="block">
+                        <div class="block-header">📊 THỐNG KÊ CÁC CHỈ SỐ</div>
+                        <div class="block-body">${cardsHtml}</div>
+                    </div>
+                </div>
+            `;
+        }
+
         function buildMarketOverviewExtrasHtml() {
             const rows = getSummaryIndexRows();
-            const summaryTable = renderSummaryTable(rows);
+            const summaryCards = renderSummaryCards(rows);
             const indexHeatmap = renderIndexHeatmap(rows);
 
             const stockData = window.UI_GLM_VNINDEX_HEATMAP || null;
@@ -1853,7 +1983,7 @@
                 <div class="overview-extras">
                     <div class="block">
                         <div class="block-header">📊 THỐNG KÊ CÁC CHỈ SỐ</div>
-                        <div class="block-body">${summaryTable}</div>
+                        <div class="block-body">${summaryCards}</div>
                     </div>
                     <div class="block">
                         <div class="block-header">🔥 Heatmap giá &amp; khối lượng (cuối ngày)</div>
@@ -1956,11 +2086,17 @@
                     normalizeTitle(section.title) === 'TỔNG QUAN THỊ TRƯỜNG';
                 const extras = isMarketOverview ? buildMarketOverviewExtrasHtml() : '';
 
+                const isRanking =
+                    currentIndex === 'overview' &&
+                    normalizeTitle(section.title) === 'XẾP HẠNG';
+                const rankingExtras = isRanking ? buildIndexSummaryHtml() : '';
+
                 contentDiv.innerHTML = `
                     <div class="section-card ${section.alert ? 'alert' : ''}">
                         <div class="section-body">
                             ${formatter.format(cleanContent)}
                             ${extras}
+                            ${rankingExtras}
                         </div>
                     </div>
                 `;
