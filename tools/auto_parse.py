@@ -6,10 +6,12 @@ Sử dụng khi có file Word mới cần convert sang dashboard
 """
 
 import sys
+import os
 from pathlib import Path
 
 from smart_parser import parse_overview, parse_index
-from parser_models import ParsedResult
+from parser_models import ParsedResult, ParsedIndex, Section
+from renderer import render_index, render_overview
 
 def parse_all_indices(input_txt, output_js='full_data_new.js'):
     """
@@ -36,6 +38,37 @@ def parse_all_indices(input_txt, output_js='full_data_new.js'):
         ('VNDIAMOND', 'vndiamond')
     ]
 
+    # Reliability policy:
+    # - Always emit 16 keys to keep UI stable.
+    # - If an index is missing from the report, emit a placeholder section
+    #   that clearly states "không có trong báo cáo" (no guessing / no fallback data).
+    # - Quality gate: require a minimum number of successfully parsed items,
+    #   otherwise abort to avoid updating UI with mostly placeholders.
+    min_success = int(os.environ.get("UI_GLM_MIN_SUCCESS_ITEMS", "10"))
+    if min_success < 0:
+        min_success = 0
+    if min_success > len(indices):
+        min_success = len(indices)
+
+    def _placeholder_index(index_name: str, index_code: str, error_summary: str) -> ParsedIndex:
+        return ParsedIndex(
+            key=index_code,
+            title=index_name,
+            sections=[
+                Section(
+                    icon="⚠️",
+                    title="`KHÔNG CÓ DỮ LIỆU`",
+                    content=(
+                        "<div class='info-box'>"
+                        "<p>Không tìm thấy phần phân tích cho chỉ số này trong báo cáo Word hôm nay.</p>"
+                        f"<p>Lý do parser: {error_summary}</p>"
+                        "</div>"
+                    ),
+                    alert=True,
+                )
+            ],
+        )
+
     print(f"🚀 Starting parse from: {input_txt}")
     print(f"📝 Output to: {output_js}")
     print("-" * 60)
@@ -54,6 +87,7 @@ def parse_all_indices(input_txt, output_js='full_data_new.js'):
 
         success_count = 0
         failed_indices = []
+        placeholder_indices = []
         error_summary = {}  # error_type -> count
         total = len(indices)
 
@@ -85,10 +119,18 @@ def parse_all_indices(input_txt, output_js='full_data_new.js'):
                     # Collect error statistics
                     error_summary[error_type] = error_summary.get(error_type, 0) + 1
 
+                    placeholder = _placeholder_index(index_name, index_code, f"{error_type}: {error_msg}")
+                    f.write((render_overview(placeholder) if index_code == "overview" else render_index(placeholder)) + ",\n")
+                    placeholder_indices.append(index_name)
+
             except Exception as e:
                 print(f"❌ UNEXPECTED ERROR: {e}")
                 failed_indices.append(index_name)
                 error_summary["UnexpectedError"] = error_summary.get("UnexpectedError", 0) + 1
+
+                placeholder = _placeholder_index(index_name, index_code, f"UnexpectedError: {e}")
+                f.write((render_overview(placeholder) if index_code == "overview" else render_index(placeholder)) + ",\n")
+                placeholder_indices.append(index_name)
 
         # Close FULL_DATA object
         f.write("};\n")
@@ -98,6 +140,8 @@ def parse_all_indices(input_txt, output_js='full_data_new.js'):
     print(f"📊 SUMMARY:")
     print(f"   ✅ Success: {success_count}/{total} items")
     print(f"   ❌ Failed: {len(failed_indices)}/{total} items")
+    if placeholder_indices:
+        print(f"   ⚠️  Placeholders: {len(placeholder_indices)}/{total} items")
 
     if failed_indices:
         print(f"\n❌ Failed indices:")
@@ -112,13 +156,18 @@ def parse_all_indices(input_txt, output_js='full_data_new.js'):
     else:
         print(f"\n🎉 ALL INDICES PARSED SUCCESSFULLY!")
 
+    # Reliability: quality gate on minimum number of successful parses.
+    if success_count < min_success:
+        print(f"\n❌ QUALITY GATE FAILED: success {success_count}/{total} < UI_GLM_MIN_SUCCESS_ITEMS={min_success}")
+        return False
+
     print(f"\n📝 Output file: {output_js}")
     print(f"\n🔍 Next steps:")
     print(f"   1. node --check {output_js}")
     print(f"   2. If OK: cp {output_js} full_data.js")
     print(f"   3. Open index.html (or ELEGANT_CHRISTMAS.html) to verify")
 
-    return success_count == len(indices)
+    return True
 
 
 if __name__ == '__main__':

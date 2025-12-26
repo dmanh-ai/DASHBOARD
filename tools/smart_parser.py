@@ -79,22 +79,23 @@ INDEX_NAMES = ALL_INDEX_CODES  # Legacy compatibility
 # ============================================================================
 
 # Section definitions: (regex_key, icon, title)
+# FIX: Use stricter patterns with line anchors to avoid false matches
 _SECTION_DEFINITIONS = [
-    ('XU.*HƯỚNG.*GIÁ', '📈', 'XU HƯỚNG GIÁ'),
-    ('XU.*HƯỚNG.*KHỐI.*LƯỢNG', '📊', 'XU HƯỚNG KHỐI LƯỢNG'),
-    ('KẾT.*HỢP.*XU.*HƯỚNG', '💹', 'KẾT HỢP XU HƯỚNG GIÁ VÀ KHỐI LƯỢNG'),
-    ('CUNG.*CẦU', '⚖️', 'CUNG-CẦU'),
-    ('MỨC.*GIÁ.*QUAN.*TRỌNG', '🎯', 'MỨC GIÁ QUAN TRỌNG'),
-    ('BIẾN.*ĐỘNG.*GIÁ', '📉', 'BIẾN ĐỘNG GIÁ'),
-    ('MÔ.*HÌNH.*GIÁ.*MÔ.*HÌNH.*NẾN', '🕯️', 'MÔ HÌNH GIÁ - MÔ HÌNH NẾN'),
-    ('MARKET.*BREADTH|TÂM.*LÝ.*THỊ.*TRƯỜNG', '👥', 'MARKET BREADTH & TÂM LÝ THỊ TRƯỜNG'),
-    ('LỊCH.*SỬ.*XU.*HƯỚNG.*BREADTH', '📜', 'LỊCH SỬ & XU HƯỚNG BREADTH'),
-    ('RỦI.*RO', '⚠️', 'RỦI RO'),
-    ('KHUYẾN.*NGHỊ.*VỊ.*THẾ', '🎯', 'KHUYẾN NGHỊ VỊ THẾ'),
-    ('GIÁ.*MỤC.*TIÊU', '🎯', 'GIÁ MỤC TIÊU'),
-    ('KỊCH.*BẢN.*WHAT.*IF|WHAT.*IF', '🎲', 'KỊCH BẢN WHAT-IF'),
-    ('THÔNG.*TIN.*CHUNG', '📊', 'THÔNG TIN CHUNG'),
-    ('TỔNG.*QUAN', '📊', 'THÔNG TIN CHUNG'),
+    ('^XU\\s+HƯỚNG\\s+GIÁ$', '📈', 'XU HƯỚNG GIÁ'),
+    ('^XU\\s+HƯỚNG\\s+KHỐI\\s+LƯỢNG$', '📊', 'XU HƯỚNG KHỐI LƯỢNG'),
+    ('^KẾT\\s+HỢP\\s+XU\\s+HƯỚNG\\s+GIÁ\\s+VÀ\\s+KHỐI\\s+LƯỢNG$', '💹', 'KẾT HỢP XU HƯỚNG GIÁ VÀ KHỐI LƯỢNG'),
+    ('^CUNG(?:\\s*\\-|\\s+\\-\\s+)CẦU$', '⚖️', 'CUNG-CẦU'),
+    ('^MỨC\\s+GIÁ\\s+QUAN\\s+TRỌNG$', '🎯', 'MỨC GIÁ QUAN TRỌNG'),
+    ('^BIẾN\\s+ĐỘNG\\s+GIÁ$', '📉', 'BIẾN ĐỘNG GIÁ'),
+    ('^MÔ\\s+HÌNH\\s+GIÁ(?:\\s+\\-|\\s+\\-\\s+)MÔ\\s+HÌNH\\s+NẾN$', '🕯️', 'MÔ HÌNH GIÁ - MÔ HÌNH NẾN'),
+    ('^MARKET\\s+BREADTH(?:\\s+\\&|\\s+\\&\\s+)TÂM\\s+LÝ\\s+THỊ\\s+TRƯỜNG$', '👥', 'MARKET BREADTH & TÂM LÝ THỊ TRƯỜNG'),
+    ('^LỊCH\\s+SỬ(?:\\s+\\&|\\s+\\&\\s+)XU\\s+HƯỚNG\\s+BREADTH$', '📜', 'LỊCH SỬ & XU HƯỚNG BREADTH'),
+    ('^RỦI\\s+RO$', '⚠️', 'RỦI RO'),
+    ('^KHUYẾN\\s+NGHỊ\\s+VỊ\\s+THẾ$', '🎯', 'KHUYẾN NGHỊ VỊ THẾ'),
+    ('^GIÁ\\s+MỤC\\s+TIÊU$', '🎯', 'GIÁ MỤC TIÊU'),
+    ('^KỊCH\\s+BẢN\\s+WHAT(?:\\s+\\-|\\s+\\-\\s+)IF$|^WHAT\\s+IF$', '🎲', 'KỊCH BẢN WHAT-IF'),
+    ('^THÔNG\\s+TIN\\s+CHUNG$', '📊', 'THÔNG TIN CHUNG'),
+    ('^TỔNG\\s+QUAN$', '📊', 'THÔNG TIN CHUNG'),
 ]
 
 
@@ -102,16 +103,28 @@ def _build_section_union_pattern() -> re.Pattern:
     """
     Build union regex pattern for all section headers (O(N) tokenization)
 
+    FIX: Added $ anchor to avoid false matches in sentences
+
     Returns compiled pattern with named groups for each section type
     """
     # Build pattern with named groups
+    #
+    # NOTE: DOCX->TXT can introduce numbering/bullets before section headers.
+    # To avoid brittle parsing, we accept optional prefixes like:
+    # - "1. ", "1) ", "A) ", "- ", "• "
+    # and optional trailing ":".
+    prefix = r'(?:\s*(?:\d+\.\s*|\d+\)\s*|[A-Z]\)\s*|[-•]\s*))?'
+    suffix = r'(?:\s*[:：])?'
+
     pattern_parts = []
     for i, (regex_key, _, _) in enumerate(_SECTION_DEFINITIONS):
         group_name = f'sec{i}'
-        pattern_parts.append(rf'(?P<{group_name}>{regex_key})')
+        # Remove ^ and $ from pattern_key since we'll add them ourselves
+        clean_pattern = regex_key.strip('^$')
+        pattern_parts.append(rf'(?P<{group_name}>{prefix}{clean_pattern}{suffix})')
 
-    # Join with | (OR)
-    full_pattern = r'^(' + '|'.join(pattern_parts) + r')'
+    # Join with | (OR) and wrap with anchors
+    full_pattern = r'^\s*(' + '|'.join(pattern_parts) + r')\s*$'
 
     return re.compile(full_pattern, re.MULTILINE | re.IGNORECASE)
 
@@ -183,6 +196,51 @@ def _parse_sections_from_content_optimized(index_content: str, index_code: str) 
         # Format thành HTML
         html_content = format_content_smart(section_content)
 
+        # Special handling: Tách "Kịch Bản What-if" nếu có trong content
+        split_marker = 'Kịch Bản "What-if"'
+        if split_marker in html_content:
+            # Tách content tại marker
+            parts = html_content.split(split_marker, 1)
+
+            # Section gốc: Title cũ (phần đầu)
+            section = Section(
+                icon=icon,
+                title=f'`{title}`',
+                content=parts[0].strip(),
+                alert=('KHUYẾN NGHỊ' in title)
+            )
+            sections.append(section)
+
+            # Xử lý phần sau (cần loại bỏ PHẦN III nếu có)
+            remaining_content = parts[1].strip()
+
+            # Kiểm tra xem có "PHẦN III" trong phần sau không - đây là marker kết thúc, KHÔNG phải section riêng
+            phan3_match = re.search(r'PHẦN\s+III\s*:', remaining_content)
+            if phan3_match:
+                # Cắt bỏ PHẦN III và phần sau nó (đây là bắt đầu section tiếp theo, không thuộc VNINDEX)
+                whatif_content = remaining_content[:phan3_match.start()].strip()
+
+                # Section Kịch Bản What-if (chỉ lấy phần trước PHẦN III)
+                whatif_section = Section(
+                    icon='🟡',
+                    title='`Kịch Bản What-if`',
+                    content=split_marker + whatif_content,
+                    alert=False
+                )
+                sections.append(whatif_section)
+            else:
+                # Không có PHẦN III, lấy toàn bộ phần sau
+                whatif_section = Section(
+                    icon='🟡',
+                    title='`Kịch Bản What-if`',
+                    content=split_marker + remaining_content,
+                    alert=False
+                )
+                sections.append(whatif_section)
+
+            continue  # Skip normal processing
+
+        # Normal processing
         section = Section(
             icon=icon,
             title=f'`{title}`',
@@ -210,21 +268,24 @@ def _build_union_header_pattern() -> re.Pattern:
     Pattern matches:
     - PHẦN II: PHÂN TÍCH CHỈ SỐ VNINDEX
     - 1. Chỉ số VN30 ...
-    - 1. VNREAL - Bất động sản  (industry format)
-    - 1. VNREAL  (bare code)
+    - PHÂN TÍCH CHỈ SỐ VN30
+    - 1. VNREAL - Bất động sản  (industry format - PHẢI có dấu -)
+    - 1. VNREAL  (bare code - KHÔNG có dấu -)
     """
     # Escape all codes for regex
     CODE_ALT = "|".join(map(re.escape, ALL_INDEX_CODES))
 
     # Build union pattern với named groups
-    # Use simple ^ anchor with MULTILINE mode
+    # FIX: Đảo thứ tự - industry_code PHẢI có dấu - hoặc :
+    # bare_code KHÔNG được có dấu - hoặc :
     pattern = rf"""
         ^
         (?:
           PHẦN\s+[IVXLC]+\s*:\s*[^\n]*?\b(?P<part_code>{CODE_ALT})\b
           |\s*\d+\.\s*Chỉ\s*số\s+(?P<chiso_code>{CODE_ALT})\b
-          |\s*\d+\.\s*(?P<industry_code>{CODE_ALT})\b\s*(?:-|—|:)?
-          |\s*\d+\.\s*(?P<bare_code>{CODE_ALT})\b
+          |\s*PHÂN\s*TÍCH\s*CHỈ\s*SỐ\s+(?P<phan_tich_code>{CODE_ALT})\b
+          |\s*\d+\.\s*(?P<industry_code>{CODE_ALT})\b\s+(?:-|—|:)
+          |\s*\d+\.\s*(?P<bare_code>{CODE_ALT})\b\s*(?![-|—|:])
         )
     """
 
@@ -249,11 +310,14 @@ def _find_all_index_boundaries_1pass(content: str) -> dict[str, tuple[int, int]]
         ParserError: If boundary detection fails
     """
     # Header type priority (higher = better)
+    # FIX: Ưu tiên format đầy đủ "CODE - NAME" (trong PHẦN IV)
+    # hơn là bare CODE (trong PHẦN I overview)
     PRIORITY = {
-        'part_code': 3,      # PHẦN II: ... VNINDEX (highest)
-        'chiso_code': 2,     # 1. Chỉ số VN30 ...
-        'industry_code': 1,  # 1. VNREAL - ...
-        'bare_code': 1,      # 1. VNREAL
+        'part_code': 4,      # PHẦN II: ... VNINDEX (highest)
+        'chiso_code': 3,     # 1. Chỉ số VN30 ...
+        'phan_tich_code': 3, # PHÂN TÍCH CHỈ SỐ VN30
+        'industry_code': 2,  # 1. VNREAL - ... (PHẦN IV analysis)
+        'bare_code': 1,      # 1. VNREAL (PHẦN I overview - lowest priority)
     }
 
     matches = []
@@ -263,7 +327,7 @@ def _find_all_index_boundaries_1pass(content: str) -> dict[str, tuple[int, int]]
         # Determine which group matched
         code = None
         group_name = None
-        for gn in ['part_code', 'chiso_code', 'industry_code', 'bare_code']:
+        for gn in ['part_code', 'chiso_code', 'phan_tich_code', 'industry_code', 'bare_code']:
             group_value = match.group(gn)
             if group_value:
                 code = group_value.upper()  # Normalize to uppercase
