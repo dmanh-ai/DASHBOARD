@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>📊 Market Dashboard V3 - Premium</title>
     <script src="full_data.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
     <script src="scripts/content_formatter.js"></script>
 
     <style>
@@ -1282,6 +1283,132 @@
                 transform: translateY(0);
             }
         }
+
+        /* Overview dashboard (mail-like KPIs + charts) */
+        .overview-dashboard {
+            display: flex;
+            flex-direction: column;
+            gap: 18px;
+        }
+
+        .kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: 14px;
+        }
+
+        @media (max-width: 1100px) {
+            .kpi-grid {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+        }
+
+        @media (max-width: 520px) {
+            .kpi-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .kpi-card {
+            background: var(--glass-bg);
+            backdrop-filter: blur(var(--blur-amount));
+            -webkit-backdrop-filter: blur(var(--blur-amount));
+            border: 1px solid var(--glass-border);
+            border-radius: 16px;
+            padding: 14px 16px;
+            box-shadow: var(--glass-shadow);
+        }
+
+        .kpi-label {
+            color: var(--text-secondary);
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            font-weight: 700;
+        }
+
+        .kpi-value {
+            margin-top: 10px;
+            font-size: 1.4rem;
+            font-weight: 900;
+        }
+
+        .kpi-sub {
+            margin-top: 6px;
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+
+        .overview-grid {
+            display: grid;
+            grid-template-columns: 1.2fr 1fr;
+            gap: 18px;
+        }
+
+        @media (max-width: 1100px) {
+            .overview-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .chart-card {
+            background: var(--glass-bg);
+            backdrop-filter: blur(var(--blur-amount));
+            -webkit-backdrop-filter: blur(var(--blur-amount));
+            border: 1px solid var(--glass-border);
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: var(--glass-shadow);
+        }
+
+        .chart-header {
+            padding: 14px 16px;
+            font-weight: 800;
+            background: var(--gradient-glass);
+            border-bottom: 1px solid var(--glass-border);
+        }
+
+        .chart-body {
+            padding: 14px 16px;
+        }
+
+        .chart-box {
+            height: 240px;
+        }
+
+        .mail-view {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .mail-block {
+            border: 1px solid var(--glass-border);
+            border-radius: 14px;
+            overflow: hidden;
+            background: rgba(255, 255, 255, 0.03);
+        }
+
+        .mail-block-header {
+            padding: 12px 14px;
+            font-weight: 800;
+            background: var(--gradient-glass);
+            border-bottom: 1px solid var(--glass-border);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .mail-block-header .icon {
+            width: 26px;
+            height: 26px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 8px;
+            background: rgba(59, 130, 246, 0.12);
+            border: 1px solid var(--glass-border);
+        }
     </style>
 </head>
 <body data-theme="light">
@@ -1408,9 +1535,19 @@
         let currentSectionIndex = null;
 
         // Process sections to extract what-if content
-        function processSections(indexData) {
+        function processSections(indexData, indexKey) {
             const processedSections = [];
             const whatIfSections = [];
+
+            // Special: Overview dashboard section (mail-like KPIs + charts)
+            if (indexKey === 'overview') {
+                processedSections.push({
+                    icon: '📈',
+                    title: '`TỔNG QUAN DASHBOARD`',
+                    content: '',
+                    __render: 'overview_dashboard'
+                });
+            }
 
             indexData.sections.forEach((section) => {
                 const titleLower = section.title.toLowerCase();
@@ -1479,6 +1616,263 @@
             return [...processedSections, ...whatIfSections];
         }
 
+        // ---------------------------
+        // Overview extractors & charts
+        // ---------------------------
+        let __overviewChartInstances = [];
+
+        function destroyOverviewCharts() {
+            for (const c of __overviewChartInstances) {
+                try { c.destroy(); } catch (_) {}
+            }
+            __overviewChartInstances = [];
+        }
+
+        function htmlToText(html) {
+            const div = document.createElement('div');
+            div.innerHTML = html || '';
+            return (div.textContent || div.innerText || '').replace(/\u00A0/g, ' ');
+        }
+
+        function collectIndexText(indexKey) {
+            const idx = data[indexKey];
+            if (!idx || !idx.sections) return '';
+            return idx.sections.map(s => htmlToText(s.content)).join('\n');
+        }
+
+        function extractOverviewKpis() {
+            const text = collectIndexText('overview');
+
+            const ad = text.match(/A\/D\s*([0-9]{1,4})\s*\/\s*([0-9]{1,4})/i);
+            const total = text.match(/Total\s*=\s*([0-9]{1,5})/i);
+            const unchanged = text.match(/Unchanged\s*=\s*([0-9]{1,5})/i);
+            const trin = text.match(/TRIN\s*:\s*([0-9]+(?:\.[0-9]+)?)/i);
+            const volRatio = text.match(/Volume\s*Ratio\s*:\s*([0-9]+(?:\.[0-9]+)?)\s*x?/i);
+
+            let adv = ad ? Number(ad[1]) : null;
+            let dec = ad ? Number(ad[2]) : null;
+            let tot = total ? Number(total[1]) : null;
+            let unc = unchanged ? Number(unchanged[1]) : null;
+            let trinVal = trin ? Number(trin[1]) : null;
+            let volRatioVal = volRatio ? Number(volRatio[1]) : null;
+
+            if (tot == null && adv != null && dec != null && unc != null) tot = adv + dec + unc;
+            if (unc == null && tot != null && adv != null && dec != null) unc = Math.max(0, tot - adv - dec);
+
+            let conclusion = null;
+            const mConclusion = text.match(/Kết\s+luận\s*:\s*(.+)/i);
+            if (mConclusion) conclusion = mConclusion[1].trim();
+
+            return { adv, dec, unc, tot, trinVal, volRatioVal, conclusion };
+        }
+
+        function extractChange1D(indexKey) {
+            const text = collectIndexText(indexKey);
+
+            const patterns = [
+                /Thay\s*đổi\s*1D\s*:\s*([+-]?[0-9]+(?:\.[0-9]+)?)%/i,
+                /change\s*1D\s*:\s*([+-]?[0-9]+(?:\.[0-9]+)?)%/i,
+                /\b([+-]?[0-9]+(?:\.[0-9]+)?)%\s*\(1D\)/i,
+            ];
+
+            for (const p of patterns) {
+                const m = text.match(p);
+                if (m) return Number(m[1]);
+            }
+            return null;
+        }
+
+        function extractSectorMovesFromOverview() {
+            const text = collectIndexText('overview');
+            const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
+
+            const sectorMap = new Map();
+            const re1 = /\b(VN[A-Z]{2,12})\b.*?([+-]?[0-9]+(?:\.[0-9]+)?)%\s*\(1D\)/i;
+            const re2 = /\b(VN[A-Z]{2,12})\b.*?(?:Tăng|Giảm)\s*([+-]?[0-9]+(?:\.[0-9]+)?)%/i;
+
+            for (const line of lines) {
+                let m = line.match(re1);
+                if (!m) m = line.match(re2);
+                if (!m) continue;
+
+                const code = m[1].toUpperCase();
+                const val = Number(m[2]);
+                if (!Number.isFinite(val)) continue;
+                if (!sectorMap.has(code)) sectorMap.set(code, val);
+            }
+
+            const exclude = new Set(['VNINDEX', 'VN30', 'VN100', 'VNMIDCAP', 'VNSML', 'VNFINSELECT', 'VNDIAMOND']);
+            const items = [];
+            for (const [code, val] of sectorMap.entries()) {
+                if (exclude.has(code)) continue;
+                items.push({ code, val });
+            }
+
+            items.sort((a, b) => b.val - a.val);
+            return items.slice(0, 8);
+        }
+
+        function renderOverviewDashboard(container) {
+            destroyOverviewCharts();
+
+            if (typeof Chart === 'undefined') {
+                container.innerHTML = `
+                    <div class="info-box">
+                        <p>Không tải được Chart.js nên biểu đồ không hiển thị.</p>
+                        <p>Vui lòng kiểm tra kết nối tới CDN: <code>cdn.jsdelivr.net</code></p>
+                    </div>
+                `;
+                return;
+            }
+
+            const kpi = extractOverviewKpis();
+            const breadthOk = kpi.adv != null && kpi.dec != null && kpi.unc != null;
+
+            const indexKeys = [
+                'vnindex','vn30','vn100','vnmidcap','vnreal','vnit','vnheal','vnfin','vnene','vncons','vnmat','vncond','vnsml','vnfinselect','vndiamond'
+            ];
+            const perf = indexKeys.map(k => ({ key: k.toUpperCase(), value: extractChange1D(k) })).filter(x => x.value != null);
+
+            const sectors = extractSectorMovesFromOverview();
+
+            const formatter = new ContentFormatter();
+            const overview = data['overview'];
+            const mailHtml = (overview && overview.sections ? overview.sections : []).map((s) => `
+                <div class="mail-block">
+                    <div class="mail-block-header">
+                        <span class="icon">${s.icon || '📌'}</span>
+                        <span>${(s.title || '').replace(/`/g, '')}</span>
+                    </div>
+                    <div class="section-body">
+                        ${formatter.format(s.content)}
+                    </div>
+                </div>
+            `).join('');
+
+            container.innerHTML = `
+                <div class="overview-dashboard">
+                    <div class="kpi-grid">
+                        <div class="kpi-card">
+                            <div class="kpi-label">Market Breadth</div>
+                            <div class="kpi-value">${breadthOk ? `${kpi.adv}/${kpi.dec}` : 'N/A'}</div>
+                            <div class="kpi-sub">${breadthOk ? `Unchanged ${kpi.unc ?? 'N/A'} / Total ${kpi.tot ?? 'N/A'}` : 'Không extract được A/D'}</div>
+                        </div>
+                        <div class="kpi-card">
+                            <div class="kpi-label">TRIN</div>
+                            <div class="kpi-value">${kpi.trinVal != null ? kpi.trinVal.toFixed(2) : 'N/A'}</div>
+                            <div class="kpi-sub">Short-Term Trading Index</div>
+                        </div>
+                        <div class="kpi-card">
+                            <div class="kpi-label">Volume Ratio</div>
+                            <div class="kpi-value">${kpi.volRatioVal != null ? kpi.volRatioVal.toFixed(2) + 'x' : 'N/A'}</div>
+                            <div class="kpi-sub">Up vol / Down vol</div>
+                        </div>
+                        <div class="kpi-card">
+                            <div class="kpi-label">Kết luận</div>
+                            <div class="kpi-value" style="font-size: 1rem; font-weight: 800;">${kpi.conclusion ? kpi.conclusion : 'N/A'}</div>
+                            <div class="kpi-sub">Trích từ báo cáo</div>
+                        </div>
+                    </div>
+
+                    <div class="overview-grid">
+                        <div class="chart-card">
+                            <div class="chart-header">🧭 Breadth</div>
+                            <div class="chart-body">
+                                <div class="chart-box"><canvas id="breadthChart"></canvas></div>
+                            </div>
+                        </div>
+                        <div class="chart-card">
+                            <div class="chart-header">📊 % Change 1D</div>
+                            <div class="chart-body">
+                                <div class="chart-box"><canvas id="perfChart"></canvas></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="chart-card">
+                        <div class="chart-header">🏷️ Sectors (heuristic)</div>
+                        <div class="chart-body">
+                            <div class="chart-box"><canvas id="sectorChart"></canvas></div>
+                        </div>
+                    </div>
+
+                    <div class="chart-card">
+                        <div class="chart-header">📩 Nội dung overview (mail view)</div>
+                        <div class="chart-body">
+                            <div class="mail-view">${mailHtml}</div>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            // Breadth donut
+            if (breadthOk) {
+                const ctx = document.getElementById('breadthChart');
+                __overviewChartInstances.push(new Chart(ctx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: ['Tăng', 'Giảm', 'Đi ngang'],
+                        datasets: [{
+                            data: [kpi.adv, kpi.dec, kpi.unc],
+                            backgroundColor: ['#10b981', '#ef4444', '#94a3b8'],
+                            borderWidth: 0,
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: { legend: { position: 'bottom' } }
+                    }
+                }));
+            }
+
+            // Perf bar
+            if (perf.length) {
+                const ctx = document.getElementById('perfChart');
+                __overviewChartInstances.push(new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: perf.map(x => x.key),
+                        datasets: [{
+                            label: '% 1D',
+                            data: perf.map(x => x.value),
+                            backgroundColor: perf.map(x => x.value >= 0 ? 'rgba(16,185,129,0.7)' : 'rgba(239,68,68,0.7)'),
+                            borderWidth: 0,
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: { legend: { display: false } },
+                        scales: { y: { ticks: { callback: (v) => v + '%' } } }
+                    }
+                }));
+            }
+
+            // Sector bar
+            if (sectors.length) {
+                const ctx = document.getElementById('sectorChart');
+                __overviewChartInstances.push(new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: sectors.map(x => x.code),
+                        datasets: [{
+                            label: '%',
+                            data: sectors.map(x => x.val),
+                            backgroundColor: sectors.map(x => x.val >= 0 ? 'rgba(16,185,129,0.7)' : 'rgba(239,68,68,0.7)'),
+                            borderWidth: 0,
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: { legend: { display: false } },
+                        scales: { y: { ticks: { callback: (v) => v + '%' } } }
+                    }
+                }));
+            }
+        }
+
         // Render section list in middle column
         function renderSectionList(indexKey) {
             const index = data[indexKey];
@@ -1490,7 +1884,7 @@
             // Update section nav header
             document.getElementById('sectionNavTitle').textContent = index.title.split('-')[0].trim();
 
-            const sections = processSections(index);
+            const sections = processSections(index, indexKey);
             const container = document.getElementById('sectionList');
 
             let html = '';
@@ -1517,12 +1911,17 @@
             if (!currentIndex) return;
 
             const index = data[currentIndex];
-            const sections = processSections(index);
+            const prevSectionIndex = currentSectionIndex;
+            const sections = processSections(index, currentIndex);
             const section = sections[sectionIndex];
 
             if (!section) return;
 
             currentSectionIndex = sectionIndex;
+
+            if (currentIndex === 'overview' && prevSectionIndex === 0 && sectionIndex !== 0) {
+                destroyOverviewCharts();
+            }
 
             // Update active state in section list
             document.querySelectorAll('.section-item').forEach(item => {
@@ -1540,6 +1939,20 @@
             document.getElementById('emptyState').style.display = 'none';
             const contentDiv = document.getElementById('singleSectionContent');
             contentDiv.style.display = 'block';
+
+            // Special render: Overview dashboard (charts + mail-like KPIs)
+            if (section.__render === 'overview_dashboard') {
+                contentDiv.innerHTML = `
+                    <div class="section-card">
+                        <div class="section-body">
+                            <div id="overviewDashboardRoot"></div>
+                        </div>
+                    </div>
+                `;
+                const root = document.getElementById('overviewDashboardRoot');
+                renderOverviewDashboard(root);
+                return;
+            }
 
             // Clean and format content
             const formatter = new ContentFormatter();
@@ -1577,6 +1990,10 @@
 
         // Select index (left sidebar)
         function selectIndex(key) {
+            if (currentIndex === 'overview' && key !== 'overview') {
+                destroyOverviewCharts();
+            }
+
             currentIndex = key;
             currentSectionIndex = null;
 
@@ -1593,6 +2010,11 @@
             document.getElementById('pageTitle').textContent = 'Chọn mục phân tích để xem';
             document.getElementById('emptyState').style.display = 'block';
             document.getElementById('singleSectionContent').style.display = 'none';
+
+            // Auto-open Overview dashboard section for convenience
+            if (key === 'overview') {
+                selectSection(0);
+            }
         }
 
         // Search functionality
