@@ -95,10 +95,10 @@
             50% { opacity: 0.08; transform: scale(1.1); }
         }
 
-        /* Layout */
+        /* Layout - 3 Columns */
         .dashboard {
             display: grid;
-            grid-template-columns: 280px 1fr;
+            grid-template-columns: 240px 280px 1fr;
             min-height: 100vh;
             gap: 0;
         }
@@ -239,6 +239,134 @@
         .index-item.active::before {
             transform: scaleY(1);
             background: white;
+        }
+
+        /* Section Navigation Sidebar (Column 2) */
+        .section-nav {
+            background: var(--glass-bg);
+            backdrop-filter: blur(var(--blur-amount));
+            -webkit-backdrop-filter: blur(var(--blur-amount));
+            border-right: 1px solid var(--border-color);
+            padding: 20px 0;
+            overflow-y: auto;
+            height: 100vh;
+            position: sticky;
+            top: 0;
+            box-shadow: var(--glass-shadow);
+        }
+
+        .section-nav-header {
+            padding: 0 20px 20px;
+            border-bottom: 1px solid var(--border-color);
+            margin-bottom: 20px;
+        }
+
+        .section-nav-header h3 {
+            font-size: 1rem;
+            font-weight: 700;
+            background: var(--gradient-purple);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 5px;
+        }
+
+        .section-nav-header .subtitle {
+            font-size: 0.7rem;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .section-list {
+            padding: 0 10px;
+        }
+
+        .section-item {
+            padding: 12px 16px;
+            margin: 4px 0;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            border: 1px solid transparent;
+            font-weight: 500;
+            font-size: 0.85rem;
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .section-item .icon {
+            font-size: 1rem;
+            flex-shrink: 0;
+        }
+
+        .section-item .title {
+            flex: 1;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .section-item::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 3px;
+            height: 100%;
+            background: var(--gradient-purple);
+            transform: scaleY(0);
+            transition: transform 0.3s ease;
+        }
+
+        .section-item:hover {
+            background: var(--bg-hover);
+            transform: translateX(4px);
+        }
+
+        .section-item:hover::before {
+            transform: scaleY(1);
+        }
+
+        .section-item.active {
+            background: var(--gradient-purple);
+            color: white;
+            box-shadow: 0 4px 16px rgba(139, 92, 246, 0.4);
+            transform: translateX(4px);
+        }
+
+        .section-item.active::before {
+            transform: scaleY(1);
+            background: white;
+        }
+
+        .section-item.whatif {
+            background: linear-gradient(135deg, rgba(251, 191, 36, 0.1) 0%, rgba(245, 158, 11, 0.05) 100%);
+            border: 1px solid rgba(251, 191, 36, 0.3);
+        }
+
+        .section-item.whatif.active {
+            background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+            border-color: #f59e0b;
+        }
+
+        .section-item.whatif .icon {
+            color: #d97706;
+        }
+
+        .section-item.whatif.active .icon {
+            color: white;
+        }
+
+        .no-sections {
+            padding: 40px 20px;
+            text-align: center;
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            font-style: italic;
         }
 
         /* Main Content */
@@ -804,15 +932,15 @@
     </button>
 
     <div class="dashboard">
-        <!-- Sidebar -->
+        <!-- Sidebar 1: Index List -->
         <div class="sidebar">
             <div class="sidebar-header">
-                <h2>Market Dashboard V3</h2>
+                <h2>📊 Market Dashboard</h2>
                 <div class="date">25/12/2025</div>
             </div>
 
             <div class="search-box">
-                <input type="text" class="search-input" placeholder="Search indices..." id="searchInput">
+                <input type="text" class="search-input" placeholder="🔍 Tìm chỉ số..." id="searchInput">
             </div>
 
             <div class="index-list" id="indexList">
@@ -820,43 +948,40 @@
             </div>
         </div>
 
-        <!-- Main Content -->
+        <!-- Sidebar 2: Section Navigation -->
+        <div class="section-nav">
+            <div class="section-nav-header">
+                <h3 id="sectionNavTitle">Chọn mục</h3>
+                <div class="subtitle">SECTIONS</div>
+            </div>
+
+            <div class="section-list" id="sectionList">
+                <div class="no-sections">
+                    Chọn một chỉ số bên trái để xem các mục phân tích
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Content: Single Section Display -->
         <div class="main-content">
             <div class="page-header">
-                <h1 id="pageTitle">VNINDEX - PHÂN TÍCH ĐẦY ĐỦ</h1>
-                <div class="last-update">Cập nhật: 25/12/2025 17:56</div>
+                <h1 id="pageTitle">Chọn chỉ số và mục để xem</h1>
+                <div class="last-update" id="lastUpdate">Cập nhật: 25/12/2025 17:56</div>
             </div>
 
-            <!-- Metrics Cards -->
-            <div class="metrics-grid">
-                <div class="metric-card positive">
-                    <div class="label">VNINDEX</div>
-                    <div class="value">1,742.85</div>
-                    <div class="change negative">-2.24%</div>
-                </div>
-
-                <div class="metric-card">
-                    <div class="label">Breadth</div>
-                    <div class="value">97/245</div>
-                    <div class="change negative">24.4%</div>
-                </div>
-
-                <div class="metric-card">
-                    <div class="label">TRIN</div>
-                    <div class="value">5.37</div>
-                    <div class="change warning">Cao</div>
-                </div>
-
-                <div class="metric-card">
-                    <div class="label">Volume</div>
-                    <div class="value">830M</div>
-                    <div class="change">Tăng 2.74%</div>
-                </div>
+            <!-- Single Section Content -->
+            <div id="singleSectionContent" style="display: none;">
+                <!-- Section content sẽ được render ở đây -->
             </div>
 
-            <!-- Sections Container -->
-            <div class="sections-container" id="sectionsContainer">
-                <!-- Sections sẽ được render ở đây -->
+            <!-- Empty State -->
+            <div id="emptyState" style="display: block; text-align: center; padding: 100px 20px;">
+                <div style="font-size: 4rem; margin-bottom: 20px;">👈👉</div>
+                <h2 style="color: var(--text-secondary); margin-bottom: 10px;">Chưa chọn mục phân tích</h2>
+                <p style="color: var(--text-secondary); font-size: 0.9rem;">
+                    1. Chọn chỉ số ở cột bên trái<br>
+                    2. Chọn mục phân tích ở cột giữa
+                </p>
             </div>
         </div>
     </div>
@@ -916,34 +1041,27 @@
             `).join('');
         }
 
-        // Render sections
-        function renderSections(indexKey) {
-            const index = data[indexKey];
-            if (!index || !index.sections) return;
+        // State
+        let currentIndex = null;
+        let currentSectionIndex = null;
 
-            document.getElementById('pageTitle').innerHTML = index.title;
-
-            const formatter = new ContentFormatter();
-
-            // Process sections to extract embedded what-if content
+        // Process sections to extract what-if content
+        function processSections(indexData) {
             const processedSections = [];
             const whatIfSections = [];
 
-            index.sections.forEach((section, idx) => {
+            indexData.sections.forEach((section) => {
                 const titleLower = section.title.toLowerCase();
                 const contentLower = section.content.toLowerCase();
 
-                // Check if title is what-if
                 const isWhatIfTitle =
                     titleLower.includes('what-if') ||
                     titleLower.includes('kịch bản') ||
                     (titleLower.includes('điều kiện') && titleLower.includes('sai'));
 
                 if (isWhatIfTitle) {
-                    // Direct what-if section
                     whatIfSections.push(section);
                 } else if (contentLower.includes('kịch bản') && contentLower.includes('what-if')) {
-                    // Embedded what-if content - split it
                     const splitPattern = /kịch\s+bản[\s\S]{0,50}?what-if/i;
                     const splitMatch = section.content.match(splitPattern);
 
@@ -952,20 +1070,17 @@
                         const mainContent = section.content.substring(0, splitIndex).trim();
                         const whatIfContent = section.content.substring(splitIndex).trim();
 
-                        // Add main content section
                         processedSections.push({
                             ...section,
                             content: mainContent
                         });
 
-                        // Add what-if section
                         whatIfSections.push({
                             title: 'Kịch Bản What-if',
                             content: whatIfContent,
                             alert: false
                         });
                     } else {
-                        // Split failed - use indexOf method
                         const keywordIndex = contentLower.indexOf('kịch bản');
                         if (keywordIndex !== -1) {
                             const whatIfIndex = contentLower.indexOf('what-if', keywordIndex);
@@ -999,62 +1114,34 @@
                 }
             });
 
-            const container = document.getElementById('sectionsContainer');
+            return [...processedSections, ...whatIfSections];
+        }
+
+        // Render section list in middle column
+        function renderSectionList(indexKey) {
+            const index = data[indexKey];
+            if (!index || !index.sections) {
+                document.getElementById('sectionList').innerHTML = '<div class="no-sections">Không có dữ liệu</div>';
+                return;
+            }
+
+            // Update section nav header
+            document.getElementById('sectionNavTitle').textContent = index.title.split('-')[0].trim();
+
+            const sections = processSections(index);
+            const container = document.getElementById('sectionList');
+
             let html = '';
-
-            // Render regular sections first
-            processedSections.forEach((section, idx) => {
-                // Clean escaped HTML tags and newlines
-                let cleanContent = section.content
-                    .replace(/\\n/g, '\n')
-                    .replace(/\\t/g, '')
-                    .replace(/\s+/g, ' ')
-                    .replace(/<\/p>\s*<p>/g, '</p><p>')
-                    .replace(/<p>\s*/g, '<p>')
-                    .replace(/\s*<\/p>/g, '</p>')
-                    .trim();
+            sections.forEach((section, idx) => {
+                const isWhatIf = section.title.toLowerCase().includes('what-if') ||
+                                section.title.toLowerCase().includes('kịch bản');
 
                 html += `
-                    <div class="section-card ${section.alert ? 'alert' : ''}" style="animation-delay: ${idx * 0.05}s">
-                        <div class="section-header" onclick="toggleSection(this)">
-                            <div class="left">
-                                <span class="title">${section.title.replace(/`/g, '')}</span>
-                                ${section.alert ? '<span class="badge warning">KHUYẾN NGHỊ</span>' : ''}
-                            </div>
-                            <span class="arrow">▼</span>
-                        </div>
-                        <div class="section-content">
-                            <div class="section-body">
-                                ${formatter.format(cleanContent)}
-                            </div>
-                        </div>
-                    </div>
-                `;
-            });
-
-            // Render what-if sections at the end
-            whatIfSections.forEach((section, idx) => {
-                // Clean escaped HTML tags and newlines
-                let cleanContent = section.content
-                    .replace(/\\n/g, '\n')
-                    .replace(/\\t/g, '')
-                    .replace(/\s+/g, ' ')
-                    .replace(/<\/p>\s*<p>/g, '</p><p>')
-                    .replace(/<p>\s*/g, '<p>')
-                    .replace(/\s*<\/p>/g, '</p>')
-                    .trim();
-
-                html += `
-                    <div class="whatif-card">
-                        <div class="whatif-card-header" onclick="toggleSection(this)">
-                            <span class="whatif-title">${section.title.replace(/`/g, '')}</span>
-                            <span class="arrow">▼</span>
-                        </div>
-                        <div class="section-content">
-                            <div class="whatif-card-body">
-                                ${formatter.format(cleanContent)}
-                            </div>
-                        </div>
+                    <div class="section-item ${isWhatIf ? 'whatif' : ''}"
+                         onclick="selectSection(${idx})"
+                         data-section="${idx}">
+                        <span class="icon">${section.icon || (isWhatIf ? '⚠️' : '📊')}</span>
+                        <span class="title">${section.title.replace(/`/g, '')}</span>
                     </div>
                 `;
             });
@@ -1062,22 +1149,87 @@
             container.innerHTML = html;
         }
 
-        // Toggle section
-        function toggleSection(header) {
-            const card = header.parentElement;
-            card.classList.toggle('expanded');
+        // Select and display a single section
+        function selectSection(sectionIndex) {
+            if (!currentIndex) return;
+
+            const index = data[currentIndex];
+            const sections = processSections(index);
+            const section = sections[sectionIndex];
+
+            if (!section) return;
+
+            currentSectionIndex = sectionIndex;
+
+            // Update active state in section list
+            document.querySelectorAll('.section-item').forEach(item => {
+                item.classList.remove('active');
+            });
+            const activeItem = document.querySelector(`[data-section="${sectionIndex}"]`);
+            if (activeItem) {
+                activeItem.classList.add('active');
+            }
+
+            // Update page title
+            document.getElementById('pageTitle').textContent = section.title.replace(/`/g, '');
+
+            // Show content, hide empty state
+            document.getElementById('emptyState').style.display = 'none';
+            const contentDiv = document.getElementById('singleSectionContent');
+            contentDiv.style.display = 'block';
+
+            // Clean and format content
+            const formatter = new ContentFormatter();
+            let cleanContent = section.content
+                .replace(/\\n/g, '\n')
+                .replace(/\\t/g, '')
+                .replace(/\s+/g, ' ')
+                .replace(/<\/p>\s*<p>/g, '</p><p>')
+                .replace(/<p>\s*/g, '<p>')
+                .replace(/\s*<\/p>/g, '</p>')
+                .trim();
+
+            // Render content
+            const isWhatIf = section.title.toLowerCase().includes('what-if') ||
+                            section.title.toLowerCase().includes('kịch bản');
+
+            if (isWhatIf) {
+                contentDiv.innerHTML = `
+                    <div class="whatif-card">
+                        <div class="whatif-card-body">
+                            ${formatter.format(cleanContent)}
+                        </div>
+                    </div>
+                `;
+            } else {
+                contentDiv.innerHTML = `
+                    <div class="section-card ${section.alert ? 'alert' : ''}">
+                        <div class="section-body">
+                            ${formatter.format(cleanContent)}
+                        </div>
+                    </div>
+                `;
+            }
         }
 
-        // Select index
+        // Select index (left sidebar)
         function selectIndex(key) {
-            // Update active state
+            currentIndex = key;
+            currentSectionIndex = null;
+
+            // Update active state in index list
             document.querySelectorAll('.index-item').forEach(item => {
                 item.classList.remove('active');
             });
             document.querySelector(`[data-index="${key}"]`).classList.add('active');
 
-            // Render sections
-            renderSections(key);
+            // Render section list
+            renderSectionList(key);
+
+            // Reset main content
+            document.getElementById('pageTitle').textContent = 'Chọn mục phân tích để xem';
+            document.getElementById('emptyState').style.display = 'block';
+            document.getElementById('singleSectionContent').style.display = 'none';
         }
 
         // Search functionality
@@ -1091,7 +1243,7 @@
 
         // Initialize
         renderSidebar();
-        renderSections('vnindex');
+        // Don't auto-select any index - let user choose
     </script>
 </body>
 </html>
