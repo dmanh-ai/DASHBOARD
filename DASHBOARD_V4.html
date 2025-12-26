@@ -1,0 +1,575 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>📊 Market Dashboard V4 - Financial Grade</title>
+    <script src="full_data.js"></script>
+    <script src="scripts/content_formatter.js"></script>
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --bg-dark: #0f172a;
+            --bg-card: #1e293b;
+            --bg-hover: #334155;
+            --text-primary: #f1f5f9;
+            --text-secondary: #cbd5e1;
+            --border-color: #475569;
+
+            --success: #10b981;
+            --danger: #ef4444;
+            --warning: #f59e0b;
+            --info: #3b82f6;
+
+            --gradient-signal-green: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            --gradient-signal-red: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+            --gradient-signal-yellow: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+        }
+
+        body {
+            font-family: 'SF Pro Display', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg-dark);
+            color: var(--text-primary);
+            line-height: 1.5;
+            overflow-x: hidden;
+        }
+
+        .dashboard {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        /* Header */
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .header h1 {
+            font-size: 1.5rem;
+            font-weight: 700;
+        }
+
+        .last-update {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+        }
+
+        /* Market Overview Bar */
+        .market-overview {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .metric-huge {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .metric-huge .label {
+            font-size: 0.7rem;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 10px;
+        }
+
+        .metric-huge .value {
+            font-size: 2.5rem;
+            font-weight: 800;
+            background: var(--gradient-signal-green);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .metric-huge.negative .value {
+            background: var(--gradient-signal-red);
+        }
+
+        .metric-huge .change {
+            font-size: 0.9rem;
+            margin-top: 5px;
+        }
+
+        .metric-huge .change.negative {
+            color: var(--danger);
+        }
+
+        /* Trading Signal Section */
+        .signal-section {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .signal-box {
+            background: var(--bg-card);
+            border: 2px solid var(--border-color);
+            border-radius: 16px;
+            padding: 25px;
+        }
+
+        .signal-box.buy {
+            border-color: var(--success);
+            background: linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, rgba(16, 185, 129, 0.05) 100%);
+        }
+
+        .signal-box.sell {
+            border-color: var(--danger);
+            background: linear-gradient(135deg, rgba(239, 68, 68, 0.1) 0%, rgba(239, 68, 68, 0.05) 100%);
+        }
+
+        .signal-box.hold {
+            border-color: var(--warning);
+            background: linear-gradient(135deg, rgba(245, 158, 11, 0.1) 0%, rgba(245, 158, 11, 0.05) 100%);
+        }
+
+        .signal-header {
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 15px;
+            color: var(--text-secondary);
+        }
+
+        .signal-value {
+            font-size: 2rem;
+            font-weight: 800;
+            margin-bottom: 10px;
+        }
+
+        .signal-box.buy .signal-value { color: var(--success); }
+        .signal-box.sell .signal-value { color: var(--danger); }
+        .signal-box.hold .signal-value { color: var(--warning); }
+
+        .signal-detail {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+        }
+
+        /* Key Levels Grid */
+        .levels-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .level-item {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 12px;
+            text-align: center;
+        }
+
+        .level-item .label {
+            font-size: 0.7rem;
+            color: var(--text-secondary);
+            margin-bottom: 5px;
+        }
+
+        .level-item .value {
+            font-size: 1.1rem;
+            font-weight: 700;
+        }
+
+        .level-item.resistance { border-left: 3px solid var(--danger); }
+        .level-item.support { border-left: 3px solid var(--success); }
+
+        /* Technical Grid */
+        .tech-grid {
+            display: grid;
+            grid-template-columns: repeat(6, 1fr);
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .tech-item {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 12px;
+            text-align: center;
+        }
+
+        .tech-item .label {
+            font-size: 0.65rem;
+            color: var(--text-secondary);
+            margin-bottom: 8px;
+        }
+
+        .tech-item .value {
+            font-size: 1rem;
+            font-weight: 700;
+        }
+
+        .tech-item .indicator {
+            font-size: 0.7rem;
+            margin-top: 5px;
+            padding: 2px 6px;
+            border-radius: 4px;
+        }
+
+        .tech-item .indicator.bullish {
+            background: rgba(16, 185, 129, 0.2);
+            color: var(--success);
+        }
+
+        .tech-item .indicator.bearish {
+            background: rgba(239, 68, 68, 0.2);
+            color: var(--danger);
+        }
+
+        /* Quick Summary Section */
+        .summary-section {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .summary-header {
+            font-size: 1rem;
+            font-weight: 700;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .summary-bullets {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        .summary-column ul {
+            list-style: none;
+        }
+
+        .summary-column li {
+            padding: 8px 0;
+            border-bottom: 1px solid var(--border-color);
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            display: flex;
+            align-items: start;
+            gap: 10px;
+        }
+
+        .summary-column li::before {
+            content: '→';
+            color: var(--info);
+            font-weight: bold;
+        }
+
+        /* Expandable Details */
+        .details-section {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            overflow: hidden;
+        }
+
+        .details-header {
+            padding: 20px;
+            background: rgba(59, 130, 246, 0.1);
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-weight: 600;
+        }
+
+        .details-content {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease;
+        }
+
+        .details-content.expanded {
+            max-height: 5000px;
+        }
+
+        .details-body {
+            padding: 20px;
+        }
+
+        /* Sidebar for indices */
+        .indices-bar {
+            display: flex;
+            gap: 10px;
+            overflow-x: auto;
+            padding: 15px 0;
+            margin-bottom: 20px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .index-button {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 10px 15px;
+            white-space: nowrap;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+
+        .index-button:hover {
+            background: var(--bg-hover);
+        }
+
+        .index-button.active {
+            background: var(--info);
+            border-color: var(--info);
+        }
+
+        /* Responsive */
+        @media (max-width: 1024px) {
+            .signal-section {
+                grid-template-columns: 1fr;
+            }
+
+            .levels-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .tech-grid {
+                grid-template-columns: repeat(3, 1fr);
+            }
+
+            .summary-bullets {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .market-overview {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .tech-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard">
+        <!-- Header -->
+        <div class="header">
+            <div>
+                <h1 id="pageTitle">VNINDEX</h1>
+                <div class="last-update">Cập nhật: 25/12/2025 17:56</div>
+            </div>
+        </div>
+
+        <!-- Indices Navigation -->
+        <div class="indices-bar" id="indicesBar">
+            <!-- Indices buttons will be rendered here -->
+        </div>
+
+        <!-- Market Overview -->
+        <div class="market-overview">
+            <div class="metric-huge negative">
+                <div class="label">VNINDEX</div>
+                <div class="value">1,742.85</div>
+                <div class="change negative">▼ 2.24%</div>
+            </div>
+            <div class="metric-huge">
+                <div class="label">Breadth</div>
+                <div class="value">97/245</div>
+                <div class="change">24.4%</div>
+            </div>
+            <div class="metric-huge">
+                <div class="label">TRIN</div>
+                <div class="value">5.37</div>
+                <div class="change">Cao</div>
+            </div>
+            <div class="metric-huge">
+                <div class="label">Volume</div>
+                <div class="value">830M</div>
+                <div class="change">+2.74%</div>
+            </div>
+        </div>
+
+        <!-- Trading Signal -->
+        <div class="signal-section">
+            <div class="signal-box sell">
+                <div class="signal-header">⚡ SIGNAL</div>
+                <div class="signal-value">🔴 SELL</div>
+                <div class="signal-detail">
+                    Rủi ro ngắn hạn CAO. Khuyến nghị: Phòng thủ, chờ clear vùng hỗ trợ 1,718
+                </div>
+            </div>
+            <div class="signal-box">
+                <div class="signal-header">📍 KEY LEVELS</div>
+                <div class="signal-value" style="color: var(--text-primary)">1,718</div>
+                <div class="signal-detail">
+                    Hỗ trợ then chốt: MA20 + VWAP20 hội tụ tại 1,716-1,718
+                </div>
+            </div>
+        </div>
+
+        <!-- Key Levels -->
+        <div class="levels-grid">
+            <div class="level-item resistance">
+                <div class="label">R1 - Kháng cự</div>
+                <div class="value">1,772-1,785</div>
+            </div>
+            <div class="level-item resistance">
+                <div class="label">R2 - Kháng cự mạnh</div>
+                <div class="value">1,806</div>
+            </div>
+            <div class="level-item support">
+                <div class="label">H1 - Hỗ trợ chính</div>
+                <div class="value">1,716-1,718</div>
+            </div>
+            <div class="level-item support">
+                <div class="label">H2 - Hỗ trợ mạnh</div>
+                <div class="value">1,649-1,658</div>
+            </div>
+        </div>
+
+        <!-- Technical Indicators Grid -->
+        <div class="tech-grid">
+            <div class="tech-item">
+                <div class="label">RSI5</div>
+                <div class="value">72.59</div>
+                <div class="indicator bearish">Quá mua</div>
+            </div>
+            <div class="tech-item">
+                <div class="label">MA20</div>
+                <div class="value">1,716</div>
+                <div class="indicator">Test</div>
+            </div>
+            <div class="tech-item">
+                <div class="label">VWAP20</div>
+                <div class="value">1,718</div>
+                <div class="indicator">Support</div>
+            </div>
+            <div class="tech-item">
+                <div class="label">ADX20</div>
+                <div class="value">15.23</div>
+                <div class="indicator bearish">Yếu</div>
+            </div>
+            <div class="tech-item">
+                <div class="label">Mom200</div>
+                <div class="value">+30.61</div>
+                <div class="indicator bullish">Tăng mạnh</div>
+            </div>
+            <div class="tech-item">
+                <div class="label">TRIN</div>
+                <div class="value">5.37</div>
+                <div class="indicator bearish">Cao</div>
+            </div>
+        </div>
+
+        <!-- Quick Summary -->
+        <div class="summary-section">
+            <div class="summary-header">
+                📊 TỔNG HỢP NHANH
+            </div>
+            <div class="summary-bullets">
+                <div class="summary-column">
+                    <ul>
+                        <li>Ngắn hạn: Điều chỉnh sau đỉnh 1,806, Bearish Engulfing cảnh báo đảo chiều</li>
+                        <li>Giá vẫn trên MA20 nhưng RSI5 quá mua (72.59) cho thấy áp lực chốt lời</li>
+                    </ul>
+                </div>
+                <div class="summary-column">
+                    <ul>
+                        <li>Breadth cực yếu: chỉ 24.4% mã tăng, TRIN 5.37 cho thấy áp lực bán hệ thống</li>
+                        <li>Chiến lược: Chờ phản ứng tại 1,718, nếu giữ được có thể xem xét mua lại</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- Expandable Details -->
+        <div class="details-section">
+            <div class="details-header" onclick="toggleDetails()">
+                <span>📋 PHÂN TÍCH CHI TIẾT (Click để mở rộng)</span>
+                <span id="detailsArrow">▼</span>
+            </div>
+            <div class="details-content" id="detailsContent">
+                <div class="details-body" id="detailsBody">
+                    <!-- Detailed analysis will be rendered here -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Data
+        const data = FULL_DATA;
+
+        // Render indices bar
+        function renderIndicesBar() {
+            const indices = [
+                { key: 'vnindex', name: 'VNINDEX' },
+                { key: 'vn30', name: 'VN30' },
+                { key: 'vn100', name: 'VN100' },
+                { key: 'vnmidcap', name: 'VNMIDCAP' },
+                { key: 'vnreal', name: 'VNREAL' },
+                { key: 'vnit', name: 'VNIT' },
+                { key: 'vnheal', name: 'VNHEAL' },
+                { key: 'vnfin', name: 'VNFIN' }
+            ];
+
+            const container = document.getElementById('indicesBar');
+            container.innerHTML = indices.map(idx => `
+                <div class="index-button ${idx.key === 'vnindex' ? 'active' : ''}"
+                     onclick="selectIndex('${idx.key}')">
+                    ${idx.name}
+                </div>
+            `).join('');
+        }
+
+        // Toggle details
+        function toggleDetails() {
+            const content = document.getElementById('detailsContent');
+            const arrow = document.getElementById('detailsArrow');
+            content.classList.toggle('expanded');
+            arrow.textContent = content.classList.contains('expanded') ? '▲' : '▼';
+        }
+
+        // Select index
+        function selectIndex(key) {
+            // Update active state
+            document.querySelectorAll('.index-button').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            event.target.classList.add('active');
+
+            // Here you would update the dashboard data
+            // For now, just reload page (in real implementation, update data)
+            console.log('Selected:', key);
+        }
+
+        // Initialize
+        renderIndicesBar();
+    </script>
+</body>
+</html>
