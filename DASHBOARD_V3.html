@@ -1386,8 +1386,8 @@
 
         .heatmap-index-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-            gap: 10px;
+            grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+            gap: 12px;
         }
 
         .heatmap-tile {
@@ -1398,6 +1398,7 @@
             flex-direction: column;
             gap: 6px;
             background: rgba(148, 163, 184, 0.10);
+            overflow: hidden;
         }
 
         .heatmap-tile-btn {
@@ -1420,6 +1421,9 @@
         .heatmap-tile .metric {
             color: var(--text-secondary);
             font-size: 0.9rem;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
 
         .heatmap-table {
@@ -1456,20 +1460,23 @@
             color: rgba(15, 23, 42, 0.75);
             font-size: 0.85rem;
             font-weight: 700;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
 
 	        /* Summary charts/cards */
 	        .idx-cards {
 	            display: grid;
-	            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-	            gap: 10px;
+	            grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+	            gap: 12px;
 	        }
 
 	        .idx-card {
-	            border: 1px solid var(--glass-border);
-	            border-radius: 14px;
-	            padding: 10px 10px;
-	            background: rgba(255, 255, 255, 0.04);
+	            border: 0;
+	            border-radius: 0;
+	            padding: 0;
+	            background: transparent;
 	        }
 
         .idx-card-btn {
@@ -1481,6 +1488,11 @@
             cursor: pointer;
             color: inherit;
             transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+            border: 1px solid var(--glass-border);
+            border-radius: 14px;
+            padding: 10px 10px;
+            background: var(--glass-bg);
+            overflow: hidden;
         }
 
         .idx-card-btn:hover {
@@ -1495,6 +1507,10 @@
         }
 
         [data-theme="dark"] .idx-card {
+            background: transparent;
+        }
+
+        [data-theme="dark"] .idx-card-btn {
             background: rgba(255, 255, 255, 0.02);
         }
 
@@ -1509,6 +1525,9 @@
             font-weight: 900;
             letter-spacing: 0.4px;
             font-size: 0.95rem;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
 
 	        .idx-change {
@@ -2223,7 +2242,7 @@
 	                    const priceStr = (p && p.price != null && Number.isFinite(Number(p.price))) ? Number(p.price).toFixed(2) : 'N/A';
 	                    const valueStr = p && p.value != null && Number.isFinite(Number(p.value)) ? formatCompactNumber(Number(p.value)) : 'N/A';
 	                    const volumeStr = p && p.volume != null && Number.isFinite(Number(p.volume)) ? formatCompactNumber(Number(p.volume)) : 'N/A';
-	                    const tooltip = `${symbol || 'N/A'} | ${changeStr} | Price ${priceStr} | Val ${valueStr}`;
+	                    const tooltip = `${symbol || 'N/A'} | ${changeStr}`;
 
 	                    rowHtml += `
 	                        <td class="heatmap-cell" style="background-color:${bg}" title="${escapeHtml(tooltip)}">
@@ -2235,7 +2254,7 @@
 	                                    data-volume="${escapeHtml(volumeStr)}"
 	                                    onclick="openVnindexStockPopupFromEl(this)">
 	                                <div class="heatmap-symbol" style="width:${sizePercent}%">${escapeHtml(symbol || 'N/A')}</div>
-	                                <div class="heatmap-metric" style="width:${sizePercent}%">${changeStr} · Val ${valueStr}</div>
+	                                <div class="heatmap-metric" style="width:${sizePercent}%">${changeStr}</div>
 	                            </button>
 	                        </td>
 	                    `;
