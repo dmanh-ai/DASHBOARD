@@ -1895,6 +1895,79 @@
 	            border-color: rgba(226, 232, 240, 0.12);
 	            color: rgba(226, 232, 240, 0.92);
 	        }
+
+	        .keylevels-panel {
+	            margin-top: 14px;
+	            border: 1px solid var(--glass-border);
+	            border-radius: 16px;
+	            background: rgba(255, 255, 255, 0.04);
+	            overflow: hidden;
+	            max-width: 760px;
+	            margin-left: auto;
+	            margin-right: auto;
+	        }
+
+	        [data-theme="dark"] .keylevels-panel {
+	            background: rgba(255, 255, 255, 0.02);
+	        }
+
+	        .keylevels-toolbar {
+	            display: flex;
+	            align-items: center;
+	            justify-content: space-between;
+	            gap: 12px;
+	            padding: 12px 14px;
+	            border-bottom: 1px solid var(--glass-border);
+	            background: var(--gradient-glass);
+	        }
+
+	        .keylevels-toolbar .title {
+	            font-weight: 900;
+	            letter-spacing: 0.2px;
+	        }
+
+	        .keylevels-body {
+	            padding: 12px 14px 14px;
+	        }
+
+	        .keylevels-chart {
+	            width: 100%;
+	            height: 260px;
+	            border-radius: 14px;
+	            background: rgba(255, 255, 255, 0.02);
+	            border: 1px solid rgba(0, 0, 0, 0.06);
+	            position: relative;
+	            overflow: hidden;
+	        }
+
+	        [data-theme="dark"] .keylevels-chart {
+	            border-color: rgba(255, 255, 255, 0.08);
+	        }
+
+	        .keylevels-tags {
+	            margin-top: 10px;
+	            display: flex;
+	            gap: 8px;
+	            flex-wrap: wrap;
+	        }
+
+	        .keylevels-tag {
+	            padding: 6px 10px;
+	            border-radius: 999px;
+	            font-weight: 900;
+	            font-size: 0.8rem;
+	            border: 1px solid var(--glass-border);
+	            background: rgba(59, 130, 246, 0.08);
+	            color: var(--text-primary);
+	        }
+
+	        .keylevels-tag.support {
+	            background: rgba(16, 185, 129, 0.10);
+	        }
+
+	        .keylevels-tag.resistance {
+	            background: rgba(239, 68, 68, 0.10);
+	        }
     </style>
 </head>
 <body data-theme="light">
@@ -1981,6 +2054,13 @@
 	                const idxKey = panel.getAttribute('data-index-key');
 	                if (panel.id && idxKey) {
 	                    try { initIndexOhlcvPanel(panel.id, idxKey); } catch (_) {}
+	                }
+	            });
+	            document.querySelectorAll('.keylevels-panel').forEach(panel => {
+	                const idxKey = panel.getAttribute('data-index-key');
+	                if (panel.id && idxKey) {
+	                    const stored = (window.__uiGlmKeyLevelsStore || {})[panel.id];
+	                    try { initKeyLevelsPanel(panel.id, idxKey, stored ? stored.sectionHtml : ''); } catch (_) {}
 	                }
 	            });
 	        });
@@ -2610,25 +2690,274 @@
 	            return `<div class="overview-extras" style="margin-top: 0;">${renderStockHeatmapTable(points, title)}</div>`;
 	        }
 
-	        function getIndexOhlcvPayload(indexKey) {
-	            const payload = (typeof window !== 'undefined' && window.UI_GLM_INDEX_OHLCV) ? window.UI_GLM_INDEX_OHLCV : null;
-	            const indices = payload && payload.indices ? payload.indices : null;
-	            const idx = indices && indexKey ? indices[indexKey] : null;
-	            if (!idx || !Array.isArray(idx.bars) || !idx.bars.length) return null;
-	            return {
-	                asof: payload.asof || '',
-	                name: idx.name || '',
-	                method: idx.method || '',
-	                constituents: idx.constituents || null,
-	                bars: idx.bars,
-	            };
-	        }
+		        function getIndexOhlcvPayload(indexKey) {
+		            const payload = (typeof window !== 'undefined' && window.UI_GLM_INDEX_OHLCV) ? window.UI_GLM_INDEX_OHLCV : null;
+		            const indices = payload && payload.indices ? payload.indices : null;
+		            const idx = indices && indexKey ? indices[indexKey] : null;
+		            if (!idx || !Array.isArray(idx.bars) || !idx.bars.length) return null;
+		            return {
+		                asof: payload.asof || '',
+		                name: idx.name || '',
+		                method: idx.method || '',
+		                constituents: idx.constituents || null,
+		                bars: idx.bars,
+		            };
+		        }
 
-			        function renderIndexOhlcvPanelHtml(panelId, indexKey) {
-			            const payload = getIndexOhlcvPayload(indexKey);
-			            if (!payload) {
-			                return `<div class="info-box"><p>Không có dữ liệu OHLCV cho index này.</p></div>`;
-			            }
+		        function extractKeyPriceZonesFromHtml(html) {
+		            const el = document.createElement('div');
+		            el.innerHTML = html || '';
+		            const text = (el.textContent || '').replace(/\s+/g, ' ').trim();
+		            if (!text) return [];
+
+		            const parseNumber = (raw) => {
+		                if (!raw) return null;
+		                let s = String(raw).trim();
+		                s = s.replace(/\s/g, '');
+		                s = s.replace(/[()]/g, '');
+		                // remove trailing non-numeric markers
+		                s = s.replace(/[^0-9,.\-–~]/g, '');
+		                if (!s) return null;
+
+		                // handle ranges elsewhere; this is single number parsing
+		                // heuristic for thousands/decimals (VN: 1,750.25 or 1.750,25)
+		                const hasComma = s.includes(',');
+		                const hasDot = s.includes('.');
+		                if (hasComma && hasDot) {
+		                    // assume comma thousands, dot decimals
+		                    s = s.replace(/,/g, '');
+		                } else if (hasComma && !hasDot) {
+		                    const parts = s.split(',');
+		                    const last = parts[parts.length - 1] || '';
+		                    // if last group looks like decimals (not 3 digits), treat comma as decimal separator
+		                    if (last.length !== 3) s = s.replace(/,/g, '.');
+		                    else s = s.replace(/,/g, '');
+		                } else if (!hasComma && hasDot) {
+		                    const parts = s.split('.');
+		                    const last = parts[parts.length - 1] || '';
+		                    // if groups are thousands-like, strip dots
+		                    if (last.length === 3 && parts.length > 1) s = s.replace(/\./g, '');
+		                }
+		                const v = Number(s);
+		                return Number.isFinite(v) ? v : null;
+		            };
+
+		            const parseRange = (raw) => {
+		                if (!raw) return null;
+		                const s = String(raw).replace(/[–~]/g, '-');
+		                const m = s.match(/([0-9][0-9,.\s]*)\s*-\s*([0-9][0-9,.\s]*)/);
+		                if (!m) return null;
+		                const a = parseNumber(m[1]);
+		                const b = parseNumber(m[2]);
+		                if (a == null || b == null) return null;
+		                const low = Math.min(a, b);
+		                const high = Math.max(a, b);
+		                if (!Number.isFinite(low) || !Number.isFinite(high) || low === high) return null;
+		                return { low, high };
+		            };
+
+		            const zones = [];
+		            const pushZone = (z) => {
+		                if (!z) return;
+		                const key = `${z.kind}|${z.label}|${z.low ?? ''}|${z.high ?? ''}|${z.price ?? ''}`;
+		                if (zones.__seen && zones.__seen.has(key)) return;
+		                zones.__seen = zones.__seen || new Set();
+		                zones.__seen.add(key);
+		                zones.push(z);
+		            };
+
+		            // H1/R1 structured patterns inside this section (high confidence)
+		            const hrRe = /(?:^|\\b)(H|R)\\s*(\\d{1,2})\\s*\\(([^)]{1,80})\\)/gi;
+		            let m;
+		            while ((m = hrRe.exec(text)) !== null) {
+		                const kind = (m[1] || '').toUpperCase() === 'H' ? 'support' : 'resistance';
+		                const label = `${(m[1] || '').toUpperCase()}${m[2] || ''}`;
+		                const inside = (m[3] || '').trim();
+		                const range = parseRange(inside);
+		                if (range) {
+		                    pushZone({ kind, label, low: range.low, high: range.high });
+		                } else {
+		                    const n = parseNumber(inside);
+		                    if (n != null) pushZone({ kind, label, price: n });
+		                }
+		            }
+
+		            // Fallback within the section: "Hỗ trợ ...", "Kháng cự ..." sentences
+		            const kwRe = /(Hỗ trợ|Kháng cự)\\s*(?:then chốt|chính|gần|mạnh)?\\s*(?:tại|:)?\\s*([^\\.]{0,140})/gi;
+		            while ((m = kwRe.exec(text)) !== null) {
+		                const kind = (m[1] || '').toLowerCase().includes('hỗ') ? 'support' : 'resistance';
+		                const frag = m[2] || '';
+		                const r = parseRange(frag);
+		                if (r) pushZone({ kind, label: kind === 'support' ? 'H' : 'R', low: r.low, high: r.high });
+		                const nums = frag.match(/[0-9][0-9,\\.]{1,}/g) || [];
+		                for (const rawNum of nums.slice(0, 6)) {
+		                    const n = parseNumber(rawNum);
+		                    if (n != null) pushZone({ kind, label: kind === 'support' ? 'H' : 'R', price: n });
+		                }
+		            }
+
+		            // cleanup helper property
+		            if (zones.__seen) delete zones.__seen;
+
+		            // Sort: supports ascending, resistances ascending, then neutrals
+		            const rank = (k) => (k === 'support' ? 0 : (k === 'resistance' ? 1 : 2));
+		            zones.sort((a, b) => {
+		                const ra = rank(a.kind), rb = rank(b.kind);
+		                if (ra !== rb) return ra - rb;
+		                const va = (a.price != null ? a.price : ((a.low + a.high) / 2));
+		                const vb = (b.price != null ? b.price : ((b.low + b.high) / 2));
+		                return va - vb;
+		            });
+
+		            return zones;
+		        }
+
+		        function renderKeyLevelsPanelHtml(panelId, indexKey) {
+		            const payload = getIndexOhlcvPayload(indexKey);
+		            if (!payload) {
+		                return `<div class="info-box"><p>Không có dữ liệu giá cho index này.</p></div>`;
+		            }
+		            const metaLeft = payload.asof ? `As-of: ${escapeHtml(payload.asof)}` : '';
+		            const metaRight = payload.name ? `Index: ${escapeHtml(payload.name)}` : '';
+		            return `
+		                <div class="keylevels-panel" id="${panelId}" data-index-key="${escapeHtml(indexKey)}">
+		                    <div class="keylevels-toolbar">
+		                        <div class="title">Biểu đồ giá &amp; vùng quan trọng</div>
+		                        <div class="keylevels-tag" style="opacity:0.9;">100–200 phiên</div>
+		                    </div>
+		                    <div class="keylevels-body">
+		                        <div class="keylevels-chart" data-role="chart"></div>
+		                        <div class="keylevels-tags" data-role="tags"></div>
+		                        <div class="ohlcv-meta" style="margin-top:10px;">
+		                            <div>${metaLeft}</div>
+		                            <div>${metaRight}</div>
+		                        </div>
+		                    </div>
+		                </div>
+		            `;
+		        }
+
+		        function initKeyLevelsPanel(panelId, indexKey, sectionHtml) {
+		            const panelEl = document.getElementById(panelId);
+		            if (!panelEl) return;
+		            const payload = getIndexOhlcvPayload(indexKey);
+		            if (!payload) return;
+		            const chartEl = panelEl.querySelector('[data-role="chart"]');
+		            const tagsEl = panelEl.querySelector('[data-role="tags"]');
+		            if (!chartEl || typeof LightweightCharts === 'undefined') return;
+
+		            const barsAll = payload.bars || [];
+		            const bars = barsAll.slice(-Math.min(200, barsAll.length));
+		            if (bars.length < 5) return;
+
+		            const zones = extractKeyPriceZonesFromHtml(sectionHtml || '');
+
+		            // render tags summary (no fallback: if empty, show explicit message)
+		            if (tagsEl) {
+		                if (!zones.length) {
+		                    tagsEl.innerHTML = `<span class="keylevels-tag">Không trích xuất được vùng giá từ báo cáo.</span>`;
+		                } else {
+		                    const toText = (z) => {
+		                        if (z.low != null && z.high != null) return `${z.label}: ${z.low.toLocaleString()}–${z.high.toLocaleString()}`;
+		                        return `${z.label}: ${(z.price ?? 0).toLocaleString()}`;
+		                    };
+		                    tagsEl.innerHTML = zones.slice(0, 12).map(z =>
+		                        `<span class="keylevels-tag ${z.kind}">${escapeHtml(toText(z))}</span>`
+		                    ).join('');
+		                }
+		            }
+
+		            const theme = document.body.getAttribute('data-theme') || 'light';
+		            const isDark = theme === 'dark';
+		            const chartBg = isDark ? 'rgba(2,6,23,0.0)' : 'rgba(255,255,255,0.0)';
+		            const textCol = isDark ? 'rgba(226,232,240,0.85)' : 'rgba(15,23,42,0.75)';
+		            const gridCol = isDark ? 'rgba(148,163,184,0.16)' : 'rgba(148,163,184,0.28)';
+
+		            if (panelEl.__uiGlmKeyChart) {
+		                try { panelEl.__uiGlmKeyChart.remove(); } catch (_) {}
+		                panelEl.__uiGlmKeyChart = null;
+		            }
+
+		            const chart = LightweightCharts.createChart(chartEl, {
+		                layout: {
+		                    background: { type: 'solid', color: chartBg },
+		                    textColor: textCol,
+		                    fontFamily: '-apple-system, system-ui, Segoe UI, Roboto, Arial',
+		                    fontSize: 12,
+		                },
+		                grid: {
+		                    vertLines: { color: gridCol },
+		                    horzLines: { color: gridCol },
+		                },
+		                rightPriceScale: { borderVisible: false },
+		                timeScale: { borderVisible: false, rightOffset: 4, fixLeftEdge: true, fixRightEdge: true },
+		                crosshair: { mode: LightweightCharts.CrosshairMode.Magnet },
+		                handleScroll: { mouseWheel: true, pressedMouseMove: true, horzTouchDrag: true, vertTouchDrag: false },
+		                handleScale: { mouseWheel: true, pinch: true, axisPressedMouseMove: true },
+		                height: chartEl.clientHeight || 260,
+		                width: chartEl.clientWidth || 600,
+		            });
+		            panelEl.__uiGlmKeyChart = chart;
+
+		            const line = chart.addLineSeries({
+		                color: isDark ? 'rgba(96,165,250,0.95)' : 'rgba(59,130,246,0.95)',
+		                lineWidth: 2,
+		            });
+		            line.setData(bars.map(b => ({ time: b.d, value: b.c })));
+
+		            const makeLine = (price, color, title, axisVisible, width, style) => {
+		                try {
+		                    return line.createPriceLine({
+		                        price,
+		                        color,
+		                        lineWidth: width,
+		                        lineStyle: style,
+		                        axisLabelVisible: axisVisible,
+		                        title: title || '',
+		                    });
+		                } catch (_) {
+		                    return null;
+		                }
+		            };
+
+		            const supportCol = 'rgba(16,185,129,0.85)';
+		            const resistCol = 'rgba(239,68,68,0.85)';
+		            const neutralCol = isDark ? 'rgba(226,232,240,0.55)' : 'rgba(15,23,42,0.35)';
+
+		            for (const z of zones) {
+		                const color = z.kind === 'support' ? supportCol : (z.kind === 'resistance' ? resistCol : neutralCol);
+		                const style = LightweightCharts.LineStyle.Dashed;
+		                if (z.low != null && z.high != null) {
+		                    const mid = (z.low + z.high) / 2;
+		                    makeLine(z.low, color.replace('0.85', '0.35'), '', false, 1, style);
+		                    makeLine(z.high, color.replace('0.85', '0.35'), '', false, 1, style);
+		                    makeLine(mid, color, z.label || '', true, 2, style);
+		                } else if (z.price != null) {
+		                    makeLine(z.price, color, z.label || '', true, 2, style);
+		                }
+		            }
+
+		            chart.timeScale().fitContent();
+
+		            if (panelEl.__uiGlmKeyResizeObs) {
+		                try { panelEl.__uiGlmKeyResizeObs.disconnect(); } catch (_) {}
+		                panelEl.__uiGlmKeyResizeObs = null;
+		            }
+		            const ro = new ResizeObserver(() => {
+		                try {
+		                    chart.applyOptions({ width: chartEl.clientWidth, height: chartEl.clientHeight });
+		                    chart.timeScale().fitContent();
+		                } catch (_) {}
+		            });
+		            ro.observe(chartEl);
+		            panelEl.__uiGlmKeyResizeObs = ro;
+		        }
+
+		        function renderIndexOhlcvPanelHtml(panelId, indexKey) {
+		            const payload = getIndexOhlcvPayload(indexKey);
+		            if (!payload) {
+		                return `<div class="info-box"><p>Không có dữ liệu OHLCV cho index này.</p></div>`;
+		            }
 
 			            const metaLeft = payload.asof ? `As-of: ${escapeHtml(payload.asof)}` : '';
 			            const metaRight = payload.constituents ? `Constituents: ${escapeHtml(payload.constituents)} (${escapeHtml(payload.name)})` : '';
@@ -2973,11 +3302,12 @@
             const contentDiv = document.getElementById('singleSectionContent');
             contentDiv.style.display = 'block';
 
-	            const isUiHeatmapSection = section.__uiType === 'heatmap_gainers' || section.__uiType === 'heatmap_losers';
-	            const normalizedSectionTitle = normalizeTitle(section.title);
-	            const isTrendChartSection =
-	                normalizedSectionTitle === 'XU HƯỚNG GIÁ' ||
-	                normalizedSectionTitle === 'XU HƯỚNG KHỐI LƯỢNG';
+		            const isUiHeatmapSection = section.__uiType === 'heatmap_gainers' || section.__uiType === 'heatmap_losers';
+		            const normalizedSectionTitle = normalizeTitle(section.title);
+		            const isKeyLevelsSection = normalizedSectionTitle === 'MỨC GIÁ QUAN TRỌNG';
+		            const isTrendChartSection =
+		                normalizedSectionTitle === 'XU HƯỚNG GIÁ' ||
+		                normalizedSectionTitle === 'XU HƯỚNG KHỐI LƯỢNG';
 
 	            // Clean and format content
 	            const formatter = new ContentFormatter();
@@ -3006,17 +3336,34 @@
 	                        </div>
 	                    </div>
 	                `;
-	            } else if (isWhatIf) {
-	                contentDiv.innerHTML = `
-	                    <div class="whatif-card">
-	                        <div class="whatif-card-body">
-	                            ${formatter.format(cleanContent)}
-	                        </div>
-	                    </div>
-	                `;
-		            } else if (isTrendChartSection) {
-		                const panelId = `ohlcv_${currentIndex}_${sectionIndex}`;
-		                const panelHtml = renderIndexOhlcvPanelHtml(panelId, currentIndex);
+		            } else if (isWhatIf) {
+		                contentDiv.innerHTML = `
+		                    <div class="whatif-card">
+		                        <div class="whatif-card-body">
+		                            ${formatter.format(cleanContent)}
+		                        </div>
+		                    </div>
+		                `;
+		            } else if (isKeyLevelsSection) {
+		                const panelId = `keylevels_${currentIndex}_${sectionIndex}`;
+		                const panelHtml = renderKeyLevelsPanelHtml(panelId, currentIndex);
+
+		                window.__uiGlmKeyLevelsStore = window.__uiGlmKeyLevelsStore || {};
+		                window.__uiGlmKeyLevelsStore[panelId] = { sectionHtml: cleanContent };
+
+		                contentDiv.innerHTML = `
+		                    <div class="section-card">
+		                        <div class="section-body">
+		                            ${formatter.format(cleanContent)}
+		                            <div style="height: 12px;"></div>
+		                            ${panelHtml}
+		                        </div>
+		                    </div>
+		                `;
+		                setTimeout(() => initKeyLevelsPanel(panelId, currentIndex, cleanContent), 0);
+			            } else if (isTrendChartSection) {
+			                const panelId = `ohlcv_${currentIndex}_${sectionIndex}`;
+			                const panelHtml = renderIndexOhlcvPanelHtml(panelId, currentIndex);
 
 		                contentDiv.innerHTML = `
 		                    <div class="section-card">
