@@ -1757,16 +1757,16 @@
 	            display: grid;
 	            grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
 	            gap: 12px;
-	            background: var(--heatmap-surface);
-	            border: 1px solid var(--heatmap-border);
-	            border-radius: var(--lg-radius-card);
-	            box-shadow: var(--heatmap-shadow);
+	            background: transparent;
+	            border: 0;
+	            border-radius: 0;
+	            box-shadow: none;
 	        }
 
 	        [data-theme="dark"] .heatmap-index-grid {
-	            background: var(--heatmap-surface);
-	            border-color: var(--heatmap-border);
-	            box-shadow: var(--heatmap-shadow);
+	            background: transparent;
+	            border-color: transparent;
+	            box-shadow: none;
 	        }
 
 	        .heatmap-tile {
@@ -1777,11 +1777,11 @@
 	            flex-direction: column;
 	            gap: 6px;
 	            background: var(--lg-surface-semi) !important;
-	            color: var(--heatmap-text-neutral);
-	            text-shadow: var(--shadow-text);
+	            color: var(--text-primary);
 	            overflow: hidden;
 	            position: relative;
 	            isolation: isolate;
+	            transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
 	        }
 
 	        .heatmap-tile-btn {
@@ -1793,48 +1793,43 @@
 	            cursor: pointer;
 	        }
 
-	        .heatmap-tile::after {
+	        .heatmap-tile:hover {
+	            transform: translateY(-1px);
+	            box-shadow: var(--shadow-md);
+	            border-color: color-mix(in srgb, var(--lg-glass-border) 70%, var(--text-primary) 10%);
+	        }
+
+	        .heatmap-tile:has(.heatmap-tile-btn:focus-visible) {
+	            box-shadow: var(--shadow-md), 0 0 0 2px color-mix(in srgb, var(--primary) 45%, transparent);
+	            border-color: color-mix(in srgb, var(--primary) 45%, var(--lg-glass-border));
+	        }
+
+	        .heatmap-tile-btn:focus-visible { outline: none; }
+
+	        /* Index heatmap tiles: keep neutral surface, use neon-like metric + small indicator */
+	        .heatmap-tile[title*="| +"] .metric { color: var(--success); }
+	        .heatmap-tile[title*="| -"] .metric { color: var(--danger); }
+
+	        .heatmap-tile::before {
 	            content: '';
 	            position: absolute;
-	            inset: 0;
-	            background: var(--heatmap-tile-overlay);
-	            border-radius: inherit;
-	            pointer-events: none;
-	            z-index: 0;
+	            top: 10px;
+	            right: 10px;
+	            width: 8px;
+	            height: 8px;
+	            border-radius: 999px;
+	            background: color-mix(in srgb, var(--text-secondary) 60%, transparent);
+	            box-shadow: 0 0 0 1px color-mix(in srgb, var(--lg-glass-border) 85%, transparent);
 	        }
 
-	        .heatmap-tile:hover::after {
-	            background: var(--heatmap-tile-overlay-hover);
+	        .heatmap-tile[title*="| +"]::before {
+	            background: var(--success);
+	            box-shadow: 0 0 10px color-mix(in srgb, var(--success) 45%, transparent), 0 0 0 1px color-mix(in srgb, var(--success) 55%, transparent);
 	        }
 
-	        .heatmap-tile > * {
-	            position: relative;
-	            z-index: 1;
-	        }
-
-	        /* Index heatmap tiles (state inferred from title text) */
-	        .heatmap-tile[title*="| +"] {
-	            background: var(--heatmap-bg-positive) !important;
-	            color: var(--text-on-accent);
-	            text-shadow: var(--heatmap-text-shadow);
-	            --heatmap-tile-overlay: transparent;
-	            --heatmap-tile-overlay-hover: transparent;
-	        }
-
-	        .heatmap-tile[title*="| -"] {
-	            background: var(--heatmap-bg-negative) !important;
-	            color: var(--text-on-accent);
-	            text-shadow: var(--heatmap-text-shadow);
-	            --heatmap-tile-overlay: transparent;
-	            --heatmap-tile-overlay-hover: transparent;
-	        }
-
-	        .heatmap-tile:not([title*="| +"]):not([title*="| -"]) {
-	            background: var(--lg-surface-semi) !important;
-	            color: var(--text-primary);
-	            text-shadow: var(--shadow-text);
-	            --heatmap-tile-overlay: transparent;
-	            --heatmap-tile-overlay-hover: transparent;
+	        .heatmap-tile[title*="| -"]::before {
+	            background: var(--danger);
+	            box-shadow: 0 0 10px color-mix(in srgb, var(--danger) 45%, transparent), 0 0 0 1px color-mix(in srgb, var(--danger) 55%, transparent);
 	        }
 
 	        .heatmap-tile .symbol {
@@ -1843,7 +1838,7 @@
 	        }
 
 	        .heatmap-tile .metric {
-	            color: color-mix(in srgb, currentColor 82%, transparent);
+	            color: var(--text-secondary);
 	            font-size: 0.9rem;
 	            white-space: nowrap;
 	            overflow: hidden;
@@ -1866,10 +1861,9 @@
 	            border-radius: var(--lg-radius-card);
 	            padding: 10px 10px;
 	            border: 1px solid var(--lg-glass-border);
-	            background: var(--lg-surface-ghost);
+	            background: var(--lg-surface-semi) !important;
 	            text-align: center;
 	            color: var(--heatmap-text-neutral);
-	            text-shadow: var(--shadow-text);
 	            position: relative;
 	            overflow: hidden;
 	            isolation: isolate;
@@ -1882,53 +1876,37 @@
 	            border-color: color-mix(in srgb, var(--lg-glass-border) 70%, var(--text-primary) 10%);
 	        }
 
-	        .heatmap-cell::after {
+	        .heatmap-symbol { color: var(--text-primary); }
+
+	        /* Stock heatmap cells (state inferred from data-change-pct attribute): neutral background, colored metric + dot */
+	        .heatmap-cell::before {
 	            content: '';
 	            position: absolute;
-	            inset: 0;
-	            background: var(--heatmap-tile-overlay);
-	            border-radius: inherit;
-	            pointer-events: none;
-	            z-index: 0;
+	            top: 10px;
+	            right: 10px;
+	            width: 8px;
+	            height: 8px;
+	            border-radius: 999px;
+	            background: color-mix(in srgb, var(--text-secondary) 60%, transparent);
+	            box-shadow: 0 0 0 1px color-mix(in srgb, var(--lg-glass-border) 85%, transparent);
 	        }
 
-	        .heatmap-cell:hover::after {
-	            background: var(--heatmap-tile-overlay-hover);
+	        .heatmap-cell:has(.heatmap-cell-btn[data-change-pct^="-"]) .heatmap-metric {
+	            color: var(--danger);
 	        }
 
-	        /* Stock heatmap cells (state inferred from data-change-pct attribute) */
-	        .heatmap-cell:has(.heatmap-cell-btn[data-change-pct^="-"]) {
-	            background: var(--heatmap-bg-negative) !important;
-	            color: var(--text-on-accent);
-	            text-shadow: var(--heatmap-text-shadow);
-	            --heatmap-tile-overlay: transparent;
-	            --heatmap-tile-overlay-hover: transparent;
+	        .heatmap-cell:has(.heatmap-cell-btn[data-change-pct^="-"])::before {
+	            background: var(--danger);
+	            box-shadow: 0 0 10px color-mix(in srgb, var(--danger) 45%, transparent), 0 0 0 1px color-mix(in srgb, var(--danger) 55%, transparent);
 	        }
 
-	        .heatmap-cell:has(.heatmap-cell-btn[data-change-pct]:not([data-change-pct^="-"]):not([data-change-pct=""]):not([data-change-pct="0"]):not([data-change-pct="0.0"]):not([data-change-pct="0.00"])) {
-	            background: var(--heatmap-bg-positive) !important;
-	            color: var(--text-on-accent);
-	            text-shadow: var(--heatmap-text-shadow);
-	            --heatmap-tile-overlay: transparent;
-	            --heatmap-tile-overlay-hover: transparent;
+	        .heatmap-cell:has(.heatmap-cell-btn[data-change-pct]:not([data-change-pct^="-"]):not([data-change-pct=""]):not([data-change-pct="0"]):not([data-change-pct="0.0"]):not([data-change-pct="0.00"])) .heatmap-metric {
+	            color: var(--success);
 	        }
 
-	        .heatmap-cell:has(.heatmap-cell-btn[data-change-pct=""]):not(:has(.heatmap-cell-btn[data-change-pct^="-"])) {
-	            background: var(--lg-surface-semi) !important;
-	            color: var(--text-primary);
-	            text-shadow: var(--shadow-text);
-	            --heatmap-tile-overlay: transparent;
-	            --heatmap-tile-overlay-hover: transparent;
-	        }
-
-	        .heatmap-cell:has(.heatmap-cell-btn[data-change-pct="0"]),
-	        .heatmap-cell:has(.heatmap-cell-btn[data-change-pct="0.0"]),
-	        .heatmap-cell:has(.heatmap-cell-btn[data-change-pct="0.00"]) {
-	            background: var(--lg-surface-semi) !important;
-	            color: var(--text-primary);
-	            text-shadow: var(--shadow-text);
-	            --heatmap-tile-overlay: transparent;
-	            --heatmap-tile-overlay-hover: transparent;
+	        .heatmap-cell:has(.heatmap-cell-btn[data-change-pct]:not([data-change-pct^="-"]):not([data-change-pct=""]):not([data-change-pct="0"]):not([data-change-pct="0.0"]):not([data-change-pct="0.00"]))::before {
+	            background: var(--success);
+	            box-shadow: 0 0 10px color-mix(in srgb, var(--success) 45%, transparent), 0 0 0 1px color-mix(in srgb, var(--success) 55%, transparent);
 	        }
 
 	        .heatmap-cell-btn {
@@ -1961,7 +1939,7 @@
 
 	        .heatmap-metric {
 	            margin-top: 4px;
-	            color: color-mix(in srgb, currentColor 82%, transparent);
+	            color: var(--text-secondary);
 	            font-size: 0.85rem;
 	            font-weight: 700;
 	            white-space: nowrap;
