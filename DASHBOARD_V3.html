@@ -2739,7 +2739,6 @@
 			            chart.timeScale().fitContent();
 
 			            if (tooltipEl) {
-			                tooltipEl.style.display = 'block';
 			                const fmt = (x) => (typeof x === 'number' && Number.isFinite(x)) ? x.toLocaleString(undefined, { maximumFractionDigits: 2 }) : 'N/A';
 			                const fmtVol = (x) => (typeof x === 'number' && Number.isFinite(x)) ? x.toLocaleString(undefined, { maximumFractionDigits: 0 }) : 'N/A';
 			                const setTip = (t, o, h, l, c, v) => {
@@ -2750,13 +2749,21 @@
 			                const last = bars[bars.length - 1];
 			                setTip(last.d, last.o, last.h, last.l, last.c, last.v);
 			                chart.subscribeCrosshairMove((param) => {
-			                    if (!param || !param.time) return;
+			                    if (!param || !param.time || !param.point) {
+			                        tooltipEl.style.display = 'none';
+			                        return;
+			                    }
+			                    tooltipEl.style.display = 'block';
 			                    const t = param.time;
 			                    const cData = param.seriesData.get(candle);
 			                    const vData = param.seriesData.get(volume);
 			                    if (cData) {
 			                        setTip(t, cData.open, cData.high, cData.low, cData.close, vData ? vData.value : null);
 			                    }
+			                });
+			                // Hide tooltip when leaving the chart area
+			                chartEl.addEventListener('mouseleave', () => {
+			                    tooltipEl.style.display = 'none';
 			                });
 			            }
 
