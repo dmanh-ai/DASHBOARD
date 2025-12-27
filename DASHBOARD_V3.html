@@ -347,6 +347,112 @@
             line-height: 1.4;
         }
 
+        .plan-chooser {
+            display: grid;
+            gap: 12px;
+        }
+
+        .plan-choice-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 12px;
+        }
+
+        @media (max-width: 520px) {
+            .plan-choice-grid { grid-template-columns: 1fr; }
+        }
+
+        .plan-choice-card {
+            appearance: none;
+            -webkit-appearance: none;
+            width: 100%;
+            border: 1px solid var(--lg-glass-border);
+            border-radius: var(--lg-radius-card);
+            background: var(--lg-surface-semi);
+            color: var(--text-primary);
+            text-align: left;
+            padding: 14px 14px;
+            cursor: pointer;
+            transition: transform var(--motion-med) var(--motion-ease),
+                        box-shadow var(--motion-med) var(--motion-ease),
+                        border-color var(--motion-med) var(--motion-ease),
+                        background-color var(--motion-med) var(--motion-ease);
+        }
+
+        .plan-choice-card:hover {
+            transform: translateY(-1px);
+            box-shadow: var(--shadow-md);
+            border-color: color-mix(in srgb, var(--lg-glass-border) 70%, var(--text-primary) 10%);
+        }
+
+        .plan-choice-card:focus-visible {
+            outline: none;
+            box-shadow: var(--shadow-md), 0 0 0 3px color-mix(in srgb, var(--primary) 22%, transparent);
+            border-color: color-mix(in srgb, var(--primary) 45%, var(--lg-glass-border));
+        }
+
+        .plan-choice-top {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+        }
+
+        .plan-choice-title {
+            font-weight: 950;
+            letter-spacing: 0.2px;
+            font-size: 1rem;
+        }
+
+        .plan-choice-badge {
+            font-size: 0.78rem;
+            font-weight: 900;
+            padding: 4px 10px;
+            border-radius: 999px;
+            border: 1px solid var(--lg-glass-border);
+            background: var(--lg-surface-ghost);
+            color: var(--text-secondary);
+            white-space: nowrap;
+        }
+
+        .plan-choice-badge.pro {
+            background: color-mix(in srgb, var(--primary) 12%, transparent);
+            border-color: color-mix(in srgb, var(--primary) 30%, var(--lg-glass-border));
+            color: var(--text-primary);
+        }
+
+        .plan-choice-desc {
+            margin-top: 10px;
+            color: var(--text-secondary);
+            font-weight: 800;
+            line-height: 1.55;
+            font-size: 0.9rem;
+        }
+
+        .plan-choice-foot {
+            margin-top: 10px;
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .plan-choice-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 10px;
+            border-radius: 999px;
+            border: 1px solid var(--lg-glass-border);
+            background: var(--lg-surface-ghost);
+            color: var(--text-secondary);
+            font-weight: 900;
+            font-size: 0.78rem;
+        }
+
+        .plan-choice-pill.ok { color: var(--success); border-color: color-mix(in srgb, var(--success) 35%, var(--lg-glass-border)); }
+        .plan-choice-pill.lock { color: var(--warning); border-color: color-mix(in srgb, var(--warning) 35%, var(--lg-glass-border)); }
+
         .search-box {
             padding: 0 20px 15px;
         }
@@ -3302,6 +3408,87 @@
             return false;
         }
 
+        function shouldShowPlanChooserOnStartup() {
+            const prefRaw = localStorage.getItem(UI_GLM_PLAN_PREF_KEY);
+            if (prefRaw == null || String(prefRaw).trim() === '') return true;
+            return getPlanPreference() === UI_GLM_PLAN.PRO && !isProUnlocked();
+        }
+
+        function openPlanChooserModal() {
+            const pref = getPlanPreference();
+            const unlocked = isProUnlocked();
+
+            const bodyHtml = `
+                <div class="plan-chooser">
+                    <div style="font-weight:950;letter-spacing:0.2px;">Chọn chế độ xem</div>
+                    <div class="plan-choice-grid">
+                        <button type="button" class="plan-choice-card" id="planChoiceLite">
+                            <div class="plan-choice-top">
+                                <div class="plan-choice-title">Lite</div>
+                                <span class="plan-choice-badge">Free</span>
+                            </div>
+                            <div class="plan-choice-desc">
+                                Xem nhanh: Tổng hợp + VNINDEX, VN30, VN100, VNMIDCAP.<br/>
+                                Ẩn các mục nâng cao để đọc dễ hơn.
+                            </div>
+                            <div class="plan-choice-foot">
+                                <span class="plan-choice-pill ok">✓ Nhanh • gọn</span>
+                                <span class="plan-choice-pill ok">✓ Dễ đọc mobile</span>
+                            </div>
+                        </button>
+                        <button type="button" class="plan-choice-card" id="planChoicePro">
+                            <div class="plan-choice-top">
+                                <div class="plan-choice-title">Pro</div>
+                                <span class="plan-choice-badge pro">Password</span>
+                            </div>
+                            <div class="plan-choice-desc">
+                                Xem đầy đủ tất cả chỉ số và mục phân tích chuyên sâu.
+                            </div>
+                            <div class="plan-choice-foot">
+                                <span class="plan-choice-pill ${unlocked ? 'ok' : 'lock'}">${unlocked ? '✓ Đã mở khóa phiên này' : '🔒 Cần mật khẩu'}</span>
+                                ${pref === UI_GLM_PLAN.PRO && !unlocked ? `<span class="plan-choice-pill lock">Gợi ý: chọn Lite nếu chưa có mật khẩu</span>` : ''}
+                            </div>
+                        </button>
+                    </div>
+                    <div style="color:var(--text-secondary);font-weight:800;font-size:0.82rem;line-height:1.5;">
+                        Bạn có thể đổi lại bất cứ lúc nào ở sidebar.
+                    </div>
+                </div>
+            `;
+
+            const modal = document.getElementById('uiModal');
+            if (modal) modal.dataset.modalType = 'plan';
+            openUiModal({ tone: 'neutral', title: 'Chế độ xem', subtitle: 'Lite / Pro', bodyHtml, large: false });
+
+            // Wire buttons after DOM injection.
+            setTimeout(() => {
+                const lite = document.getElementById('planChoiceLite');
+                const pro = document.getElementById('planChoicePro');
+
+                lite?.addEventListener('click', () => {
+                    sessionStorage.removeItem(UI_GLM_PRO_OK_KEY);
+                    setPlanPreference(UI_GLM_PLAN.LITE);
+                    applyPlanToUi();
+                    closeUiModal();
+                }, { once: true });
+
+                pro?.addEventListener('click', () => {
+                    setPlanPreference(UI_GLM_PLAN.PRO);
+                    const ok = isProUnlocked() ? true : requestProUnlock();
+                    if (ok) closeUiModal();
+                }, { once: true });
+            }, 0);
+        }
+
+        function tryOpenPlanChooserWhenReady() {
+            if (!shouldShowPlanChooserOnStartup()) return;
+            if (!document.getElementById('uiModal')) {
+                setTimeout(tryOpenPlanChooserWhenReady, 50);
+                return;
+            }
+            openPlanChooserModal();
+        }
+
         function isIndexAllowedForCurrentPlan(indexKey) {
             const plan = getEffectivePlan();
             if (plan === UI_GLM_PLAN.PRO) return true;
@@ -3413,6 +3600,17 @@
         function closeUiModal() {
             const modal = document.getElementById('uiModal');
             if (!modal) return;
+            const modalType = modal.dataset ? modal.dataset.modalType : '';
+            if (modalType === 'plan') {
+                // If user closes without choosing, default to Lite (first-run friendly).
+                const prefRaw = localStorage.getItem(UI_GLM_PLAN_PREF_KEY);
+                if (prefRaw == null || String(prefRaw).trim() === '') {
+                    sessionStorage.removeItem(UI_GLM_PRO_OK_KEY);
+                    setPlanPreference(UI_GLM_PLAN.LITE);
+                    applyPlanToUi();
+                }
+                try { delete modal.dataset.modalType; } catch (_) {}
+            }
             modal.style.display = 'none';
             const body = document.getElementById('uiModalBody');
             if (body) body.innerHTML = '';
@@ -5873,6 +6071,9 @@
 			        });
 
 			        applyPlanToUi();
+			        setTimeout(() => {
+			            tryOpenPlanChooserWhenReady();
+			        }, 0);
 			        setTimeout(() => {
 			            tryAutoSelectFromUrl();
 			            tryAutoOpenStockPopupFromUrl();
