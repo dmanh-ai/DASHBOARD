@@ -230,51 +230,57 @@
             padding: 0 10px;
         }
 
-        .index-item {
-            padding: 14px 16px;
-            margin: 4px 0;
-            border-radius: 10px;
-            cursor: pointer;
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            border: 1px solid transparent;
-            font-weight: 500;
-            font-size: 0.9rem;
-            position: relative;
-            overflow: hidden;
-        }
+	        .index-item {
+	            padding: 14px 16px;
+	            margin: 4px 0;
+	            border-radius: var(--lg-radius-card);
+	            cursor: pointer;
+	            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+	            background: var(--lg-surface-semi);
+	            border: 1px solid var(--lg-glass-border);
+	            box-shadow: 0 6px 18px color-mix(in srgb, var(--primary-dark) 18%, transparent);
+	            font-weight: 500;
+	            font-size: 0.9rem;
+	            position: relative;
+	            overflow: hidden;
+	        }
 
-        .index-item::before {
-            content: '';
-            position: absolute;
-            left: 0;
-            top: 0;
-            width: 3px;
-            height: 100%;
-            background: var(--gradient-blue);
-            transform: scaleY(0);
-            transition: transform 0.3s ease;
-        }
+	        .index-item::before {
+	            content: '';
+	            position: absolute;
+	            left: 0;
+	            top: 0;
+	            width: 3px;
+	            height: 100%;
+	            background: var(--primary);
+	            transform: scaleY(0);
+	            transition: transform 0.3s ease;
+	        }
 
-        .index-item:hover {
-            background: var(--bg-hover);
-            transform: translateX(4px);
-        }
+	        .index-item:hover {
+	            background: var(--lg-surface-semi);
+	            background: color-mix(in srgb, var(--lg-surface-semi) 70%, var(--primary) 30%);
+	            border-color: color-mix(in srgb, var(--lg-glass-border) 55%, var(--primary-light) 45%);
+	            box-shadow: 0 10px 26px color-mix(in srgb, var(--primary-dark) 22%, transparent);
+	            transform: translateX(4px);
+	        }
 
         .index-item:hover::before {
             transform: scaleY(1);
         }
 
-        .index-item.active {
-            background: var(--gradient-blue);
-            color: white;
-            box-shadow: 0 4px 16px rgba(59, 130, 246, 0.4);
-            transform: translateX(4px);
-        }
+	        .index-item.active {
+	            background: linear-gradient(135deg, var(--primary-dark) 0%, var(--primary) 55%, var(--primary-light) 100%);
+	            border-color: var(--primary-light);
+	            color: #fff;
+	            box-shadow: 0 14px 34px color-mix(in srgb, var(--primary) 34%, transparent);
+	            transform: translateX(4px);
+	        }
 
-        .index-item.active::before {
-            transform: scaleY(1);
-            background: white;
-        }
+	        .index-item.active::before {
+	            transform: scaleY(1);
+	            background: #fff;
+	        }
 
         /* Section Navigation Sidebar (Column 3 - Right) */
 	        .section-nav {
@@ -318,21 +324,23 @@
             padding: 0 10px;
         }
 
-        .section-item {
-            padding: 12px 16px;
-            margin: 4px 0;
-            border-radius: 10px;
-            cursor: pointer;
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            border: 1px solid transparent;
-            font-weight: 500;
-            font-size: 0.85rem;
-            position: relative;
-            overflow: hidden;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
+	        .section-item {
+	            padding: 12px 16px;
+	            margin: 4px 0;
+	            border-radius: var(--lg-radius-card);
+	            cursor: pointer;
+	            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+	            background: var(--lg-surface-semi);
+	            border: 1px solid var(--lg-glass-border);
+	            box-shadow: 0 6px 18px color-mix(in srgb, var(--primary-dark) 18%, transparent);
+	            font-weight: 500;
+	            font-size: 0.85rem;
+	            position: relative;
+	            overflow: hidden;
+	            display: flex;
+	            align-items: center;
+	            gap: 10px;
+	        }
 
         .section-item .icon {
             font-size: 1rem;
@@ -346,38 +354,42 @@
             white-space: nowrap;
         }
 
-        .section-item::before {
-            content: '';
-            position: absolute;
-            right: 0;
-            top: 0;
-            width: 3px;
-            height: 100%;
-            background: var(--gradient-purple);
-            transform: scaleY(0);
-            transition: transform 0.3s ease;
-        }
+	        .section-item::before {
+	            content: '';
+	            position: absolute;
+	            right: 0;
+	            top: 0;
+	            width: 3px;
+	            height: 100%;
+	            background: var(--primary);
+	            transform: scaleY(0);
+	            transition: transform 0.3s ease;
+	        }
 
-        .section-item:hover {
-            background: var(--bg-hover);
-            transform: translateX(-4px);
-        }
+	        .section-item:hover {
+	            background: var(--lg-surface-semi);
+	            background: color-mix(in srgb, var(--lg-surface-semi) 70%, var(--primary) 30%);
+	            border-color: color-mix(in srgb, var(--lg-glass-border) 55%, var(--primary-light) 45%);
+	            box-shadow: 0 10px 26px color-mix(in srgb, var(--primary-dark) 22%, transparent);
+	            transform: translateX(-4px);
+	        }
 
         .section-item:hover::before {
             transform: scaleY(1);
         }
 
-        .section-item.active {
-            background: var(--gradient-purple);
-            color: white;
-            box-shadow: 0 4px 16px rgba(139, 92, 246, 0.4);
-            transform: translateX(-4px);
-        }
+	        .section-item.active {
+	            background: linear-gradient(135deg, var(--primary-dark) 0%, var(--primary) 55%, var(--primary-light) 100%);
+	            border-color: var(--primary-light);
+	            color: #fff;
+	            box-shadow: 0 14px 34px color-mix(in srgb, var(--primary) 34%, transparent);
+	            transform: translateX(-4px);
+	        }
 
-        .section-item.active::before {
-            transform: scaleY(1);
-            background: white;
-        }
+	        .section-item.active::before {
+	            transform: scaleY(1);
+	            background: #fff;
+	        }
 
         .section-item.whatif {
             background: linear-gradient(135deg, rgba(251, 191, 36, 0.1) 0%, rgba(245, 158, 11, 0.05) 100%);
