@@ -2293,12 +2293,26 @@
 			            .bh-sparks { grid-template-columns: 1fr; }
 			        }
 
-			        .bh-spark {
-			            border-radius: 14px;
-			            border: 1px solid var(--glass-border);
-			            background: rgba(255, 255, 255, 0.06);
-			            padding: 10px;
-			        }
+				        .bh-spark {
+				            border-radius: 14px;
+				            border: 1px solid var(--glass-border);
+				            background: rgba(255, 255, 255, 0.06);
+				            padding: 10px;
+				            cursor: pointer;
+				            transition: transform 0.12s ease, border-color 0.12s ease, background 0.12s ease, box-shadow 0.12s ease;
+				        }
+				
+				        .bh-spark:hover {
+				            border-color: rgba(99, 102, 241, 0.45);
+				            background: rgba(99, 102, 241, 0.06);
+				            box-shadow: 0 10px 22px rgba(2, 6, 23, 0.10);
+				            transform: translateY(-1px);
+				        }
+				
+				        .bh-spark:focus-visible {
+				            outline: 3px solid rgba(99, 102, 241, 0.45);
+				            outline-offset: 2px;
+				        }
 
 			        .bh-spark .k {
 			            font-weight: 950;
@@ -3938,24 +3952,27 @@
 			                        <div class="bh-chart" data-role="bh-main"></div>
 
 			                        <div class="bh-sparks">
-			                            ${[
-			                                ['MA5', 'pct_ma5'],
-			                                ['MA20', 'pct_ma20'],
-			                                ['MA50', 'pct_ma50'],
-			                                ['MA200', 'pct_ma200'],
-			                            ].map(([label, key]) => `
-			                                <div class="bh-spark" data-bh-spark="${key}">
-			                                    <div class="k"><span>${label}</span><span>${Number(cur[key] || 0).toFixed(1)}%</span></div>
-			                                    <div class="spark" data-role="spark"></div>
-			                                </div>
-			                            `).join('')}
-			                        </div>
-			                    </div>
-			                </div>
+				                            ${[
+				                                ['MA5', 'pct_ma5'],
+				                                ['MA20', 'pct_ma20'],
+				                                ['MA50', 'pct_ma50'],
+				                                ['MA200', 'pct_ma200'],
+				                            ].map(([label, key]) => `
+				                                <div class="bh-spark" role="button" tabindex="0"
+				                                     data-bh-spark="${key}" data-bh-label="${label}"
+				                                     onclick="openBreadthHistoryDetailFromEl(this)">
+				                                    <div class="k"><span>${label}</span><span>${Number(cur[key] || 0).toFixed(1)}%</span></div>
+				                                    <div class="spark" data-role="spark"></div>
+				                                    <div style="margin-top:6px; color: var(--text-secondary); font-weight: 800; font-size: 0.74rem;">Nhấn để xem chi tiết</div>
+				                                </div>
+				                            `).join('')}
+				                        </div>
+				                    </div>
+				                </div>
 			            `;
 			        }
 
-			        function initBreadthHistoryPanel(panelId) {
+				        function initBreadthHistoryPanel(panelId) {
 			            const panelEl = document.getElementById(panelId);
 			            if (!panelEl) return;
 			            const payload = getBreadthHistoryPayload();
@@ -3993,7 +4010,148 @@
 			                if (panelEl.__uiGlmBhMainChart) {
 			                    try { panelEl.__uiGlmBhMainChart.remove(); } catch (_) {}
 			                    panelEl.__uiGlmBhMainChart = null;
-			                }
+				        }
+				
+				        function openBreadthHistoryDetailFromEl(el) {
+				            const payload = getBreadthHistoryPayload();
+				            if (!payload || typeof LightweightCharts === 'undefined') {
+				                openUiModal({
+				                    tone: 'neutral',
+				                    title: 'Breadth history',
+				                    subtitle: 'Không có dữ liệu',
+				                    bodyHtml: `<div class="info-box"><p>Chưa có dữ liệu breadth history để hiển thị.</p></div>`,
+				                });
+				                return;
+				            }
+				
+				            const key = (el && el.getAttribute) ? (el.getAttribute('data-bh-spark') || '') : '';
+				            const label = (el && el.getAttribute) ? (el.getAttribute('data-bh-label') || key) : key;
+				            if (!key) return;
+				
+				            const series = Array.isArray(payload.series) ? payload.series : [];
+				            const pts = series
+				                .filter(r => r && r.d && r[key] != null && Number.isFinite(Number(r[key])))
+				                .map(r => ({ d: r.d, v: Number(r[key]) }));
+				            if (pts.length < 2) {
+				                openUiModal({
+				                    tone: 'neutral',
+				                    title: `Breadth ${escapeHtml(label)}`,
+				                    subtitle: 'Không đủ dữ liệu',
+				                    bodyHtml: `<div class="info-box"><p>Không đủ dữ liệu để vẽ biểu đồ cho ${escapeHtml(label)}.</p></div>`,
+				                });
+				                return;
+				            }
+				
+				            const last = pts[pts.length - 1];
+				            const current = last.v;
+				            const values = pts.map(p => p.v);
+				            const below = values.filter(v => v <= current).length;
+				            const percentile = values.length ? (100 * (below / values.length)) : 0;
+				
+				            const prev = (n) => (pts.length > n ? pts[pts.length - 1 - n].v : null);
+				            const d1w = prev(5) == null ? null : (current - prev(5));
+				            const d1m = prev(20) == null ? null : (current - prev(20));
+				            const chipCls = (v) => (v == null ? '' : (v >= 0 ? 'positive' : 'negative'));
+				            const fmtPp = (v) => (v == null ? 'N/A' : `${v >= 0 ? '+' : ''}${v.toFixed(1)}pp`);
+				
+				            const chartId = `bh_detail_${key}_${Date.now()}`;
+				            const explain = `Breadth ${label} = % cổ phiếu đóng cửa > ${label} (trên toàn HOSE).`;
+				
+				            openUiModal({
+				                tone: 'neutral',
+				                title: `Breadth ${escapeHtml(label)}`,
+				                subtitle: `As-of: ${escapeHtml(payload.asof || last.d || '')}`,
+				                bodyHtml: `
+				                    <div class="ui-metrics" style="margin-bottom: 12px;">
+				                        <div class="ui-metric"><div class="k">Hiện tại</div><div class="v">${escapeHtml(current.toFixed(1))}%</div></div>
+				                        <div class="ui-metric"><div class="k">Percentile</div><div class="v">${escapeHtml(percentile.toFixed(1))}%</div></div>
+				                        <div class="ui-metric"><div class="k">vs 1w</div><div class="v"><span class="bh-chip ${chipCls(d1w)}">${escapeHtml(fmtPp(d1w))}</span></div></div>
+				                        <div class="ui-metric"><div class="k">vs 1m</div><div class="v"><span class="bh-chip ${chipCls(d1m)}">${escapeHtml(fmtPp(d1m))}</span></div></div>
+				                    </div>
+				                    <div class="info-box" style="margin-bottom: 12px;">
+				                        <p><strong>Diễn giải:</strong> ${escapeHtml(explain)}</p>
+				                        <p style="margin-top:6px;"><strong>Ngưỡng tham chiếu:</strong> 20 / 50 / 80 (percent)</p>
+				                    </div>
+				                    <div class="bh-chart" id="${chartId}" style="height: 320px;"></div>
+				                `,
+				            });
+				
+				            setTimeout(() => initBreadthHistoryDetailChart(chartId, key), 0);
+				        }
+				
+				        function initBreadthHistoryDetailChart(chartId, key) {
+				            const payload = getBreadthHistoryPayload();
+				            const el = document.getElementById(chartId);
+				            if (!payload || !el || typeof LightweightCharts === 'undefined') return;
+				
+				            const series = Array.isArray(payload.series) ? payload.series : [];
+				            const data = series
+				                .filter(r => r && r.d && r[key] != null && Number.isFinite(Number(r[key])))
+				                .map(r => ({ time: r.d, value: Number(r[key]) }));
+				            if (data.length < 2) return;
+				
+				            const theme = document.body.getAttribute('data-theme') || 'light';
+				            const isDark = theme === 'dark';
+				            const chartBg = isDark ? 'rgba(2,6,23,0.0)' : 'rgba(255,255,255,0.0)';
+				            const textCol = isDark ? 'rgba(226,232,240,0.85)' : 'rgba(15,23,42,0.75)';
+				            const gridCol = isDark ? 'rgba(148,163,184,0.16)' : 'rgba(148,163,184,0.28)';
+				
+				            try { if (el.__uiGlmBhDetailChart) el.__uiGlmBhDetailChart.remove(); } catch (_) {}
+				
+				            const chart = LightweightCharts.createChart(el, {
+				                layout: {
+				                    background: { type: 'solid', color: chartBg },
+				                    textColor: textCol,
+				                    attributionLogo: false,
+				                    fontFamily: '-apple-system, system-ui, Segoe UI, Roboto, Arial',
+				                    fontSize: 12,
+				                },
+				                grid: {
+				                    vertLines: { color: gridCol },
+				                    horzLines: { color: gridCol },
+				                },
+				                rightPriceScale: { borderVisible: false, scaleMargins: { top: 0.12, bottom: 0.12 } },
+				                timeScale: { borderVisible: false, rightOffset: 6, fixLeftEdge: true, fixRightEdge: true },
+				                crosshair: { mode: LightweightCharts.CrosshairMode.Magnet },
+				                handleScroll: { mouseWheel: true, pressedMouseMove: true, horzTouchDrag: true, vertTouchDrag: false },
+				                handleScale: { mouseWheel: true, pinch: true, axisPressedMouseMove: true },
+				                height: el.clientHeight || 320,
+				                width: el.clientWidth || 760,
+				            });
+				            el.__uiGlmBhDetailChart = chart;
+				
+				            const line = chart.addLineSeries({
+				                color: isDark ? 'rgba(96,165,250,0.95)' : 'rgba(59,130,246,0.95)',
+				                lineWidth: 2,
+				            });
+				            line.setData(data);
+				
+				            const guideCol = isDark ? 'rgba(226,232,240,0.25)' : 'rgba(15,23,42,0.20)';
+				            [20, 50, 80].forEach((lvl) => {
+				                try {
+				                    line.createPriceLine({
+				                        price: lvl,
+				                        color: guideCol,
+				                        lineWidth: 1,
+				                        lineStyle: LightweightCharts.LineStyle.Dashed,
+				                        axisLabelVisible: false,
+				                        title: '',
+				                    });
+				                } catch (_) {}
+				            });
+				
+				            chart.timeScale().fitContent();
+				
+				            try { if (el.__uiGlmBhDetailResizeObs) el.__uiGlmBhDetailResizeObs.disconnect(); } catch (_) {}
+				            const ro = new ResizeObserver(() => {
+				                try {
+				                    chart.applyOptions({ width: el.clientWidth, height: el.clientHeight });
+				                    chart.timeScale().fitContent();
+				                } catch (_) {}
+				            });
+				            ro.observe(el);
+				            el.__uiGlmBhDetailResizeObs = ro;
+				        }
 			                const chart = LightweightCharts.createChart(mainEl, {
 			                    layout: {
 			                        background: { type: 'solid', color: chartBg },
