@@ -2528,10 +2528,22 @@
     </div>
 
     <script>
-        // Theme Toggle Logic
-        const themeToggle = document.getElementById('themeToggle');
-        const body = document.body;
-        let currentTheme = localStorage.getItem('theme') || 'light';
+	        // Theme Toggle Logic
+	        const themeToggle = document.getElementById('themeToggle');
+	        const body = document.body;
+	        let currentTheme = localStorage.getItem('theme') || 'light';
+
+	        // Disable TradingView links (UI charts are not linked externally)
+	        document.addEventListener('click', function (event) {
+	            const a = event.target && event.target.closest ? event.target.closest('a') : null;
+	            if (!a) return;
+	            const href = (a.getAttribute('href') || '').trim();
+	            if (!href) return;
+	            if (/tradingview\.com/i.test(href)) {
+	                event.preventDefault();
+	                event.stopPropagation();
+	            }
+	        }, true);
 
         // Apply saved theme
         body.setAttribute('data-theme', currentTheme);
