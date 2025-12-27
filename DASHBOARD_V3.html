@@ -1874,8 +1874,8 @@
 	            border-color: rgba(255, 255, 255, 0.08);
 	        }
 
-	        .ohlcv-tooltip {
-	            position: absolute;
+		        .ohlcv-tooltip {
+		            position: absolute;
 	            top: 10px;
 	            left: 10px;
 	            padding: 10px 12px;
@@ -1890,11 +1890,71 @@
 	            white-space: nowrap;
 	        }
 
-	        [data-theme="dark"] .ohlcv-tooltip {
-	            background: rgba(2, 6, 23, 0.86);
-	            border-color: rgba(226, 232, 240, 0.12);
-	            color: rgba(226, 232, 240, 0.92);
-	        }
+		        [data-theme="dark"] .ohlcv-tooltip {
+		            background: rgba(2, 6, 23, 0.86);
+		            border-color: rgba(226, 232, 240, 0.12);
+		            color: rgba(226, 232, 240, 0.92);
+		        }
+
+		        .price-panel {
+		            margin-top: 14px;
+		            border: 1px solid var(--glass-border);
+		            border-radius: 16px;
+		            background: rgba(255, 255, 255, 0.04);
+		            overflow: hidden;
+		            max-width: 760px;
+		            margin-left: auto;
+		            margin-right: auto;
+		        }
+
+		        [data-theme="dark"] .price-panel {
+		            background: rgba(255, 255, 255, 0.02);
+		        }
+
+		        .price-toolbar {
+		            display: flex;
+		            align-items: center;
+		            justify-content: space-between;
+		            gap: 12px;
+		            padding: 12px 14px;
+		            border-bottom: 1px solid var(--glass-border);
+		            background: var(--gradient-glass);
+		        }
+
+		        .price-toolbar .title {
+		            font-weight: 900;
+		            letter-spacing: 0.2px;
+		        }
+
+		        .price-toolbar .note {
+		            font-weight: 900;
+		            font-size: 0.82rem;
+		            color: var(--text-secondary);
+		            white-space: nowrap;
+		        }
+
+		        .price-body {
+		            padding: 12px 14px 14px;
+		        }
+
+		        .price-chart {
+		            width: 100%;
+		            height: 220px;
+		            border-radius: 14px;
+		            background: rgba(255, 255, 255, 0.02);
+		            border: 1px solid rgba(0, 0, 0, 0.06);
+		            position: relative;
+		            overflow: hidden;
+		        }
+
+		        [data-theme="dark"] .price-chart {
+		            border-color: rgba(255, 255, 255, 0.08);
+		        }
+
+		        @media (max-width: 900px) {
+		            .price-panel { max-width: 100%; }
+		            .price-chart { height: 190px; }
+		        }
 
 		        .keylevels-panel,
 		        .targetlevels-panel {
@@ -2117,6 +2177,13 @@
 		            localStorage.setItem('theme', currentTheme);
 		            updateThemeIcon(currentTheme);
 		            // Re-init trend charts to match theme
+		            document.querySelectorAll('.price-panel').forEach(panel => {
+		                const idxKey = panel.getAttribute('data-index-key');
+		                const mode = panel.getAttribute('data-mode') || 'line';
+		                if (panel.id && idxKey) {
+		                    try { initIndexPricePanel(panel.id, idxKey, mode); } catch (_) {}
+		                }
+		            });
 		            document.querySelectorAll('.ohlcv-panel').forEach(panel => {
 		                const idxKey = panel.getAttribute('data-index-key');
 		                if (panel.id && idxKey) {
@@ -3286,6 +3353,113 @@
 			            draw();
 			        }
 
+			        function renderIndexPricePanelHtml(panelId, indexKey, mode = 'line') {
+			            const payload = getIndexOhlcvPayload(indexKey);
+			            if (!payload) {
+			                return `<div class="info-box"><p>Không có dữ liệu giá cho index này.</p></div>`;
+			            }
+
+			            const title = mode === 'candles' ? 'Biểu đồ nến (giá)' : 'Biểu đồ giá (Close)';
+			            const metaLeft = payload.asof ? `As-of: ${escapeHtml(payload.asof)}` : '';
+			            const metaRight = payload.name ? `Index: ${escapeHtml(payload.name)}` : '';
+
+			            return `
+			                <div class="price-panel" id="${panelId}" data-index-key="${escapeHtml(indexKey)}" data-mode="${escapeHtml(mode)}">
+			                    <div class="price-toolbar">
+			                        <div class="title">${escapeHtml(title)}</div>
+			                        <div class="note">100 phiên (cố định)</div>
+			                    </div>
+			                    <div class="price-body">
+			                        <div class="price-chart" data-role="chart"></div>
+			                        <div class="ohlcv-meta" style="margin-top:10px;">
+			                            <div>${metaLeft}</div>
+			                            <div>${metaRight}</div>
+			                        </div>
+			                    </div>
+			                </div>
+			            `;
+			        }
+
+			        function initIndexPricePanel(panelId, indexKey, mode = 'line') {
+			            const panelEl = document.getElementById(panelId);
+			            if (!panelEl) return;
+			            const payload = getIndexOhlcvPayload(indexKey);
+			            if (!payload) return;
+			            const chartEl = panelEl.querySelector('[data-role="chart"]');
+			            if (!chartEl || typeof LightweightCharts === 'undefined') return;
+
+			            const barsAll = payload.bars || [];
+			            const bars = barsAll.slice(-Math.min(100, barsAll.length));
+			            if (bars.length < 2) return;
+
+			            const theme = document.body.getAttribute('data-theme') || 'light';
+			            const isDark = theme === 'dark';
+			            const chartBg = isDark ? 'rgba(2,6,23,0.0)' : 'rgba(255,255,255,0.0)';
+			            const textCol = isDark ? 'rgba(226,232,240,0.85)' : 'rgba(15,23,42,0.75)';
+			            const gridCol = isDark ? 'rgba(148,163,184,0.16)' : 'rgba(148,163,184,0.28)';
+			            const upCol = 'rgba(16,185,129,0.95)';
+			            const downCol = 'rgba(239,68,68,0.95)';
+
+			            if (panelEl.__uiGlmPriceChart) {
+			                try { panelEl.__uiGlmPriceChart.remove(); } catch (_) {}
+			                panelEl.__uiGlmPriceChart = null;
+			            }
+
+			            const chart = LightweightCharts.createChart(chartEl, {
+			                layout: {
+			                    background: { type: 'solid', color: chartBg },
+			                    textColor: textCol,
+			                    fontFamily: '-apple-system, system-ui, Segoe UI, Roboto, Arial',
+			                    fontSize: 12,
+			                },
+			                grid: {
+			                    vertLines: { color: gridCol },
+			                    horzLines: { color: gridCol },
+			                },
+			                rightPriceScale: { borderVisible: false },
+			                timeScale: { borderVisible: false, rightOffset: 6, fixLeftEdge: true, fixRightEdge: true },
+			                crosshair: { mode: LightweightCharts.CrosshairMode.Magnet },
+			                handleScroll: { mouseWheel: true, pressedMouseMove: true, horzTouchDrag: true, vertTouchDrag: false },
+			                handleScale: { mouseWheel: true, pinch: true, axisPressedMouseMove: true },
+			                height: chartEl.clientHeight || 220,
+			                width: chartEl.clientWidth || 700,
+			            });
+			            panelEl.__uiGlmPriceChart = chart;
+
+			            if (String(mode || 'line') === 'candles') {
+			                const candles = chart.addCandlestickSeries({
+			                    upColor: upCol,
+			                    downColor: downCol,
+			                    borderUpColor: upCol,
+			                    borderDownColor: downCol,
+			                    wickUpColor: 'rgba(148,163,184,0.85)',
+			                    wickDownColor: 'rgba(148,163,184,0.85)',
+			                });
+			                candles.setData(bars.map(b => ({ time: b.d, open: b.o, high: b.h, low: b.l, close: b.c })));
+			            } else {
+			                const line = chart.addLineSeries({
+			                    color: isDark ? 'rgba(96,165,250,0.95)' : 'rgba(59,130,246,0.95)',
+			                    lineWidth: 2,
+			                });
+			                line.setData(bars.map(b => ({ time: b.d, value: b.c })));
+			            }
+
+			            chart.timeScale().fitContent();
+
+			            if (panelEl.__uiGlmPriceResizeObs) {
+			                try { panelEl.__uiGlmPriceResizeObs.disconnect(); } catch (_) {}
+			                panelEl.__uiGlmPriceResizeObs = null;
+			            }
+			            const ro = new ResizeObserver(() => {
+			                try {
+			                    chart.applyOptions({ width: chartEl.clientWidth, height: chartEl.clientHeight });
+			                    chart.timeScale().fitContent();
+			                } catch (_) {}
+			            });
+			            ro.observe(chartEl);
+			            panelEl.__uiGlmPriceResizeObs = ro;
+			        }
+
 			        function renderIndexOhlcvPanelHtml(panelId, indexKey) {
 			            const payload = getIndexOhlcvPayload(indexKey);
 			            if (!payload) {
@@ -3642,6 +3816,14 @@
 			            const isTrendChartSection =
 			                normalizedSectionTitle === 'XU HƯỚNG GIÁ' ||
 			                normalizedSectionTitle === 'XU HƯỚNG KHỐI LƯỢNG';
+			            const isPriceContextSection =
+			                normalizedSectionTitle.includes('WHAT-IF') ||
+			                normalizedSectionTitle === 'CUNG-CẦU' ||
+			                (normalizedSectionTitle.includes('MÔ HÌNH') && normalizedSectionTitle.includes('NẾN'));
+			            const pricePanelMode =
+			                (normalizedSectionTitle.includes('MÔ HÌNH') && normalizedSectionTitle.includes('NẾN'))
+			                    ? 'candles'
+			                    : 'line';
 
 	            // Clean and format content
 	            const formatter = new ContentFormatter();
@@ -3670,14 +3852,20 @@
 	                        </div>
 	                    </div>
 	                `;
-		            } else if (isWhatIf) {
-		                contentDiv.innerHTML = `
-		                    <div class="whatif-card">
-		                        <div class="whatif-card-body">
-		                            ${formatter.format(cleanContent)}
-		                        </div>
-		                    </div>
-		                `;
+			            } else if (isWhatIf) {
+			                const pricePanelId = isPriceContextSection ? `price_${currentIndex}_${sectionIndex}` : null;
+			                const pricePanelHtml = isPriceContextSection ? renderIndexPricePanelHtml(pricePanelId, currentIndex, pricePanelMode) : '';
+			                contentDiv.innerHTML = `
+			                    <div class="whatif-card">
+			                        <div class="whatif-card-body">
+			                            ${formatter.format(cleanContent)}
+			                            ${isPriceContextSection ? `<div style="height: 12px;"></div>${pricePanelHtml}` : ''}
+			                        </div>
+			                    </div>
+			                `;
+			                if (isPriceContextSection && pricePanelId) {
+			                    setTimeout(() => initIndexPricePanel(pricePanelId, currentIndex, pricePanelMode), 0);
+			                }
 			            } else if (isKeyLevelsSection) {
 			                const panelId = `keylevels_${currentIndex}_${sectionIndex}`;
 			                const panelHtml = renderKeyLevelsPanelHtml(panelId, currentIndex);
@@ -3726,28 +3914,34 @@
 		                    </div>
 		                `;
 		                setTimeout(() => initIndexOhlcvPanel(panelId, currentIndex), 0);
-		            } else {
-	                const isMarketOverview =
+			            } else {
+		                const isMarketOverview =
+		                    currentIndex === 'overview' &&
+		                    normalizeTitle(section.title) === 'TỔNG QUAN THỊ TRƯỜNG';
+		                const extras = isMarketOverview ? buildMarketOverviewExtrasHtml() : '';
+
+	                const isRanking =
 	                    currentIndex === 'overview' &&
-	                    normalizeTitle(section.title) === 'TỔNG QUAN THỊ TRƯỜNG';
-	                const extras = isMarketOverview ? buildMarketOverviewExtrasHtml() : '';
+	                    normalizeTitle(section.title) === 'XẾP HẠNG';
+	                const rankingExtras = isRanking ? buildIndexSummaryHtml() : '';
+	                const pricePanelId = isPriceContextSection ? `price_${currentIndex}_${sectionIndex}` : null;
+	                const pricePanelHtml = isPriceContextSection ? renderIndexPricePanelHtml(pricePanelId, currentIndex, pricePanelMode) : '';
 
-                const isRanking =
-                    currentIndex === 'overview' &&
-                    normalizeTitle(section.title) === 'XẾP HẠNG';
-                const rankingExtras = isRanking ? buildIndexSummaryHtml() : '';
-
-                contentDiv.innerHTML = `
-                    <div class="section-card ${section.alert ? 'alert' : ''}">
-                        <div class="section-body">
-                            ${formatter.format(cleanContent)}
-                            ${extras}
-                            ${rankingExtras}
-                        </div>
-                    </div>
-                `;
-            }
-        }
+	                contentDiv.innerHTML = `
+	                    <div class="section-card ${section.alert ? 'alert' : ''}">
+	                        <div class="section-body">
+	                            ${formatter.format(cleanContent)}
+	                            ${extras}
+	                            ${rankingExtras}
+	                            ${isPriceContextSection ? `<div style="height: 12px;"></div>${pricePanelHtml}` : ''}
+	                        </div>
+	                    </div>
+	                `;
+	                if (isPriceContextSection && pricePanelId) {
+	                    setTimeout(() => initIndexPricePanel(pricePanelId, currentIndex, pricePanelMode), 0);
+	                }
+	            }
+	        }
 
         // Select index (left sidebar)
         function selectIndex(key) {
