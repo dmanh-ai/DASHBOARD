@@ -3626,15 +3626,45 @@
 			            panelEl.__uiGlmPriceResizeObs = ro;
 			        }
 
-				        function getMarketBreadthSnapshotPayload() {
-				            const payload =
-				                (typeof window !== 'undefined' && window.UI_GLM_MARKET_BREADTH_SNAPSHOT)
-				                    ? window.UI_GLM_MARKET_BREADTH_SNAPSHOT
-				                    : null;
-				            if (!payload || typeof payload !== 'object') return null;
-				            if (payload.advancing == null || payload.declining == null) return null;
-				            return payload;
-				        }
+			        function getMarketBreadthSnapshotPayload() {
+			            const payload =
+			                (typeof window !== 'undefined' && window.UI_GLM_MARKET_BREADTH_SNAPSHOT)
+			                    ? window.UI_GLM_MARKET_BREADTH_SNAPSHOT
+			                    : null;
+			            if (!payload || typeof payload !== 'object') return null;
+			            if (payload.advancing == null || payload.declining == null) return null;
+			            return payload;
+			        }
+
+			        function extractBreadthEvidenceHtml(sectionHtml, kind) {
+			            try {
+			                const root = document.createElement('div');
+			                root.innerHTML = sectionHtml || '';
+			                const ps = Array.from(root.querySelectorAll('p'));
+			                const texts = ps.map(p => (p.textContent || '').replace(/\s+/g, ' ').trim()).filter(Boolean);
+			                if (!texts.length) return `<p>Không tìm thấy đoạn text liên quan trong báo cáo.</p>`;
+
+			                const pickBy = (re) => texts.filter(t => re.test(t));
+			                let picked = [];
+			                if (kind === 'ad') {
+			                    picked = pickBy(/tỷ\s*lệ\s*tăng\/giảm|advance\/decline|\bA\/D\b/i);
+			                } else if (kind === 'trin') {
+			                    picked = pickBy(/\bTRIN\b/i);
+			                } else if (kind === 'vr') {
+			                    picked = pickBy(/volume\s*ratio/i);
+			                } else if (kind === 'mcc') {
+			                    picked = pickBy(/mcclellan/i);
+			                }
+
+			                // Limit to a few paragraphs to keep popup compact.
+			                const out = (picked.length ? picked : []).slice(0, 3);
+			                if (!out.length) return `<p>Không tìm thấy đoạn text liên quan trong báo cáo.</p>`;
+
+			                return out.map(t => `<p>${escapeHtml(t)}</p>`).join('');
+			            } catch (_) {
+			                return `<p>Không tìm thấy đoạn text liên quan trong báo cáo.</p>`;
+			            }
+			        }
 
 				        function buildBreadthSnapshotPanelHtml(panelId, indexKey, payload) {
 				            if (!payload) return `<div class="info-box"><p>Chưa có dữ liệu breadth snapshot (thiếu file market export).</p></div>`;
@@ -3726,6 +3756,15 @@
 			        function openBreadthDetailFromEl(el) {
 			            try {
 			                const kind = el.getAttribute('data-kind') || '';
+			                const sectionHtml = (typeof window !== 'undefined' && window.__uiGlmBreadthSectionHtml) ? window.__uiGlmBreadthSectionHtml : '';
+			                const evidenceHtml = extractBreadthEvidenceHtml(sectionHtml, kind);
+			                const evidenceBlock = `
+			                    <div style="height: 10px;"></div>
+			                    <div class="info-box">
+			                        <p><strong>Trích đoạn báo cáo:</strong></p>
+			                        ${evidenceHtml}
+			                    </div>
+			                `;
 			                if (kind === 'ad') {
 			                    const adv = el.getAttribute('data-adv') || 'N/A';
 			                    const dec = el.getAttribute('data-dec') || 'N/A';
@@ -3745,6 +3784,7 @@
 			                            <div style="margin-top:10px; color: var(--text-secondary); font-weight: 800; font-size: 0.9rem;">
 			                                Advance/Decline phản ánh độ rộng thị trường trong ngày.
 			                            </div>
+			                            ${evidenceBlock}
 			                        `,
 			                    });
 			                    return;
@@ -3762,6 +3802,7 @@
 			                                <div class="ui-metric"><div class="k">Bên mua</div><div class="v">&lt; 0.8</div></div>
 			                                <div class="ui-metric"><div class="k">Bên bán</div><div class="v">&gt; 1.2</div></div>
 			                            </div>
+			                            ${evidenceBlock}
 			                        `,
 			                    });
 			                    return;
@@ -3779,6 +3820,7 @@
 			                                <div class="ui-metric"><div class="k">Trung tính</div><div class="v">0.8–1.2</div></div>
 			                                <div class="ui-metric"><div class="k">Up-volume</div><div class="v">&gt;1.2</div></div>
 			                            </div>
+			                            ${evidenceBlock}
 			                        `,
 			                    });
 			                    return;
@@ -3796,6 +3838,7 @@
 			                                <div class="ui-metric"><div class="k">Âm</div><div class="v">breadth suy yếu</div></div>
 			                                <div class="ui-metric"><div class="k">0</div><div class="v">cân bằng</div></div>
 			                            </div>
+			                            ${evidenceBlock}
 			                        `,
 			                    });
 			                }
@@ -4272,6 +4315,9 @@
 		                const breadthPanelId = isBreadthSentimentSection ? `breadth_${currentIndex}_${sectionIndex}` : null;
 		                const breadthPayload = isBreadthSentimentSection ? getMarketBreadthSnapshotPayload() : null;
 		                const breadthPanelHtml = isBreadthSentimentSection ? buildBreadthSnapshotPanelHtml(breadthPanelId, currentIndex, breadthPayload) : '';
+		                if (isBreadthSentimentSection) {
+		                    window.__uiGlmBreadthSectionHtml = cleanContent || '';
+		                }
 
 		                contentDiv.innerHTML = `
 		                    <div class="section-card ${section.alert ? 'alert' : ''}">
