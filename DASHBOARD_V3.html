@@ -10,6 +10,7 @@
 	    <script src="vnindex_company_meta.js"></script>
 	    <script src="vnindex_price_20d.js"></script>
 	    <script src="index_ohlcv.js"></script>
+	    <script src="vendor/lightweight-charts.standalone.production.js"></script>
 	    <script src="scripts/content_formatter.js"></script>
 
     <style>
@@ -1836,28 +1837,64 @@
             padding: 12px 14px 14px;
         }
 
-        .ohlcv-canvas {
-            width: 100%;
-            display: block;
-            border-radius: 14px;
-            background: rgba(255, 255, 255, 0.02);
-            border: 1px solid rgba(0, 0, 0, 0.06);
-        }
+	        .ohlcv-canvas {
+	            width: 100%;
+	            display: block;
+	            border-radius: 14px;
+	            background: rgba(255, 255, 255, 0.02);
+	            border: 1px solid rgba(0, 0, 0, 0.06);
+	        }
 
         [data-theme="dark"] .ohlcv-canvas {
             border-color: rgba(255, 255, 255, 0.08);
         }
 
-        .ohlcv-meta {
-            margin-top: 10px;
-            color: var(--text-secondary);
-            font-size: 0.85rem;
-            font-weight: 800;
-            display: flex;
-            justify-content: space-between;
-            gap: 12px;
-            flex-wrap: wrap;
-        }
+	        .ohlcv-meta {
+	            margin-top: 10px;
+	            color: var(--text-secondary);
+	            font-size: 0.85rem;
+	            font-weight: 800;
+	            display: flex;
+	            justify-content: space-between;
+	            gap: 12px;
+	            flex-wrap: wrap;
+	        }
+
+	        .ohlcv-chart {
+	            width: 100%;
+	            height: 240px;
+	            border-radius: 14px;
+	            background: rgba(255, 255, 255, 0.02);
+	            border: 1px solid rgba(0, 0, 0, 0.06);
+	            position: relative;
+	            overflow: hidden;
+	        }
+
+	        [data-theme="dark"] .ohlcv-chart {
+	            border-color: rgba(255, 255, 255, 0.08);
+	        }
+
+	        .ohlcv-tooltip {
+	            position: absolute;
+	            top: 10px;
+	            left: 10px;
+	            padding: 10px 12px;
+	            border-radius: 12px;
+	            background: rgba(255, 255, 255, 0.92);
+	            border: 1px solid rgba(15, 23, 42, 0.10);
+	            color: rgba(15, 23, 42, 0.86);
+	            font-size: 0.85rem;
+	            font-weight: 800;
+	            box-shadow: 0 10px 26px rgba(2, 6, 23, 0.12);
+	            pointer-events: none;
+	            white-space: nowrap;
+	        }
+
+	        [data-theme="dark"] .ohlcv-tooltip {
+	            background: rgba(2, 6, 23, 0.86);
+	            border-color: rgba(226, 232, 240, 0.12);
+	            color: rgba(226, 232, 240, 0.92);
+	        }
     </style>
 </head>
 <body data-theme="light">
@@ -1934,12 +1971,19 @@
         body.setAttribute('data-theme', currentTheme);
         updateThemeIcon(currentTheme);
 
-        themeToggle.addEventListener('click', () => {
-            currentTheme = currentTheme === 'light' ? 'dark' : 'light';
-            body.setAttribute('data-theme', currentTheme);
-            localStorage.setItem('theme', currentTheme);
-            updateThemeIcon(currentTheme);
-        });
+	        themeToggle.addEventListener('click', () => {
+	            currentTheme = currentTheme === 'light' ? 'dark' : 'light';
+	            body.setAttribute('data-theme', currentTheme);
+	            localStorage.setItem('theme', currentTheme);
+	            updateThemeIcon(currentTheme);
+	            // Re-init trend charts to match theme
+	            document.querySelectorAll('.ohlcv-panel').forEach(panel => {
+	                const idxKey = panel.getAttribute('data-index-key');
+	                if (panel.id && idxKey) {
+	                    try { initIndexOhlcvPanel(panel.id, idxKey); } catch (_) {}
+	                }
+	            });
+	        });
 
         function updateThemeIcon(theme) {
             themeToggle.textContent = theme === 'light' ? '🌙' : '☀️';
@@ -2591,184 +2635,145 @@
 			            const metaNote = 'Trục Y: Giá (OHLC).';
 
 			            return `
-			                <div class="ohlcv-panel" id="${panelId}">
+			                <div class="ohlcv-panel" id="${panelId}" data-index-key="${escapeHtml(indexKey)}">
 			                    <div class="ohlcv-toolbar">
 			                        <div class="title">Biểu đồ nến &amp; khối lượng</div>
 			                        <div class="ohlcv-controls">
 			                            <div class="fixed">100 phiên (cố định)</div>
 			                        </div>
 			                    </div>
-		                    <div class="ohlcv-body">
-		                        <canvas class="ohlcv-canvas" data-role="price" height="180"></canvas>
-		                        <div style="height: 10px;"></div>
-		                        <canvas class="ohlcv-canvas" data-role="volume" height="80"></canvas>
-		                        <div class="ohlcv-meta">
-		                            <div>${metaLeft}</div>
-		                            <div>${metaRight}</div>
-		                            <div>${metaNote}</div>
-		                        </div>
-		                    </div>
-		                </div>
-		            `;
-		        }
+			                    <div class="ohlcv-body">
+			                        <div class="ohlcv-chart" data-role="chart"></div>
+			                        <div class="ohlcv-tooltip" data-role="tooltip" style="display:none;"></div>
+			                        <div class="ohlcv-meta">
+			                            <div>${metaLeft}</div>
+			                            <div>${metaRight}</div>
+			                            <div>${metaNote}</div>
+			                        </div>
+			                    </div>
+			                </div>
+			            `;
+			        }
 
-			        function drawIndexOhlcv(panelEl, indexKey, lookback) {
+			        function initIndexOhlcvPanel(panelId, indexKey) {
+			            const panelEl = document.getElementById(panelId);
+			            if (!panelEl) return;
 			            const payload = getIndexOhlcvPayload(indexKey);
 			            if (!payload) return;
-			            const barsAll = payload.bars;
-			            const n = Math.min(Number(lookback) || 100, 200);
-			            const bars = barsAll.slice(-Math.min(n, barsAll.length));
+
+			            const chartEl = panelEl.querySelector('[data-role="chart"]');
+			            const tooltipEl = panelEl.querySelector('[data-role="tooltip"]');
+			            if (!chartEl || typeof LightweightCharts === 'undefined') return;
+
+			            const barsAll = payload.bars || [];
+			            const bars = barsAll.slice(-Math.min(100, barsAll.length));
 			            if (bars.length < 2) return;
 
-			            const priceCanvas = panelEl.querySelector('canvas[data-role="price"]');
-			            const volCanvas = panelEl.querySelector('canvas[data-role="volume"]');
-			            if (!priceCanvas || !volCanvas) return;
+			            const theme = document.body.getAttribute('data-theme') || 'light';
+			            const isDark = theme === 'dark';
+			            const chartBg = isDark ? 'rgba(2,6,23,0.0)' : 'rgba(255,255,255,0.0)';
+			            const textCol = isDark ? 'rgba(226,232,240,0.85)' : 'rgba(15,23,42,0.75)';
+			            const gridCol = isDark ? 'rgba(148,163,184,0.16)' : 'rgba(148,163,184,0.28)';
+			            const upCol = 'rgba(16,185,129,0.95)';
+			            const downCol = 'rgba(239,68,68,0.95)';
 
-			            const dpr = Math.max(1, Math.floor(window.devicePixelRatio || 1));
-			            const resizeCanvas = (canvas) => {
-			                const rect = canvas.getBoundingClientRect();
-		                const w = Math.max(200, Math.floor(rect.width));
-	                const h = Math.max(80, Math.floor(rect.height));
-	                canvas.width = w * dpr;
-	                canvas.height = h * dpr;
-	                const ctx = canvas.getContext('2d');
-	                ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-	                return { ctx, w, h };
-	            };
-
-	            const theme = document.body.getAttribute('data-theme') || 'light';
-	            const grid = theme === 'dark' ? 'rgba(148, 163, 184, 0.22)' : 'rgba(148, 163, 184, 0.30)';
-	            const axis = theme === 'dark' ? 'rgba(226, 232, 240, 0.75)' : 'rgba(15, 23, 42, 0.55)';
-	            const text = theme === 'dark' ? 'rgba(226, 232, 240, 0.85)' : 'rgba(15, 23, 42, 0.75)';
-	            const up = 'rgba(16, 185, 129, 0.92)';
-	            const down = 'rgba(239, 68, 68, 0.92)';
-	            const wick = theme === 'dark' ? 'rgba(226, 232, 240, 0.6)' : 'rgba(15, 23, 42, 0.45)';
-
-	            // ---- Price (candles)
-	            const { ctx: pctx, w: pw, h: ph } = resizeCanvas(priceCanvas);
-	            pctx.clearRect(0, 0, pw, ph);
-
-			            const padL = 44, padR = 10, padT = 12, padB = 24;
-			            const innerW = pw - padL - padR;
-			            const innerH = ph - padT - padB;
-
-			            const highs = bars.map(b => b.h).filter(v => Number.isFinite(v));
-			            const lows = bars.map(b => b.l).filter(v => Number.isFinite(v));
-			            const maxH = Math.max(...highs);
-			            const minL = Math.min(...lows);
-			            const span = (maxH - minL) || 1;
-
-			            const y = (v) => padT + (innerH - ((v - minL) / span) * innerH);
-			            const xStep = innerW / bars.length;
-			            const candleW = Math.max(4, Math.min(14, xStep * 0.6));
-
-	            // grid lines
-	            pctx.strokeStyle = grid;
-	            pctx.lineWidth = 1;
-	            for (let i = 0; i <= 4; i++) {
-	                const yy = padT + (innerH * i / 4);
-	                pctx.beginPath();
-	                pctx.moveTo(padL, yy);
-	                pctx.lineTo(pw - padR, yy);
-	                pctx.stroke();
-	            }
-
-			            // axis labels
-			            pctx.fillStyle = text;
-			            pctx.font = '800 11px system-ui, -apple-system, Segoe UI, Roboto, Arial';
-			            for (let i = 0; i <= 4; i++) {
-			                const v = maxH - (span * i / 4);
-			                const yy = padT + (innerH * i / 4);
-			                pctx.fillText(v.toFixed(2), 6, yy + 4);
+			            // Cleanup previous instance if exists
+			            if (panelEl.__uiGlmChart) {
+			                try { panelEl.__uiGlmChart.remove(); } catch (_) {}
+			                panelEl.__uiGlmChart = null;
 			            }
 
-			            // candles
-			            for (let i = 0; i < bars.length; i++) {
-			                const b = bars[i];
-			                const cx = padL + i * xStep + xStep / 2;
-			                const isUp = b.c >= b.o;
-			                const col = isUp ? up : down;
+			            const chart = LightweightCharts.createChart(chartEl, {
+			                layout: {
+			                    background: { type: 'solid', color: chartBg },
+			                    textColor: textCol,
+			                    fontFamily: '-apple-system, system-ui, Segoe UI, Roboto, Arial',
+			                    fontSize: 12,
+			                },
+			                grid: {
+			                    vertLines: { color: gridCol },
+			                    horzLines: { color: gridCol },
+			                },
+			                rightPriceScale: {
+			                    borderVisible: false,
+			                },
+			                timeScale: {
+			                    borderVisible: false,
+			                    rightOffset: 4,
+			                    fixLeftEdge: true,
+			                    fixRightEdge: true,
+			                },
+			                crosshair: {
+			                    mode: LightweightCharts.CrosshairMode.Magnet,
+			                },
+			                handleScroll: { mouseWheel: true, pressedMouseMove: true, horzTouchDrag: true, vertTouchDrag: false },
+			                handleScale: { mouseWheel: true, pinch: true, axisPressedMouseMove: true },
+			                height: chartEl.clientHeight || 260,
+			                width: chartEl.clientWidth || 600,
+			            });
+			            panelEl.__uiGlmChart = chart;
 
-	                // wick
-	                pctx.strokeStyle = wick;
-	                pctx.beginPath();
-	                pctx.moveTo(cx, y(b.h));
-	                pctx.lineTo(cx, y(b.l));
-	                pctx.stroke();
+			            const candle = chart.addCandlestickSeries({
+			                upColor: upCol,
+			                downColor: downCol,
+			                borderUpColor: upCol,
+			                borderDownColor: downCol,
+			                wickUpColor: isDark ? 'rgba(226,232,240,0.55)' : 'rgba(15,23,42,0.35)',
+			                wickDownColor: isDark ? 'rgba(226,232,240,0.55)' : 'rgba(15,23,42,0.35)',
+			            });
 
-	                // body
-	                const yO = y(b.o);
-	                const yC = y(b.c);
-	                const top = Math.min(yO, yC);
-	                const hh = Math.max(2, Math.abs(yC - yO));
-	                pctx.fillStyle = col;
-	                pctx.fillRect(cx - candleW / 2, top, candleW, hh);
-	            }
+			            const volume = chart.addHistogramSeries({
+			                priceFormat: { type: 'volume' },
+			                priceScaleId: '',
+			                scaleMargins: { top: 0.78, bottom: 0 },
+			            });
 
-	            // bottom axis line
-	            pctx.strokeStyle = axis;
-	            pctx.beginPath();
-	            pctx.moveTo(padL, padT + innerH);
-	            pctx.lineTo(pw - padR, padT + innerH);
-	            pctx.stroke();
+			            const candleData = bars.map(b => ({ time: b.d, open: b.o, high: b.h, low: b.l, close: b.c }));
+			            candle.setData(candleData);
+			            const volData = bars.map(b => ({
+			                time: b.d,
+			                value: b.v || 0,
+			                color: (b.c >= b.o) ? 'rgba(16,185,129,0.45)' : 'rgba(239,68,68,0.45)',
+			            }));
+			            volume.setData(volData);
+			            chart.timeScale().fitContent();
 
-	            // ---- Volume (bars)
-	            const { ctx: vctx, w: vw, h: vh } = resizeCanvas(volCanvas);
-	            vctx.clearRect(0, 0, vw, vh);
-	            const vPadL = 44, vPadR = 10, vPadT = 10, vPadB = 22;
-	            const vInnerW = vw - vPadL - vPadR;
-	            const vInnerH = vh - vPadT - vPadB;
+			            if (tooltipEl) {
+			                tooltipEl.style.display = 'block';
+			                const fmt = (x) => (typeof x === 'number' && Number.isFinite(x)) ? x.toLocaleString(undefined, { maximumFractionDigits: 2 }) : 'N/A';
+			                const fmtVol = (x) => (typeof x === 'number' && Number.isFinite(x)) ? x.toLocaleString(undefined, { maximumFractionDigits: 0 }) : 'N/A';
+			                const setTip = (t, o, h, l, c, v) => {
+			                    tooltipEl.innerHTML = `<div style="font-weight:900;margin-bottom:4px;">${escapeHtml(String(t || ''))}</div>` +
+			                        `<div>O: ${escapeHtml(fmt(o))}  H: ${escapeHtml(fmt(h))}  L: ${escapeHtml(fmt(l))}  C: ${escapeHtml(fmt(c))}</div>` +
+			                        `<div style="margin-top:4px;">Vol: ${escapeHtml(fmtVol(v))}</div>`;
+			                };
+			                const last = bars[bars.length - 1];
+			                setTip(last.d, last.o, last.h, last.l, last.c, last.v);
+			                chart.subscribeCrosshairMove((param) => {
+			                    if (!param || !param.time) return;
+			                    const t = param.time;
+			                    const cData = param.seriesData.get(candle);
+			                    const vData = param.seriesData.get(volume);
+			                    if (cData) {
+			                        setTip(t, cData.open, cData.high, cData.low, cData.close, vData ? vData.value : null);
+			                    }
+			                });
+			            }
 
-	            const vols = bars.map(b => b.v).filter(v => Number.isFinite(v));
-	            const maxV = Math.max(...vols) || 1;
-	            const vy = (v) => vPadT + (vInnerH - (v / maxV) * vInnerH);
-
-	            // grid line
-	            vctx.strokeStyle = grid;
-	            vctx.beginPath();
-	            vctx.moveTo(vPadL, vPadT + vInnerH);
-	            vctx.lineTo(vw - vPadR, vPadT + vInnerH);
-	            vctx.stroke();
-
-	            // label
-	            vctx.fillStyle = text;
-	            vctx.font = '800 11px system-ui, -apple-system, Segoe UI, Roboto, Arial';
-	            vctx.fillText('Vol', 8, vPadT + 10);
-
-	            const vStep = vInnerW / bars.length;
-	            const barW = Math.max(3, Math.min(14, vStep * 0.6));
-	            for (let i = 0; i < bars.length; i++) {
-	                const b = bars[i];
-	                const cx = vPadL + i * vStep + vStep / 2;
-	                const isUp = b.c >= b.o;
-	                const col = isUp ? 'rgba(16, 185, 129, 0.70)' : 'rgba(239, 68, 68, 0.70)';
-	                const top = vy(b.v);
-	                const hh = (vPadT + vInnerH) - top;
-	                vctx.fillStyle = col;
-	                vctx.fillRect(cx - barW / 2, top, barW, Math.max(1, hh));
-	            }
-	        }
-
-		        function initIndexOhlcvPanel(panelId, indexKey) {
-		            const panelEl = document.getElementById(panelId);
-		            if (!panelEl) return;
-		            const payload = getIndexOhlcvPayload(indexKey);
-		            if (!payload) return;
-
-		            const redraw = () => {
-		                drawIndexOhlcv(panelEl, indexKey, 100);
-		            };
-
-		            // Only one active resize handler
-		            window.__uiGlmOhlcvResize = window.__uiGlmOhlcvResize || null;
-		            if (window.__uiGlmOhlcvResize) {
-	                window.removeEventListener('resize', window.__uiGlmOhlcvResize);
-	            }
-	            window.__uiGlmOhlcvResize = () => redraw();
-	            window.addEventListener('resize', window.__uiGlmOhlcvResize);
-
-	            redraw();
-	        }
+			            // resize: per-panel observer
+			            if (panelEl.__uiGlmResizeObs) {
+			                try { panelEl.__uiGlmResizeObs.disconnect(); } catch (_) {}
+			                panelEl.__uiGlmResizeObs = null;
+			            }
+			            const ro = new ResizeObserver(() => {
+			                try {
+			                    chart.applyOptions({ width: chartEl.clientWidth, height: chartEl.clientHeight });
+			                    chart.timeScale().fitContent();
+			                } catch (_) {}
+			            });
+			            ro.observe(chartEl);
+			            panelEl.__uiGlmResizeObs = ro;
+			        }
 
         function buildIndexSummaryHtml() {
             const rows = getSummaryIndexRows();
