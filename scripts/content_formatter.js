@@ -76,6 +76,10 @@ class ContentFormatter {
         return String(html || '').replace(/<[^>]*>/g, '');
     }
 
+    hasMeaningfulText(html) {
+        return this.stripTagsUnsafe(html).replace(/\s+/g, ' ').trim().length > 0;
+    }
+
     escapeRegExp(str) {
         return String(str).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     }
@@ -111,6 +115,7 @@ class ContentFormatter {
 
         if (this.patterns.conclusionShort.test(raw)) {
             const body = this.stripPrefix(htmlParagraph, 'Kết luận ngắn:');
+            if (!this.hasMeaningfulText(body)) return null;
             if (!this.canEmitCallout('conclusion')) return null;
             return this.renderCallout(
                 { boxClass: 'conclusion-box', icon: '📌', iconClass: 'conclusion-icon', textClass: 'conclusion-text' },
@@ -120,6 +125,7 @@ class ContentFormatter {
 
         if (this.patterns.conclusion.test(raw)) {
             const body = this.stripPrefix(htmlParagraph, 'Kết luận:');
+            if (!this.hasMeaningfulText(body)) return null;
             if (!this.canEmitCallout('conclusion')) return null;
             return this.renderCallout(
                 { boxClass: 'conclusion-box', icon: '📌', iconClass: 'conclusion-icon', textClass: 'conclusion-text' },
@@ -133,6 +139,7 @@ class ContentFormatter {
             body = this.stripPrefix(body, 'Ý nghĩa/Hành động:');
             body = this.stripPrefix(body, 'Ý nghĩa:');
             body = this.stripPrefix(body, 'Hành động đề xuất:');
+            if (!this.hasMeaningfulText(body)) return null;
             if (!this.canEmitCallout('action')) return null;
             return this.renderCallout(
                 { boxClass: 'action-box', icon: '🎯', iconClass: 'action-icon', textClass: 'action-text' },
@@ -141,6 +148,7 @@ class ContentFormatter {
         }
 
         if (this.patterns.recommendationHeader.test(raw)) {
+            if (!this.hasMeaningfulText(htmlParagraph)) return null;
             if (!this.canEmitCallout('action')) return null;
             return this.renderCallout(
                 { boxClass: 'action-box', icon: '🎯', iconClass: 'action-icon', textClass: 'action-text' },
@@ -152,6 +160,7 @@ class ContentFormatter {
             let body = htmlParagraph;
             body = this.stripPrefix(body, 'Rủi ro:');
             body = this.stripPrefix(body, 'Cảnh báo rủi ro:');
+            if (!this.hasMeaningfulText(body)) return null;
             if (!this.canEmitCallout('risk')) return null;
             return this.renderCallout(
                 { boxClass: 'risk-box', icon: '⛔', iconClass: 'risk-icon', textClass: 'risk-text' },
@@ -163,6 +172,7 @@ class ContentFormatter {
             let body = htmlParagraph;
             body = this.stripPrefix(body, 'Điều kiện khiến kết luận sai:');
             body = this.stripPrefix(body, 'Điều kiện sai:');
+            if (!this.hasMeaningfulText(body)) return null;
             if (!this.canEmitCallout('invalidation')) return null;
             return this.renderCallout(
                 { boxClass: 'conditions-box', icon: '⚠️', iconClass: 'conditions-icon', textClass: 'conditions-text' },
