@@ -3700,7 +3700,14 @@
 			                const root = document.createElement('div');
 			                root.innerHTML = sectionHtml || '';
 			                const ps = Array.from(root.querySelectorAll('p'));
-			                const texts = ps.map(p => (p.textContent || '').replace(/\s+/g, ' ').trim()).filter(Boolean);
+			                const stripLeadingIndex = (t) => {
+			                    const s = String(t || '').trim();
+			                    // Remove leading numbering like "1.", "2)", "3 -", "4:"
+			                    return s.replace(/^\s*\d+\s*[\.\)\-:]\s*/g, '').trim();
+			                };
+			                const texts = ps
+			                    .map(p => stripLeadingIndex((p.textContent || '').replace(/\s+/g, ' ')))
+			                    .filter(Boolean);
 			                if (!texts.length) return `<p>Không tìm thấy đoạn text liên quan trong báo cáo.</p>`;
 
 			                const pickBy = (re) => texts.filter(t => re.test(t));
