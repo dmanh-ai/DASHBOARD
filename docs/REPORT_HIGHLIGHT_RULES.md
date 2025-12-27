@@ -15,17 +15,13 @@ Nguồn áp dụng hiện tại:
 
 ## Thứ tự ưu tiên (priority)
 
-1. **Hero**: headline 1 dòng (trong ngoặc kép hoặc ALL CAPS) → `hero-box`
-2. **Kết luận ngắn**: `Kết luận ngắn:` → `conclusion-box`
-3. **Kết luận**: `Kết luận:` → `conclusion-box`
-4. **Hành động**: `Ý nghĩa/Hành động:`, `Ý nghĩa:`, `Hành động đề xuất:` → `action-box`
-5. **Rủi ro**: `Rủi ro:`, `Cảnh báo rủi ro:` hoặc chứa keyword (Black Swan / RỦI RO LỚN / Tuyệt đối / cắt lỗ / stop-loss) → `risk-box`
-6. **Điều kiện phản biện**: `Điều kiện khiến kết luận sai:`, `Điều kiện sai:` hoặc `3 Điều kiện...` → `conditions-box`
-7. **Mức giá/level**: `Hỗ trợ:`, `Kháng cự:`, `Hỗ trợ then chốt:`, `Mức quan trọng cần theo dõi:` hoặc chứa marker (H1/R1/MA/VWAP/POC/Value Area/HVN) → `levels-box`
-8. **Kịch bản**: `Kịch bản ...` hoặc chứa `Xác suất` → `scenario-box`
-9. **Độ tin cậy**: `Mức độ tự tin:`, `Độ tin cậy:` hoặc có `7/10`, `%` → `confidence-box`
-10. **Snapshot metrics**: `Độ rộng:` hoặc chứa `TRIN`, `A/D`, `Volume Ratio`, `52W` → `metrics-box`
-11. **Dẫn chứng**: `Dẫn chứng:` → `evidence-box`
+Mặc định chỉ highlight **các dòng sát với kết luận** (để UI không bị “đậm đặc”):
+
+1. **Kết luận ngắn**: `Kết luận ngắn:` → `conclusion-box`
+2. **Kết luận**: `Kết luận:` → `conclusion-box`
+3. **Hành động/khuyến nghị**: `Ý nghĩa/Hành động:`, `Ý nghĩa:`, `Hành động đề xuất:` và header `Khuyến Nghị Vị Thế` → `action-box`
+4. **Rủi ro/cảnh báo**: `Rủi ro:`, `Cảnh báo rủi ro:` → `risk-box`
+5. **Điều kiện phản biện**: `Điều kiện khiến kết luận sai:`, `Điều kiện sai:` hoặc `3 Điều kiện...` → `conditions-box`
 
 ## Output classes
 

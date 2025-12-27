@@ -28,26 +28,25 @@ class ContentFormatter {
             action: /^(ý\s+nghĩa(?:\/hành\s+động)?|hành\s+động\s+đề\s+xuất)\s*:/mi,
             invalidation: /^điều\s+kiện\s+(khiến\s+kết\s+luận\s+sai|sai)\s*:/mi,
             risk: /^(rủi\s+ro|cảnh\s+báo\s+rủi\s+ro)\s*:/mi,
-            levels: /^(hỗ\s+trợ|kháng\s+cự|hỗ\s+trợ\s+then\s+chốt|mức\s+quan\s+trọng\s+cần\s+theo\s+dõi)\s*:/mi,
-            scenario: /^kịch\s+bản\b/mi,
-            confidence: /^(mức\s+độ\s+tự\s+tin|độ\s+tin\s+cậy)\s*:/mi,
-            metrics: /^độ\s+rộng\s*:/mi
+            recommendationHeader: /^khuyến\s+nghị\s+vị\s+thế\b/mi
         };
 
         // Safety: cap number of callouts per formatted section (prevents UI flooding/slowness).
         // Reset for each `format()` call.
         this.calloutLimits = {
-            total: 10,
-            hero: 1,
+            // Focus only on conclusion-adjacent signals.
+            total: 4,
+            hero: 0,
             conclusion: 2,
-            action: 2,
-            risk: 2,
+            action: 1,
+            risk: 1,
             invalidation: 1,
-            levels: 2,
-            scenario: 3,
-            confidence: 1,
-            metrics: 1,
-            evidence: 1,
+            // Disabled to keep highlight density low.
+            levels: 0,
+            scenario: 0,
+            confidence: 0,
+            metrics: 0,
+            evidence: 0,
         };
     }
 
@@ -108,15 +107,7 @@ class ContentFormatter {
         const raw = this.stripTagsUnsafe(htmlParagraph).trim();
         if (!raw) return null;
 
-        // HERO: quoted headline or all-caps headline.
-        if ((raw.startsWith('"') && raw.endsWith('"') && raw.length <= 140) || this.isAllCapsHeadline(raw)) {
-            const cleaned = raw.startsWith('"') && raw.endsWith('"') ? raw.slice(1, -1).trim() : htmlParagraph;
-            if (!this.canEmitCallout('hero')) return null;
-            return this.renderCallout(
-                { boxClass: 'hero-box', icon: '✨', iconClass: 'hero-icon', textClass: 'hero-text' },
-                cleaned
-            );
-        }
+        // Intentionally no HERO highlighting (too noisy for daily reports).
 
         if (this.patterns.conclusionShort.test(raw)) {
             const body = this.stripPrefix(htmlParagraph, 'Kết luận ngắn:');
@@ -149,7 +140,15 @@ class ContentFormatter {
             );
         }
 
-        if (this.patterns.risk.test(raw) || /\b(Black\s+Swan|RỦI\s+RO\s+LỚN|Tuyệt\s+đối|cắt\s+lỗ|stop-?loss)\b/i.test(raw)) {
+        if (this.patterns.recommendationHeader.test(raw)) {
+            if (!this.canEmitCallout('action')) return null;
+            return this.renderCallout(
+                { boxClass: 'action-box', icon: '🎯', iconClass: 'action-icon', textClass: 'action-text' },
+                htmlParagraph
+            );
+        }
+
+        if (this.patterns.risk.test(raw)) {
             let body = htmlParagraph;
             body = this.stripPrefix(body, 'Rủi ro:');
             body = this.stripPrefix(body, 'Cảnh báo rủi ro:');
@@ -167,49 +166,6 @@ class ContentFormatter {
             if (!this.canEmitCallout('invalidation')) return null;
             return this.renderCallout(
                 { boxClass: 'conditions-box', icon: '⚠️', iconClass: 'conditions-icon', textClass: 'conditions-text' },
-                body
-            );
-        }
-
-        // Levels: prefer explicit support/resistance / H1/R1 style markers to avoid over-highlighting MA/RSI lines.
-        if (this.patterns.levels.test(raw) || /^(H\d|R\d)\b/i.test(raw) || /\b(H[1-9]|R[1-9])\b/i.test(raw)) {
-            if (!this.canEmitCallout('levels')) return null;
-            return this.renderCallout(
-                { boxClass: 'levels-box', icon: '🎯', iconClass: 'levels-icon', textClass: 'levels-text' },
-                htmlParagraph
-            );
-        }
-
-        if (this.patterns.scenario.test(raw) || /\bXác\s+suất\b/i.test(raw)) {
-            if (!this.canEmitCallout('scenario')) return null;
-            return this.renderCallout(
-                { boxClass: 'scenario-box', icon: '🎲', iconClass: 'scenario-icon', textClass: 'scenario-text' },
-                htmlParagraph
-            );
-        }
-
-        // Confidence: avoid catching every % change line; require explicit wording or x/10 score.
-        if (this.patterns.confidence.test(raw) || /\b\d+\s*\/\s*10\b/.test(raw) || /\b(tự\s+tin|tin\s+cậy)\b/i.test(raw)) {
-            if (!this.canEmitCallout('confidence')) return null;
-            return this.renderCallout(
-                { boxClass: 'confidence-box', icon: '✅', iconClass: 'confidence-icon', textClass: 'confidence-text' },
-                htmlParagraph
-            );
-        }
-
-        if (this.patterns.metrics.test(raw) || /\b(TRIN|A\/D|Volume\s+Ratio|52W)\b/i.test(raw)) {
-            if (!this.canEmitCallout('metrics')) return null;
-            return this.renderCallout(
-                { boxClass: 'metrics-box', icon: '📊', iconClass: 'metrics-icon', textClass: 'metrics-text' },
-                htmlParagraph
-            );
-        }
-
-        if (this.patterns.evidence.test(raw)) {
-            const body = this.stripPrefix(htmlParagraph, 'Dẫn chứng:');
-            if (!this.canEmitCallout('evidence')) return null;
-            return this.renderCallout(
-                { boxClass: 'evidence-box', icon: '📊', iconClass: 'evidence-icon', textClass: 'evidence-text' },
                 body
             );
         }
