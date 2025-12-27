@@ -1956,6 +1956,171 @@
 		            .price-chart { height: 190px; }
 		        }
 
+		        .breadth-panel {
+		            margin-top: 14px;
+		            border: 1px solid var(--glass-border);
+		            border-radius: 16px;
+		            background: rgba(255, 255, 255, 0.04);
+		            overflow: hidden;
+		            max-width: 760px;
+		            margin-left: auto;
+		            margin-right: auto;
+		        }
+
+		        [data-theme="dark"] .breadth-panel {
+		            background: rgba(255, 255, 255, 0.02);
+		        }
+
+		        .breadth-toolbar {
+		            display: flex;
+		            align-items: center;
+		            justify-content: space-between;
+		            gap: 12px;
+		            padding: 12px 14px;
+		            border-bottom: 1px solid var(--glass-border);
+		            background: var(--gradient-glass);
+		        }
+
+		        .breadth-toolbar .title {
+		            font-weight: 900;
+		            letter-spacing: 0.2px;
+		        }
+
+		        .breadth-grid {
+		            padding: 12px 14px 14px;
+		            display: grid;
+		            grid-template-columns: repeat(2, minmax(0, 1fr));
+		            gap: 12px;
+		        }
+
+		        @media (max-width: 700px) {
+		            .breadth-grid { grid-template-columns: 1fr; }
+		        }
+
+		        .breadth-card {
+		            border-radius: 14px;
+		            border: 1px solid var(--glass-border);
+		            background: rgba(255, 255, 255, 0.06);
+		            padding: 12px 12px 10px;
+		            cursor: pointer;
+		            user-select: none;
+		            transition: transform 120ms ease, box-shadow 120ms ease;
+		        }
+
+		        .breadth-card:hover {
+		            transform: translateY(-1px);
+		            box-shadow: 0 10px 26px rgba(2, 6, 23, 0.10);
+		        }
+
+		        .breadth-card .k {
+		            font-weight: 950;
+		            font-size: 0.82rem;
+		            color: var(--text-secondary);
+		            display: flex;
+		            align-items: center;
+		            gap: 8px;
+		        }
+
+		        .breadth-card .v {
+		            margin-top: 6px;
+		            font-weight: 950;
+		            font-size: 1.12rem;
+		            color: var(--text-primary);
+		            display: flex;
+		            align-items: baseline;
+		            justify-content: space-between;
+		            gap: 10px;
+		        }
+
+		        .breadth-card .hint {
+		            margin-top: 6px;
+		            font-size: 0.78rem;
+		            font-weight: 800;
+		            color: var(--text-secondary);
+		        }
+
+		        .mini-bar {
+		            margin-top: 10px;
+		            height: 10px;
+		            border-radius: 999px;
+		            overflow: hidden;
+		            border: 1px solid rgba(0, 0, 0, 0.06);
+		            background: rgba(148, 163, 184, 0.20);
+		            display: flex;
+		        }
+
+		        [data-theme="dark"] .mini-bar {
+		            border-color: rgba(255, 255, 255, 0.08);
+		        }
+
+		        .mini-bar > span { height: 100%; }
+		        .mini-bar .pos { background: rgba(16, 185, 129, 0.85); }
+		        .mini-bar .neg { background: rgba(239, 68, 68, 0.85); }
+		        .mini-bar .neu { background: rgba(148, 163, 184, 0.70); }
+
+		        .mini-gauge {
+		            margin-top: 10px;
+		            height: 10px;
+		            border-radius: 999px;
+		            border: 1px solid rgba(0, 0, 0, 0.06);
+		            background: linear-gradient(90deg,
+		                rgba(16, 185, 129, 0.25) 0%,
+		                rgba(16, 185, 129, 0.25) 35%,
+		                rgba(148, 163, 184, 0.22) 35%,
+		                rgba(148, 163, 184, 0.22) 55%,
+		                rgba(239, 68, 68, 0.22) 55%,
+		                rgba(239, 68, 68, 0.22) 100%
+		            );
+		            position: relative;
+		        }
+
+		        [data-theme="dark"] .mini-gauge {
+		            border-color: rgba(255, 255, 255, 0.08);
+		        }
+
+		        .mini-gauge .marker {
+		            position: absolute;
+		            top: -4px;
+		            width: 3px;
+		            height: 18px;
+		            border-radius: 2px;
+		            background: rgba(15, 23, 42, 0.72);
+		        }
+
+		        [data-theme="dark"] .mini-gauge .marker {
+		            background: rgba(226, 232, 240, 0.78);
+		        }
+
+		        .mini-osc {
+		            margin-top: 10px;
+		            height: 12px;
+		            border-radius: 999px;
+		            border: 1px solid rgba(0, 0, 0, 0.06);
+		            background: rgba(148, 163, 184, 0.20);
+		            position: relative;
+		            overflow: hidden;
+		        }
+
+		        [data-theme="dark"] .mini-osc {
+		            border-color: rgba(255, 255, 255, 0.08);
+		        }
+
+		        .mini-osc .zero {
+		            position: absolute;
+		            left: 50%;
+		            top: 0;
+		            width: 2px;
+		            height: 100%;
+		            background: rgba(148, 163, 184, 0.65);
+		        }
+
+		        .mini-osc .fill {
+		            position: absolute;
+		            top: 0;
+		            height: 100%;
+		            background: rgba(148, 163, 184, 0.65);
+		        }
+
 		        .keylevels-panel,
 		        .targetlevels-panel {
 		            margin-top: 14px;
@@ -2202,6 +2367,13 @@
 		                if (panel.id && idxKey) {
 		                    const stored = (window.__uiGlmTargetLevelsStore || {})[panel.id];
 		                    try { initTargetLevelsPanel(panel.id, idxKey, stored ? stored.sectionHtml : ''); } catch (_) {}
+		                }
+		            });
+		            document.querySelectorAll('.breadth-panel').forEach(panel => {
+		                const idxKey = panel.getAttribute('data-index-key');
+		                if (panel.id && idxKey) {
+		                    const stored = (window.__uiGlmBreadthStore || {})[panel.id];
+		                    try { renderBreadthSnapshotPanel(panel.id, stored ? stored.payload : null); } catch (_) {}
 		                }
 		            });
 		        });
@@ -3460,6 +3632,234 @@
 			            panelEl.__uiGlmPriceResizeObs = ro;
 			        }
 
+			        function _parseSnapshotBreadthFromText(text) {
+			            const t = String(text || '').replace(/\s+/g, ' ').trim();
+			            if (!t) return null;
+
+			            const num = (s) => {
+			                if (s == null) return null;
+			                const v = Number(String(s).replace(/,/g, '.'));
+			                return Number.isFinite(v) ? v : null;
+			            };
+			            const int = (s) => {
+			                const v = Number(String(s).replace(/[^\d]/g, ''));
+			                return Number.isFinite(v) ? v : null;
+			            };
+
+			            let adv = null, dec = null, unchanged = null, total = null;
+			            let m = t.match(/\bA\s*\/\s*D\s*([0-9]{1,5})\s*\/\s*([0-9]{1,5})\b/i);
+			            if (m) {
+			                adv = int(m[1]);
+			                dec = int(m[2]);
+			            } else {
+			                m = t.match(/\bch(?:ỉ|i)\s*c(?:ó|o)\s*([0-9]{1,5})\s*m(?:ã|a)\s*t(?:ă|a)ng\b.*?\b([0-9]{1,5})\s*m(?:ã|a)\s*gi(?:ả|a)m\b/i);
+			                if (m) {
+			                    adv = int(m[1]);
+			                    dec = int(m[2]);
+			                }
+			            }
+			            m = t.match(/\bUNCHANGE(?:D)?\s*=\s*([0-9]{1,5})\b/i);
+			            if (m) unchanged = int(m[1]);
+			            m = t.match(/\bTOTAL\s*=\s*([0-9]{1,5})\b/i);
+			            if (m) total = int(m[1]);
+
+			            m = t.match(/\bTRIN\b[^0-9N]*([0-9]+(?:[.,][0-9]+)?)\b/i);
+			            const trin = m ? num(m[1]) : null;
+
+			            m = t.match(/\bVOLUME\s*RATIO\b[^0-9N]*([0-9]+(?:[.,][0-9]+)?)\s*x?\b/i);
+			            const volumeRatio = m ? num(m[1]) : null;
+
+			            let mcclellan = null;
+			            m = t.match(/\bMCCLELLAN\b[^0-9N]*(N\/A|[0-9]+(?:[.,][0-9]+)?)\b/i);
+			            if (m) {
+			                if (String(m[1]).toUpperCase() !== 'N/A') mcclellan = num(m[1]);
+			            } else {
+			                m = t.match(/\bMCCLELLAN\b.*?\(\s*(N\/A|[0-9]+(?:[.,][0-9]+)?)\s*\)/i);
+			                if (m && String(m[1]).toUpperCase() !== 'N/A') mcclellan = num(m[1]);
+			            }
+
+			            const hasAny =
+			                (adv != null && dec != null) ||
+			                trin != null ||
+			                volumeRatio != null ||
+			                mcclellan != null;
+			            if (!hasAny) return null;
+
+			            return { adv, dec, unchanged, total, trin, volumeRatio, mcclellan };
+			        }
+
+			        function buildBreadthSnapshotPanelHtml(panelId, indexKey, payload) {
+			            if (!payload) return `<div class="info-box"><p>Không trích xuất được dữ liệu breadth (snapshot) từ báo cáo.</p></div>`;
+
+			            const adv = payload.adv;
+			            const dec = payload.dec;
+			            const unchanged = payload.unchanged;
+			            const total = payload.total;
+			            const trin = payload.trin;
+			            const volumeRatio = payload.volumeRatio;
+			            const mcclellan = payload.mcclellan;
+
+			            const totalKnown = (adv != null && dec != null)
+			                ? (adv + dec + (unchanged != null ? unchanged : 0))
+			                : null;
+			            const denom = total != null ? total : (totalKnown != null ? totalKnown : null);
+
+			            const pct = (x) => (denom && x != null ? Math.max(0, Math.min(100, 100 * (x / denom))) : 0);
+			            const advPct = pct(adv);
+			            const decPct = pct(dec);
+			            const unPct = pct(unchanged);
+
+			            const clamp01 = (v) => Math.max(0, Math.min(1, v));
+			            const trinPos = trin == null ? 0.5 : clamp01(trin / 6.0);
+			            const vrPos = volumeRatio == null ? 0.5 : clamp01(volumeRatio / 2.0);
+			            const oscPos = mcclellan == null ? 0.5 : clamp01((mcclellan + 100) / 200);
+
+			            const fmt2 = (v) => (v == null ? 'N/A' : Number(v).toFixed(2));
+			            const fmt0 = (v) => (v == null ? 'N/A' : Number(v).toLocaleString());
+
+			            return `
+			                <div class="breadth-panel" id="${panelId}" data-index-key="${escapeHtml(indexKey)}">
+			                    <div class="breadth-toolbar">
+			                        <div class="title">Snapshot breadth (1 ngày)</div>
+			                        <div class="note">Nhấn để xem chi tiết</div>
+			                    </div>
+			                    <div class="breadth-grid">
+			                        <div class="breadth-card" role="button" tabindex="0"
+			                             data-kind="ad" data-adv="${adv ?? ''}" data-dec="${dec ?? ''}" data-unchanged="${unchanged ?? ''}" data-total="${total ?? ''}"
+			                             onclick="openBreadthDetailFromEl(this)">
+			                            <div class="k">📈 A/D (Advance/Decline)</div>
+			                            <div class="v"><span>${fmt0(adv)}/${fmt0(dec)}</span><span>${denom ? `Total: ${fmt0(denom)}` : ''}</span></div>
+			                            <div class="mini-bar" aria-hidden="true">
+			                                <span class="pos" style="width:${advPct.toFixed(1)}%"></span>
+			                                <span class="neu" style="width:${unPct.toFixed(1)}%"></span>
+			                                <span class="neg" style="width:${decPct.toFixed(1)}%"></span>
+			                            </div>
+			                            <div class="hint">Tỷ lệ tăng/giảm + unchanged</div>
+			                        </div>
+
+			                        <div class="breadth-card" role="button" tabindex="0"
+			                             data-kind="trin" data-trin="${trin ?? ''}"
+			                             onclick="openBreadthDetailFromEl(this)">
+			                            <div class="k">🧭 TRIN</div>
+			                            <div class="v"><span>${fmt2(trin)}</span><span>${trin != null ? (trin > 1.2 ? 'Áp lực bán' : (trin < 0.8 ? 'Áp lực mua' : 'Trung tính')) : 'N/A'}</span></div>
+			                            <div class="mini-gauge" aria-hidden="true">
+			                                <span class="marker" style="left: calc(${(trinPos * 100).toFixed(2)}% - 1px)"></span>
+			                            </div>
+			                            <div class="hint">Ngưỡng tham chiếu: 0.8 / 1.0 / 1.2 / 2.0+</div>
+			                        </div>
+
+			                        <div class="breadth-card" role="button" tabindex="0"
+			                             data-kind="vr" data-volume-ratio="${volumeRatio ?? ''}"
+			                             onclick="openBreadthDetailFromEl(this)">
+			                            <div class="k">💧 Volume Ratio</div>
+			                            <div class="v"><span>${volumeRatio != null ? `${fmt2(volumeRatio)}x` : 'N/A'}</span><span>${volumeRatio != null ? (volumeRatio > 1.2 ? 'UpVol trội' : (volumeRatio < 0.8 ? 'DownVol trội' : 'Cân bằng')) : 'N/A'}</span></div>
+			                            <div class="mini-gauge" aria-hidden="true">
+			                                <span class="marker" style="left: calc(${(vrPos * 100).toFixed(2)}% - 1px)"></span>
+			                            </div>
+			                            <div class="hint">Snapshot ratio (không có chuỗi)</div>
+			                        </div>
+
+			                        <div class="breadth-card" role="button" tabindex="0"
+			                             data-kind="mcc" data-mcclellan="${mcclellan ?? ''}"
+			                             onclick="openBreadthDetailFromEl(this)">
+			                            <div class="k">📊 McClellan Oscillator</div>
+			                            <div class="v"><span>${mcclellan != null ? fmt2(mcclellan) : 'N/A'}</span><span>${mcclellan != null ? (mcclellan > 0 ? 'Dương' : (mcclellan < 0 ? 'Âm' : '0')) : 'N/A'}</span></div>
+			                            <div class="mini-osc" aria-hidden="true">
+			                                <span class="zero"></span>
+			                                <span class="fill" style="${mcclellan == null ? 'display:none;' : (mcclellan >= 0 ? `left:50%; width:${((oscPos - 0.5) * 200).toFixed(1)}%; background: rgba(16,185,129,0.70);` : `left:${(oscPos * 100).toFixed(1)}%; width:${((0.5 - oscPos) * 200).toFixed(1)}%; background: rgba(239,68,68,0.70);`)}"></span>
+			                            </div>
+			                            <div class="hint">Snapshot value quanh 0</div>
+			                        </div>
+			                    </div>
+			                </div>
+			            `;
+			        }
+
+			        function renderBreadthSnapshotPanel(panelId, payload) {
+			            const host = document.getElementById(panelId);
+			            if (!host) return;
+			            host.outerHTML = buildBreadthSnapshotPanelHtml(panelId, host.getAttribute('data-index-key') || '', payload);
+			        }
+
+			        function openBreadthDetailFromEl(el) {
+			            try {
+			                const kind = el.getAttribute('data-kind') || '';
+			                if (kind === 'ad') {
+			                    const adv = el.getAttribute('data-adv') || 'N/A';
+			                    const dec = el.getAttribute('data-dec') || 'N/A';
+			                    const unchanged = el.getAttribute('data-unchanged') || 'N/A';
+			                    const total = el.getAttribute('data-total') || 'N/A';
+			                    openUiModal({
+			                        tone: 'neutral',
+			                        title: 'Advance/Decline (A/D)',
+			                        subtitle: 'Snapshot (1 ngày)',
+			                        bodyHtml: `
+			                            <div class="ui-metrics">
+			                                <div class="ui-metric"><div class="k">Mã tăng</div><div class="v">${escapeHtml(adv)}</div></div>
+			                                <div class="ui-metric"><div class="k">Mã giảm</div><div class="v">${escapeHtml(dec)}</div></div>
+			                                <div class="ui-metric"><div class="k">Unchanged</div><div class="v">${escapeHtml(unchanged)}</div></div>
+			                                <div class="ui-metric"><div class="k">Total</div><div class="v">${escapeHtml(total)}</div></div>
+			                            </div>
+			                            <div style="margin-top:10px; color: var(--text-secondary); font-weight: 800; font-size: 0.9rem;">
+			                                Advance/Decline phản ánh độ rộng thị trường trong ngày.
+			                            </div>
+			                        `,
+			                    });
+			                    return;
+			                }
+			                if (kind === 'trin') {
+			                    const trin = el.getAttribute('data-trin') || 'N/A';
+			                    openUiModal({
+			                        tone: 'neutral',
+			                        title: 'TRIN',
+			                        subtitle: 'Snapshot (1 ngày)',
+			                        bodyHtml: `
+			                            <div class="ui-metrics">
+			                                <div class="ui-metric"><div class="k">TRIN</div><div class="v">${escapeHtml(trin)}</div></div>
+			                                <div class="ui-metric"><div class="k">Gợi ý</div><div class="v">0.8–1.2: trung tính</div></div>
+			                                <div class="ui-metric"><div class="k">Bên mua</div><div class="v">&lt; 0.8</div></div>
+			                                <div class="ui-metric"><div class="k">Bên bán</div><div class="v">&gt; 1.2</div></div>
+			                            </div>
+			                        `,
+			                    });
+			                    return;
+			                }
+			                if (kind === 'vr') {
+			                    const vr = el.getAttribute('data-volume-ratio') || 'N/A';
+			                    openUiModal({
+			                        tone: 'neutral',
+			                        title: 'Volume Ratio',
+			                        subtitle: 'Snapshot (1 ngày)',
+			                        bodyHtml: `
+			                            <div class="ui-metrics">
+			                                <div class="ui-metric"><div class="k">Volume Ratio</div><div class="v">${escapeHtml(vr)}${vr !== 'N/A' ? 'x' : ''}</div></div>
+			                                <div class="ui-metric"><div class="k">Diễn giải</div><div class="v">&lt;0.8: down-volume trội</div></div>
+			                                <div class="ui-metric"><div class="k">Trung tính</div><div class="v">0.8–1.2</div></div>
+			                                <div class="ui-metric"><div class="k">Up-volume</div><div class="v">&gt;1.2</div></div>
+			                            </div>
+			                        `,
+			                    });
+			                    return;
+			                }
+			                if (kind === 'mcc') {
+			                    const v = el.getAttribute('data-mcclellan') || 'N/A';
+			                    openUiModal({
+			                        tone: 'neutral',
+			                        title: 'McClellan Oscillator',
+			                        subtitle: 'Snapshot (1 ngày)',
+			                        bodyHtml: `
+			                            <div class="ui-metrics">
+			                                <div class="ui-metric"><div class="k">Giá trị</div><div class="v">${escapeHtml(v)}</div></div>
+			                                <div class="ui-metric"><div class="k">Diễn giải</div><div class="v">Dương: breadth cải thiện</div></div>
+			                                <div class="ui-metric"><div class="k">Âm</div><div class="v">breadth suy yếu</div></div>
+			                                <div class="ui-metric"><div class="k">0</div><div class="v">cân bằng</div></div>
+			                            </div>
+			                        `,
+			                    });
+			                }
+			            } catch (_) {}
+			        }
+
 			        function renderIndexOhlcvPanelHtml(panelId, indexKey) {
 			            const payload = getIndexOhlcvPayload(indexKey);
 			            if (!payload) {
@@ -3816,6 +4216,7 @@
 			            const isTrendChartSection =
 			                normalizedSectionTitle === 'XU HƯỚNG GIÁ' ||
 			                normalizedSectionTitle === 'XU HƯỚNG KHỐI LƯỢNG';
+			            const isBreadthSentimentSection = normalizedSectionTitle === 'MARKET BREADTH & TÂM LÝ THỊ TRƯỜNG';
 			            const isPriceContextSection =
 			                normalizedSectionTitle.includes('WHAT-IF') ||
 			                normalizedSectionTitle === 'CUNG-CẦU' ||
@@ -3926,6 +4327,13 @@
 	                const rankingExtras = isRanking ? buildIndexSummaryHtml() : '';
 	                const pricePanelId = isPriceContextSection ? `price_${currentIndex}_${sectionIndex}` : null;
 	                const pricePanelHtml = isPriceContextSection ? renderIndexPricePanelHtml(pricePanelId, currentIndex, pricePanelMode) : '';
+	                const breadthPanelId = isBreadthSentimentSection ? `breadth_${currentIndex}_${sectionIndex}` : null;
+	                const breadthPayload = isBreadthSentimentSection ? _parseSnapshotBreadthFromText(htmlToPlainText(cleanContent)) : null;
+	                const breadthPanelHtml = isBreadthSentimentSection ? buildBreadthSnapshotPanelHtml(breadthPanelId, currentIndex, breadthPayload) : '';
+	                if (isBreadthSentimentSection) {
+	                    window.__uiGlmBreadthStore = window.__uiGlmBreadthStore || {};
+	                    window.__uiGlmBreadthStore[breadthPanelId] = { payload: breadthPayload };
+	                }
 
 	                contentDiv.innerHTML = `
 	                    <div class="section-card ${section.alert ? 'alert' : ''}">
@@ -3934,11 +4342,15 @@
 	                            ${extras}
 	                            ${rankingExtras}
 	                            ${isPriceContextSection ? `<div style="height: 12px;"></div>${pricePanelHtml}` : ''}
+	                            ${isBreadthSentimentSection ? `<div style="height: 12px;"></div>${breadthPanelHtml}` : ''}
 	                        </div>
 	                    </div>
 	                `;
 	                if (isPriceContextSection && pricePanelId) {
 	                    setTimeout(() => initIndexPricePanel(pricePanelId, currentIndex, pricePanelMode), 0);
+	                }
+	                if (isBreadthSentimentSection && breadthPanelId) {
+	                    setTimeout(() => renderBreadthSnapshotPanel(breadthPanelId, breadthPayload), 0);
 	                }
 	            }
 	        }
