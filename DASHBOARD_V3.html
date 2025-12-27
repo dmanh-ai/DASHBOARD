@@ -453,6 +453,71 @@
         .plan-choice-pill.ok { color: var(--success); border-color: color-mix(in srgb, var(--success) 35%, var(--lg-glass-border)); }
         .plan-choice-pill.lock { color: var(--warning); border-color: color-mix(in srgb, var(--warning) 35%, var(--lg-glass-border)); }
 
+        .plan-pass {
+            display: grid;
+            gap: 12px;
+        }
+
+        .plan-pass-label {
+            color: var(--text-secondary);
+            font-weight: 900;
+            font-size: 0.82rem;
+            letter-spacing: 0.2px;
+        }
+
+        .plan-pass-row {
+            display: grid;
+            grid-template-columns: 1fr auto;
+            gap: 10px;
+            align-items: center;
+        }
+
+        @media (max-width: 520px) {
+            .plan-pass-row { grid-template-columns: 1fr; }
+        }
+
+        .plan-pass-input {
+            width: 100%;
+            padding: 12px 14px;
+            background: var(--lg-surface-semi);
+            border: 1px solid var(--lg-glass-border);
+            border-radius: 14px;
+            color: var(--text-primary);
+            font-weight: 850;
+            letter-spacing: 0.2px;
+            transition: border-color var(--motion-med) var(--motion-ease),
+                        box-shadow var(--motion-med) var(--motion-ease),
+                        background-color var(--motion-med) var(--motion-ease);
+        }
+
+        .plan-pass-input::placeholder { color: color-mix(in srgb, var(--text-secondary) 75%, transparent); }
+
+        .plan-pass-input:focus {
+            outline: none;
+            border-color: color-mix(in srgb, var(--primary) 55%, var(--lg-glass-border));
+            box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary) 22%, transparent);
+            background: color-mix(in srgb, var(--lg-surface-semi) 80%, var(--lg-surface-ghost));
+        }
+
+        .plan-pass-actions {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .plan-pass-hint {
+            color: var(--text-secondary);
+            font-weight: 800;
+            font-size: 0.82rem;
+            line-height: 1.5;
+        }
+
+        .plan-pass-error {
+            color: var(--danger);
+            font-weight: 900;
+            font-size: 0.84rem;
+        }
+
         .search-box {
             padding: 0 20px 15px;
         }
@@ -3394,39 +3459,107 @@
             }
         }
 
-        function requestProUnlock() {
-            const pwd = prompt('Nhập mật khẩu để xem bản Pro:');
-            if (pwd === UI_GLM_PRO_PASSWORD) {
-                sessionStorage.setItem(UI_GLM_PRO_OK_KEY, '1');
-                setPlanPreference(UI_GLM_PLAN.PRO);
-                applyPlanToUi();
-                return true;
-            }
+        function unlockProAndApply() {
+            sessionStorage.setItem(UI_GLM_PRO_OK_KEY, '1');
+            setPlanPreference(UI_GLM_PLAN.PRO);
+            applyPlanToUi();
+        }
 
-            alert('Sai mật khẩu. Gợi ý: bạn có thể xem bản Lite.');
+        function lockToLiteAndApply() {
             sessionStorage.removeItem(UI_GLM_PRO_OK_KEY);
             setPlanPreference(UI_GLM_PLAN.LITE);
             applyPlanToUi();
-            return false;
+        }
+
+        function openProPasswordModal({ onSuccess, onCancel, showLiteSuggestion = true } = {}) {
+            const modal = document.getElementById('uiModal');
+            if (modal) modal.dataset.modalType = 'proPassword';
+
+            const bodyHtml = `
+                <div class="plan-pass">
+                    <div style="font-weight:950;letter-spacing:0.2px;">Mở khóa bản Pro</div>
+                    <div class="plan-pass-hint">
+                        Nhập mật khẩu để xem đầy đủ tất cả chỉ số và mục phân tích chuyên sâu.
+                        ${showLiteSuggestion ? `<br/>Nếu bạn chưa có mật khẩu, bạn có thể chọn <strong>Lite</strong> để xem nhanh.` : ''}
+                    </div>
+
+                    <div class="plan-pass-label">Mật khẩu</div>
+                    <div class="plan-pass-row">
+                        <input class="plan-pass-input" id="proPasswordInput" type="password" autocomplete="current-password" placeholder="Nhập mật khẩu Pro..." />
+                        <button type="button" class="plan-btn" id="proPasswordSubmit">Mở khóa</button>
+                    </div>
+                    <div class="plan-pass-error" id="proPasswordError" style="display:none;"></div>
+
+                    <div class="plan-pass-actions">
+                        <button type="button" class="plan-btn" id="proPasswordCancel">Quay lại</button>
+                        ${showLiteSuggestion ? `<button type="button" class="plan-btn" id="proPasswordUseLite">Dùng Lite</button>` : ''}
+                    </div>
+                </div>
+            `;
+
+            openUiModal({ tone: 'neutral', title: 'Pro', subtitle: 'Yêu cầu mật khẩu', bodyHtml, large: false });
+
+            setTimeout(() => {
+                const input = document.getElementById('proPasswordInput');
+                const submit = document.getElementById('proPasswordSubmit');
+                const cancel = document.getElementById('proPasswordCancel');
+                const useLite = document.getElementById('proPasswordUseLite');
+                const err = document.getElementById('proPasswordError');
+
+                const setErr = (msg) => {
+                    if (!err) return;
+                    if (!msg) { err.style.display = 'none'; err.textContent = ''; return; }
+                    err.style.display = 'block';
+                    err.textContent = msg;
+                };
+
+                const doSubmit = () => {
+                    const pwd = String(input && input.value ? input.value : '');
+                    if (pwd === UI_GLM_PRO_PASSWORD) {
+                        setErr('');
+                        unlockProAndApply();
+                        closeUiModal();
+                        if (typeof onSuccess === 'function') onSuccess();
+                        return;
+                    }
+                    setErr('Sai mật khẩu. Bạn có thể thử lại hoặc chọn Lite.');
+                };
+
+                submit?.addEventListener('click', doSubmit);
+                input?.addEventListener('keydown', (e) => {
+                    if (e.key === 'Enter') doSubmit();
+                });
+
+                cancel?.addEventListener('click', () => {
+                    if (typeof onCancel === 'function') onCancel();
+                    else openPlanChooserModal();
+                }, { once: true });
+
+                useLite?.addEventListener('click', () => {
+                    lockToLiteAndApply();
+                    closeUiModal();
+                    if (typeof onCancel === 'function') onCancel();
+                }, { once: true });
+
+                input?.focus();
+            }, 0);
         }
 
         function shouldShowPlanChooserOnStartup() {
             const params = new URLSearchParams(window.location.search || '');
+            const hasAnyParams = Array.from(params.keys()).length > 0;
+            const isDeepLink = params.get('index') || params.get('stockPopup') || params.get('section') || params.get('sectionTitle');
+
+            // Requirement: opening the base URL should always show the chooser.
+            if (!hasAnyParams) return true;
+
+            // Allow forcing chooser.
             if ((params.get('choosePlan') || '') === '1') return true;
 
             // Don't interrupt deep-links unless explicitly requested.
-            if (params.get('index') || params.get('stockPopup')) return false;
+            if (isDeepLink) return false;
 
-            const prefRaw = localStorage.getItem(UI_GLM_PLAN_PREF_KEY);
-            const chooserVer = (localStorage.getItem(UI_GLM_PLAN_CHOOSER_VER_KEY) || '').trim();
-
-            // Show once after updates (so existing users also see it).
-            if (chooserVer !== UI_GLM_PLAN_CHOOSER_VER) return true;
-
-            // First run: no preference saved yet.
-            if (prefRaw == null || String(prefRaw).trim() === '') return true;
-
-            // Pro selected but not unlocked → prompt again.
+            // Otherwise, if Pro is preferred but locked, prompt.
             return getPlanPreference() === UI_GLM_PLAN.PRO && !isProUnlocked();
         }
 
@@ -3491,8 +3624,16 @@
 
                 pro?.addEventListener('click', () => {
                     setPlanPreference(UI_GLM_PLAN.PRO);
-                    const ok = isProUnlocked() ? true : requestProUnlock();
-                    if (ok) closeUiModal();
+                    if (isProUnlocked()) {
+                        applyPlanToUi();
+                        closeUiModal();
+                        return;
+                    }
+                    openProPasswordModal({
+                        onSuccess: () => {},
+                        onCancel: () => openPlanChooserModal(),
+                        showLiteSuggestion: true,
+                    });
                 }, { once: true });
             }, 0);
         }
@@ -6036,14 +6177,7 @@
         // Select index (left sidebar)
         function selectIndex(key) {
             if (!isIndexAllowedForCurrentPlan(key)) {
-                // Suggest Lite if Pro is locked.
-                const pref = getPlanPreference();
-                if (pref === UI_GLM_PLAN.PRO && !isProUnlocked()) {
-                    const ok = confirm('Bản Pro đang khóa. Bạn muốn nhập mật khẩu để xem Pro không?');
-                    if (ok) requestProUnlock();
-                } else {
-                    alert('Chỉ số này không có trong bản Lite. Vui lòng chọn Pro để xem đầy đủ.');
-                }
+                openPlanChooserModal();
                 return;
             }
 
@@ -6077,14 +6211,12 @@
 			        // Initialize
 			        // Plan toggle wiring
 			        document.getElementById('planLiteBtn')?.addEventListener('click', () => {
-			            sessionStorage.removeItem(UI_GLM_PRO_OK_KEY);
-			            setPlanPreference(UI_GLM_PLAN.LITE);
-			            applyPlanToUi();
+			            lockToLiteAndApply();
 			        });
 			        document.getElementById('planProBtn')?.addEventListener('click', () => {
 			            setPlanPreference(UI_GLM_PLAN.PRO);
-			            if (!isProUnlocked()) requestProUnlock();
-			            else applyPlanToUi();
+			            if (isProUnlocked()) applyPlanToUi();
+			            else openProPasswordModal({ onCancel: () => applyPlanToUi(), showLiteSuggestion: true });
 			        });
 
 			        applyPlanToUi();
