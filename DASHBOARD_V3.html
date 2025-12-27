@@ -3636,6 +3636,65 @@
 			            return payload;
 			        }
 
+			        function parseBreadthMetricsFromReportHtml(sectionHtml) {
+			            try {
+			                const root = document.createElement('div');
+			                root.innerHTML = sectionHtml || '';
+			                const text = (root.textContent || '').replace(/\s+/g, ' ').trim();
+			                if (!text) return null;
+
+			                const parseNum = (raw) => {
+			                    if (raw == null) return null;
+			                    const v = Number(String(raw).replace(/,/g, '.'));
+			                    return Number.isFinite(v) ? v : null;
+			                };
+			                const parseInt = (raw) => {
+			                    if (raw == null) return null;
+			                    const v = Number(String(raw).replace(/[^\d]/g, ''));
+			                    return Number.isFinite(v) ? v : null;
+			                };
+
+			                let adv = null, dec = null, advPct = null;
+			                let m = text.match(/\bA\s*\/\s*D\s*([0-9]{1,5})\s*\/\s*([0-9]{1,5})\b/i);
+			                if (m) {
+			                    adv = parseInt(m[1]);
+			                    dec = parseInt(m[2]);
+			                } else {
+			                    m = text.match(/ch(?:ỉ|i)\s*c(?:ó|o)\s*([0-9]{1,5})\s*m(?:ã|a)\s*t(?:ă|a)ng[^.]{0,120}?([0-9]{1,5})\s*m(?:ã|a)\s*gi(?:ả|a)m/i);
+			                    if (m) {
+			                        adv = parseInt(m[1]);
+			                        dec = parseInt(m[2]);
+			                    }
+			                }
+			                m = text.match(/t(?:ỷ|i)\s*l(?:ệ|e)\s*t(?:ă|a)ng[^0-9]{0,30}([0-9]+(?:[.,][0-9]+)?)\s*%/i);
+			                if (m) advPct = parseNum(m[1]);
+
+			                m = text.match(/\bTRIN\b[^0-9]{0,20}([0-9]+(?:[.,][0-9]+)?)\b/i);
+			                const trin = m ? parseNum(m[1]) : null;
+
+			                m = text.match(/volume\s*ratio[^0-9]{0,30}([0-9]+(?:[.,][0-9]+)?)\s*x?/i);
+			                const volumeRatio = m ? parseNum(m[1]) : null;
+
+			                const hasAny = (adv != null && dec != null) || trin != null || volumeRatio != null;
+			                if (!hasAny) return null;
+
+			                // Reconstruct total/unchanged if possible (keeps UI consistent with report text).
+			                let total = null;
+			                if (adv != null && advPct != null && advPct > 0) {
+			                    total = Math.round((adv * 100) / advPct);
+			                }
+			                let unchanged = null;
+			                if (total != null && adv != null && dec != null) {
+			                    unchanged = total - adv - dec;
+			                    if (!Number.isFinite(unchanged) || unchanged < 0) unchanged = null;
+			                }
+
+			                return { adv, dec, unchanged, total, trin, volumeRatio };
+			            } catch (_) {
+			                return null;
+			            }
+			        }
+
 			        function extractBreadthEvidenceHtml(sectionHtml, kind) {
 			            try {
 			                const root = document.createElement('div');
@@ -3667,20 +3726,20 @@
 			        }
 
 				        function buildBreadthSnapshotPanelHtml(panelId, indexKey, payload) {
-				            if (!payload) return `<div class="info-box"><p>Chưa có dữ liệu breadth snapshot (thiếu file market export).</p></div>`;
+				            if (!payload) return `<div class="info-box"><p>Không trích xuất được dữ liệu breadth (snapshot) từ báo cáo.</p></div>`;
 
-				            const adv = payload.advancing;
-				            const dec = payload.declining;
+				            const adv = payload.adv;
+				            const dec = payload.dec;
 				            const unchanged = payload.unchanged;
-				            const total = payload.total_stocks;
+				            const total = payload.total;
 				            const trin = payload.trin;
-				            const volumeRatio = payload.volume_ratio;
+				            const volumeRatio = payload.volumeRatio;
 				            const mcclellan = payload.mcclellan;
 
-			            const totalKnown = (adv != null && dec != null)
-			                ? (adv + dec + (unchanged != null ? unchanged : 0))
-			                : null;
-			            const denom = total != null ? total : (totalKnown != null ? totalKnown : null);
+				            const totalKnown = (adv != null && dec != null)
+				                ? (adv + dec + (unchanged != null ? unchanged : 0))
+				                : null;
+				            const denom = total != null ? total : (totalKnown != null ? totalKnown : null);
 
 			            const pct = (x) => (denom && x != null ? Math.max(0, Math.min(100, 100 * (x / denom))) : 0);
 			            const advPct = pct(adv);
@@ -3734,7 +3793,7 @@
 			                            <div class="mini-gauge" aria-hidden="true">
 			                                <span class="marker" style="left: calc(${(vrPos * 100).toFixed(2)}% - 1px)"></span>
 			                            </div>
-			                            <div class="hint">Snapshot ratio (không có chuỗi)</div>
+			                            <div class="hint">AdvVol / DecVol (snapshot)</div>
 			                        </div>
 
 			                        <div class="breadth-card" role="button" tabindex="0"
@@ -3816,6 +3875,7 @@
 			                        bodyHtml: `
 			                            <div class="ui-metrics">
 			                                <div class="ui-metric"><div class="k">Volume Ratio</div><div class="v">${escapeHtml(vr)}${vr !== 'N/A' ? 'x' : ''}</div></div>
+			                                <div class="ui-metric"><div class="k">Công thức</div><div class="v">AdvVol / DecVol</div></div>
 			                                <div class="ui-metric"><div class="k">Diễn giải</div><div class="v">&lt;0.8: down-volume trội</div></div>
 			                                <div class="ui-metric"><div class="k">Trung tính</div><div class="v">0.8–1.2</div></div>
 			                                <div class="ui-metric"><div class="k">Up-volume</div><div class="v">&gt;1.2</div></div>
@@ -4313,7 +4373,15 @@
 		                const pricePanelId = isPriceContextSection ? `price_${currentIndex}_${sectionIndex}` : null;
 		                const pricePanelHtml = isPriceContextSection ? renderIndexPricePanelHtml(pricePanelId, currentIndex, pricePanelMode) : '';
 		                const breadthPanelId = isBreadthSentimentSection ? `breadth_${currentIndex}_${sectionIndex}` : null;
-		                const breadthPayload = isBreadthSentimentSection ? getMarketBreadthSnapshotPayload() : null;
+		                const breadthReport = isBreadthSentimentSection ? parseBreadthMetricsFromReportHtml(cleanContent) : null;
+		                const breadthSnap = isBreadthSentimentSection ? getMarketBreadthSnapshotPayload() : null;
+		                const breadthPayload = isBreadthSentimentSection && breadthReport
+		                    ? {
+		                        ...breadthReport,
+		                        mcclellan: (breadthSnap && typeof breadthSnap.mcclellan === 'number') ? breadthSnap.mcclellan : null,
+		                        mcclellan_type: breadthSnap ? breadthSnap.mcclellan_type : '',
+		                    }
+		                    : null;
 		                const breadthPanelHtml = isBreadthSentimentSection ? buildBreadthSnapshotPanelHtml(breadthPanelId, currentIndex, breadthPayload) : '';
 		                if (isBreadthSentimentSection) {
 		                    window.__uiGlmBreadthSectionHtml = cleanContent || '';
