@@ -2774,7 +2774,7 @@
 			            };
 
 			            // 1) H1/R1 patterns with or without parentheses
-			            const hrRe = /(?:^|\\b)(H|R)\\s*(\\d{1,2})\\s*(?:\\(|:)?\\s*([0-9][0-9,.\s]*)(?:\\s*[–~\\-]\\s*([0-9][0-9,.\s]*))?/gi;
+				            const hrRe = /(?:^|\b)(H|R)\s*(\d{1,2})\s*(?:\(|:)?\s*([0-9][0-9,.\s]*)(?:\s*[–~\-]\s*([0-9][0-9,.\s]*))?/gi;
 			            let m;
 			            while ((m = hrRe.exec(text)) !== null) {
 			                const kind = (m[1] || '').toUpperCase() === 'H' ? 'support' : 'resistance';
@@ -2786,12 +2786,12 @@
 			            }
 
 			            // 2) Keyword-based sentences (support/resistance)
-			            const kwRe = /(Hỗ trợ|Kháng cự|Support|Resistance)\\b[^\\.]{0,200}/gi;
+				            const kwRe = /(Hỗ trợ|Kháng cự|Support|Resistance)\b[^.]{0,200}/gi;
 			            while ((m = kwRe.exec(text)) !== null) {
 			                const frag = m[0] || '';
 			                const kind = detectKind(frag);
 			                // extract all ranges first
-			                const rangeRe = /([0-9][0-9,.\s]*)\\s*[–~\\-]\\s*([0-9][0-9,.\s]*)/g;
+				                const rangeRe = /([0-9][0-9,.\s]*)\s*[–~\-]\s*([0-9][0-9,.\s]*)/g;
 			                let rm;
 			                while ((rm = rangeRe.exec(frag)) !== null) {
 			                    const a = parseNumber(rm[1]);
@@ -2808,7 +2808,7 @@
 			            }
 
 			            // 3) "Vùng ..." patterns with contextual kind
-			            const zoneRe = /Vùng\\s*([0-9][0-9,.\s]*)(?:\\s*[–~\\-]\\s*([0-9][0-9,.\s]*))?/gi;
+				            const zoneRe = /Vùng\s*([0-9][0-9,.\s]*)(?:\s*[–~\-]\s*([0-9][0-9,.\s]*))?/gi;
 			            while ((m = zoneRe.exec(text)) !== null) {
 			                const context = text.slice(Math.max(0, m.index - 40), Math.min(text.length, m.index + 120));
 			                const kind = detectKind(context);
@@ -2819,7 +2819,7 @@
 			            }
 
 			            // 4) Specific anchors like POC/VWAP/MA/Donchian/Bollinger levels (neutral by default)
-			            const anchorRe = /(POC|VWAP\\d{1,3}|MA\\d{1,3}|BB\\d{1,3}|DC\\d{1,3})\\s*\\(?\\s*([0-9][0-9,\\.]{1,})\\s*\\)?/gi;
+				            const anchorRe = /(POC|VWAP\d{1,3}|MA\d{1,3}|BB\d{1,3}|DC\d{1,3})\s*\(?\s*([0-9][0-9,.]{1,})\s*\)?/gi;
 			            while ((m = anchorRe.exec(text)) !== null) {
 			                const label = (m[1] || '').toUpperCase();
 			                const n = parseNumber(m[2]);
