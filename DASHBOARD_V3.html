@@ -7,12 +7,13 @@
 	    <script src="full_data.js"></script>
 		    <script src="vnindex_heatmap_data.js"></script>
 		    <script src="index_heatmap_data.js"></script>
-		    <script src="vnindex_company_meta.js"></script>
-		    <script src="vnindex_price_20d.js"></script>
-		    <script src="market_breadth_snapshot.js"></script>
-		    <script src="index_ohlcv.js"></script>
-		    <script src="vendor/lightweight-charts.standalone.production.js"></script>
-		    <script src="scripts/content_formatter.js"></script>
+			    <script src="vnindex_company_meta.js"></script>
+			    <script src="vnindex_price_20d.js"></script>
+			    <script src="market_breadth_snapshot.js"></script>
+			    <script src="breadth_history.js"></script>
+			    <script src="index_ohlcv.js"></script>
+			    <script src="vendor/lightweight-charts.standalone.production.js"></script>
+			    <script src="scripts/content_formatter.js"></script>
 
     <style>
         * {
@@ -2115,17 +2116,216 @@
 		            background: rgba(148, 163, 184, 0.65);
 		        }
 
-		        .mini-osc .fill {
-		            position: absolute;
-		            top: 0;
-		            height: 100%;
-		            background: rgba(148, 163, 184, 0.65);
-		        }
+			        .mini-osc .fill {
+			            position: absolute;
+			            top: 0;
+			            height: 100%;
+			            background: rgba(148, 163, 184, 0.65);
+			        }
 
-		        .keylevels-panel,
-		        .targetlevels-panel {
-		            margin-top: 14px;
-		            border: 1px solid var(--glass-border);
+			        .bh-panel {
+			            margin-top: 14px;
+			            border: 1px solid var(--glass-border);
+			            border-radius: 16px;
+			            background: rgba(255, 255, 255, 0.04);
+			            overflow: hidden;
+			            max-width: 860px;
+			            margin-left: auto;
+			            margin-right: auto;
+			        }
+
+			        [data-theme="dark"] .bh-panel {
+			            background: rgba(255, 255, 255, 0.02);
+			        }
+
+			        .bh-toolbar {
+			            display: flex;
+			            align-items: center;
+			            justify-content: space-between;
+			            gap: 12px;
+			            padding: 12px 14px;
+			            border-bottom: 1px solid var(--glass-border);
+			            background: var(--gradient-glass);
+			        }
+
+			        .bh-toolbar .title {
+			            font-weight: 950;
+			            letter-spacing: 0.2px;
+			        }
+
+			        .bh-toolbar .right {
+			            display: flex;
+			            align-items: center;
+			            gap: 10px;
+			            flex-wrap: wrap;
+			            justify-content: flex-end;
+			        }
+
+			        .bh-meta {
+			            font-weight: 900;
+			            font-size: 0.82rem;
+			            color: var(--text-secondary);
+			        }
+
+			        .bh-body {
+			            padding: 12px 14px 14px;
+			        }
+
+			        .bh-kpis {
+			            display: grid;
+			            grid-template-columns: 1.2fr 1fr;
+			            gap: 12px;
+			            align-items: stretch;
+			            margin-bottom: 12px;
+			        }
+
+			        @media (max-width: 900px) {
+			            .bh-panel { max-width: 100%; }
+			            .bh-kpis { grid-template-columns: 1fr; }
+			        }
+
+			        .bh-card {
+			            border-radius: 14px;
+			            border: 1px solid var(--glass-border);
+			            background: rgba(255, 255, 255, 0.06);
+			            padding: 12px;
+			        }
+
+			        .bh-card .k {
+			            font-weight: 950;
+			            font-size: 0.82rem;
+			            color: var(--text-secondary);
+			            display: flex;
+			            align-items: center;
+			            justify-content: space-between;
+			            gap: 10px;
+			        }
+
+			        .bh-card .v {
+			            margin-top: 8px;
+			            font-weight: 950;
+			            font-size: 1.22rem;
+			            color: var(--text-primary);
+			            display: flex;
+			            align-items: baseline;
+			            gap: 10px;
+			            flex-wrap: wrap;
+			        }
+
+			        .bh-chip {
+			            display: inline-flex;
+			            align-items: center;
+			            gap: 6px;
+			            padding: 6px 10px;
+			            border-radius: 999px;
+			            border: 1px solid var(--glass-border);
+			            background: rgba(255, 255, 255, 0.06);
+			            font-weight: 950;
+			            font-size: 0.82rem;
+			            color: var(--text-primary);
+			            white-space: nowrap;
+			        }
+
+			        .bh-chip.positive { background: rgba(16, 185, 129, 0.12); }
+			        .bh-chip.negative { background: rgba(239, 68, 68, 0.12); }
+
+			        .bh-gauge {
+			            margin-top: 10px;
+			            height: 12px;
+			            border-radius: 999px;
+			            border: 1px solid rgba(0, 0, 0, 0.06);
+			            background: linear-gradient(90deg,
+			                rgba(239, 68, 68, 0.22) 0%,
+			                rgba(239, 68, 68, 0.22) 20%,
+			                rgba(148, 163, 184, 0.20) 20%,
+			                rgba(148, 163, 184, 0.20) 50%,
+			                rgba(16, 185, 129, 0.20) 50%,
+			                rgba(16, 185, 129, 0.20) 80%,
+			                rgba(16, 185, 129, 0.26) 80%,
+			                rgba(16, 185, 129, 0.26) 100%
+			            );
+			            position: relative;
+			        }
+
+			        [data-theme="dark"] .bh-gauge {
+			            border-color: rgba(255, 255, 255, 0.08);
+			        }
+
+			        .bh-gauge .marker {
+			            position: absolute;
+			            top: -4px;
+			            width: 3px;
+			            height: 20px;
+			            border-radius: 2px;
+			            background: rgba(15, 23, 42, 0.72);
+			        }
+
+			        [data-theme="dark"] .bh-gauge .marker {
+			            background: rgba(226, 232, 240, 0.78);
+			        }
+
+			        .bh-chart {
+			            width: 100%;
+			            height: 280px;
+			            border-radius: 14px;
+			            background: rgba(255, 255, 255, 0.02);
+			            border: 1px solid rgba(0, 0, 0, 0.06);
+			            position: relative;
+			            overflow: hidden;
+			        }
+
+			        [data-theme="dark"] .bh-chart {
+			            border-color: rgba(255, 255, 255, 0.08);
+			        }
+
+			        .bh-sparks {
+			            margin-top: 12px;
+			            display: grid;
+			            grid-template-columns: repeat(4, minmax(0, 1fr));
+			            gap: 10px;
+			        }
+
+			        @media (max-width: 900px) {
+			            .bh-sparks { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+			        }
+
+			        @media (max-width: 520px) {
+			            .bh-sparks { grid-template-columns: 1fr; }
+			        }
+
+			        .bh-spark {
+			            border-radius: 14px;
+			            border: 1px solid var(--glass-border);
+			            background: rgba(255, 255, 255, 0.06);
+			            padding: 10px;
+			        }
+
+			        .bh-spark .k {
+			            font-weight: 950;
+			            font-size: 0.78rem;
+			            color: var(--text-secondary);
+			            display: flex;
+			            justify-content: space-between;
+			            gap: 8px;
+			        }
+
+			        .bh-spark .spark {
+			            margin-top: 8px;
+			            height: 70px;
+			            border-radius: 12px;
+			            border: 1px solid rgba(0, 0, 0, 0.06);
+			            background: rgba(255, 255, 255, 0.02);
+			            overflow: hidden;
+			        }
+
+			        [data-theme="dark"] .bh-spark .spark {
+			            border-color: rgba(255, 255, 255, 0.08);
+			        }
+
+			        .keylevels-panel,
+			        .targetlevels-panel {
+			            margin-top: 14px;
+			            border: 1px solid var(--glass-border);
 		            border-radius: 16px;
 		            background: rgba(255, 255, 255, 0.04);
 		            overflow: hidden;
@@ -2370,7 +2570,12 @@
 		                    try { initTargetLevelsPanel(panel.id, idxKey, stored ? stored.sectionHtml : ''); } catch (_) {}
 		                }
 		            });
-			        });
+		            document.querySelectorAll('.bh-panel').forEach(panel => {
+		                if (panel.id) {
+		                    try { initBreadthHistoryPanel(panel.id); } catch (_) {}
+		                }
+		            });
+		        });
 
         function updateThemeIcon(theme) {
             themeToggle.textContent = theme === 'light' ? '🌙' : '☀️';
@@ -3636,6 +3841,272 @@
 			            return payload;
 			        }
 
+			        function getBreadthHistoryPayload() {
+			            const payload =
+			                (typeof window !== 'undefined' && window.UI_GLM_BREADTH_HISTORY)
+			                    ? window.UI_GLM_BREADTH_HISTORY
+			                    : null;
+			            if (!payload || typeof payload !== 'object') return null;
+			            if (!Array.isArray(payload.series) || payload.series.length < 30) return null;
+			            if (!payload.summary || typeof payload.summary !== 'object') return null;
+			            return payload;
+			        }
+
+			        function renderBreadthHistoryPanelHtml(panelId, indexKey) {
+			            const payload = getBreadthHistoryPayload();
+			            if (!payload) {
+			                return `<div class="info-box"><p>Chưa có dữ liệu breadth history (thiếu file export).</p></div>`;
+			            }
+			            const asof = payload.asof || '';
+			            const s = payload.summary || {};
+			            const cur = s.current || {};
+			            const pct = Number(s.percentile_ma20 || 0);
+			            const vs1w = (s.vs_1w == null) ? null : Number(s.vs_1w);
+			            const vs1m = (s.vs_1m == null) ? null : Number(s.vs_1m);
+			            const chipCls = (v) => (v == null ? '' : (v >= 0 ? 'positive' : 'negative'));
+			            const fmtPp = (v) => (v == null ? 'N/A' : `${v >= 0 ? '+' : ''}${v.toFixed(1)}pp`);
+
+			            return `
+			                <div class="bh-panel" id="${panelId}" data-index-key="${escapeHtml(indexKey)}">
+			                    <div class="bh-toolbar">
+			                        <div class="title">📜 Lịch sử &amp; xu hướng Breadth</div>
+			                        <div class="right">
+			                            <div class="bh-meta">As-of: ${escapeHtml(asof)}</div>
+			                            <div class="keylevels-checks" data-role="bh-levels">
+			                                ${[
+			                                    ['MA5','pct_ma5', false],
+			                                    ['MA20','pct_ma20', true],
+			                                    ['MA50','pct_ma50', false],
+			                                    ['MA200','pct_ma200', false],
+			                                ].map(([label, key, checked]) => `
+			                                    <label class="keylevels-check">
+			                                        <input type="checkbox" data-bh="${key}" ${checked ? 'checked' : ''} />
+			                                        <span>${label}</span>
+			                                    </label>
+			                                `).join('')}
+			                            </div>
+			                        </div>
+			                    </div>
+			                    <div class="bh-body">
+			                        <div class="bh-kpis">
+			                            <div class="bh-card">
+			                                <div class="k">
+			                                    <span>Percentile breadth (MA20, ~2y)</span>
+			                                    <span class="bh-chip">${Number(s.pct_ma20 || 0).toFixed(1)}%</span>
+			                                </div>
+			                                <div class="v">
+			                                    <span>${pct.toFixed(1)}%</span>
+			                                    <span class="bh-chip ${chipCls(vs1w)}">vs 1w: ${fmtPp(vs1w)}</span>
+			                                    <span class="bh-chip ${chipCls(vs1m)}">vs 1m: ${fmtPp(vs1m)}</span>
+			                                </div>
+			                                <div class="bh-gauge" aria-hidden="true">
+			                                    <span class="marker" style="left: calc(${Math.max(0, Math.min(100, pct)).toFixed(2)}% - 1px)"></span>
+			                                </div>
+			                            </div>
+			                            <div class="bh-card">
+			                                <div class="k">
+			                                    <span>Cấu trúc breadth đa khung</span>
+			                                    <span class="bh-chip">(% mã &gt; MA)</span>
+			                                </div>
+			                                <div class="v" style="font-size: 1.02rem;">
+			                                    <span class="bh-chip">MA5: ${Number(cur.pct_ma5 || 0).toFixed(1)}%</span>
+			                                    <span class="bh-chip">MA20: ${Number(cur.pct_ma20 || 0).toFixed(1)}%</span>
+			                                    <span class="bh-chip">MA50: ${Number(cur.pct_ma50 || 0).toFixed(1)}%</span>
+			                                    <span class="bh-chip">MA200: ${Number(cur.pct_ma200 || 0).toFixed(1)}%</span>
+			                                </div>
+			                                <div style="margin-top:8px; color: var(--text-secondary); font-weight: 800; font-size: 0.86rem;">
+			                                    Dùng checkbox phía trên để xem “ribbon” MA Breadth.
+			                                </div>
+			                            </div>
+			                        </div>
+
+			                        <div class="bh-chart" data-role="bh-main"></div>
+
+			                        <div class="bh-sparks">
+			                            ${[
+			                                ['MA5', 'pct_ma5'],
+			                                ['MA20', 'pct_ma20'],
+			                                ['MA50', 'pct_ma50'],
+			                                ['MA200', 'pct_ma200'],
+			                            ].map(([label, key]) => `
+			                                <div class="bh-spark" data-bh-spark="${key}">
+			                                    <div class="k"><span>${label}</span><span>${Number(cur[key] || 0).toFixed(1)}%</span></div>
+			                                    <div class="spark" data-role="spark"></div>
+			                                </div>
+			                            `).join('')}
+			                        </div>
+			                    </div>
+			                </div>
+			            `;
+			        }
+
+			        function initBreadthHistoryPanel(panelId) {
+			            const panelEl = document.getElementById(panelId);
+			            if (!panelEl) return;
+			            const payload = getBreadthHistoryPayload();
+			            if (!payload) return;
+			            const series = payload.series || [];
+			            if (!Array.isArray(series) || series.length < 30) return;
+			            if (typeof LightweightCharts === 'undefined') return;
+
+			            const theme = document.body.getAttribute('data-theme') || 'light';
+			            const isDark = theme === 'dark';
+			            const chartBg = isDark ? 'rgba(2,6,23,0.0)' : 'rgba(255,255,255,0.0)';
+			            const textCol = isDark ? 'rgba(226,232,240,0.85)' : 'rgba(15,23,42,0.75)';
+			            const gridCol = isDark ? 'rgba(148,163,184,0.16)' : 'rgba(148,163,184,0.28)';
+
+			            const levelsEl = panelEl.querySelector('[data-role="bh-levels"]');
+			            const mainEl = panelEl.querySelector('[data-role="bh-main"]');
+			            if (!mainEl) return;
+
+			            const getSelected = () => {
+			                const set = new Set();
+			                if (!levelsEl) return set;
+			                levelsEl.querySelectorAll('input[type="checkbox"][data-bh]').forEach(inp => {
+			                    if (inp.checked) set.add(inp.getAttribute('data-bh'));
+			                });
+			                return set;
+			            };
+
+			            const buildLineData = (key) => {
+			                return series
+			                    .filter(r => r && r.d && r[key] != null && Number.isFinite(Number(r[key])))
+			                    .map(r => ({ time: r.d, value: Number(r[key]) }));
+			            };
+
+			            const drawMain = () => {
+			                if (panelEl.__uiGlmBhMainChart) {
+			                    try { panelEl.__uiGlmBhMainChart.remove(); } catch (_) {}
+			                    panelEl.__uiGlmBhMainChart = null;
+			                }
+			                const chart = LightweightCharts.createChart(mainEl, {
+			                    layout: {
+			                        background: { type: 'solid', color: chartBg },
+			                        textColor: textCol,
+			                        fontFamily: '-apple-system, system-ui, Segoe UI, Roboto, Arial',
+			                        fontSize: 12,
+			                    },
+			                    grid: {
+			                        vertLines: { color: gridCol },
+			                        horzLines: { color: gridCol },
+			                    },
+			                    rightPriceScale: { borderVisible: false, scaleMargins: { top: 0.12, bottom: 0.12 } },
+			                    timeScale: { borderVisible: false, rightOffset: 6, fixLeftEdge: true, fixRightEdge: true },
+			                    crosshair: { mode: LightweightCharts.CrosshairMode.Magnet },
+			                    handleScroll: { mouseWheel: true, pressedMouseMove: true, horzTouchDrag: true, vertTouchDrag: false },
+			                    handleScale: { mouseWheel: true, pinch: true, axisPressedMouseMove: true },
+			                    height: mainEl.clientHeight || 280,
+			                    width: mainEl.clientWidth || 760,
+			                });
+			                panelEl.__uiGlmBhMainChart = chart;
+
+			                const colors = {
+			                    pct_ma5: isDark ? 'rgba(34,211,238,0.95)' : 'rgba(6,182,212,0.95)',
+			                    pct_ma20: isDark ? 'rgba(96,165,250,0.95)' : 'rgba(59,130,246,0.95)',
+			                    pct_ma50: isDark ? 'rgba(167,139,250,0.95)' : 'rgba(139,92,246,0.95)',
+			                    pct_ma200: 'rgba(16,185,129,0.95)',
+			                };
+
+			                const selected = getSelected();
+			                const keys = Array.from(selected.size ? selected : new Set(['pct_ma20']));
+			                for (const k of keys) {
+			                    const data = buildLineData(k);
+			                    if (data.length < 2) continue;
+			                    const line = chart.addLineSeries({ color: colors[k] || colors.pct_ma20, lineWidth: 2 });
+			                    line.setData(data);
+			                }
+
+			                // Regime guide lines.
+			                try {
+			                    const base = chart.addLineSeries({ color: 'rgba(148,163,184,0.0)' });
+			                    [20, 50, 80].forEach((lvl) => {
+			                        base.createPriceLine({
+			                            price: lvl,
+			                            color: gridCol,
+			                            lineWidth: 1,
+			                            lineStyle: LightweightCharts.LineStyle.Dotted,
+			                            axisLabelVisible: true,
+			                            title: `${lvl}%`,
+			                        });
+			                    });
+			                    base.setData([]);
+			                } catch (_) {}
+
+			                chart.timeScale().fitContent();
+
+			                if (panelEl.__uiGlmBhMainResizeObs) {
+			                    try { panelEl.__uiGlmBhMainResizeObs.disconnect(); } catch (_) {}
+			                    panelEl.__uiGlmBhMainResizeObs = null;
+			                }
+			                const ro = new ResizeObserver(() => {
+			                    try {
+			                        chart.applyOptions({ width: mainEl.clientWidth, height: mainEl.clientHeight });
+			                        chart.timeScale().fitContent();
+			                    } catch (_) {}
+			                });
+			                ro.observe(mainEl);
+			                panelEl.__uiGlmBhMainResizeObs = ro;
+			            };
+
+			            const drawSparks = () => {
+			                const sparks = panelEl.querySelectorAll('[data-bh-spark]');
+			                sparks.forEach((box) => {
+			                    const key = box.getAttribute('data-bh-spark');
+			                    const el = box.querySelector('[data-role=\"spark\"]');
+			                    if (!key || !el) return;
+
+			                    if (box.__uiGlmSparkChart) {
+			                        try { box.__uiGlmSparkChart.remove(); } catch (_) {}
+			                        box.__uiGlmSparkChart = null;
+			                    }
+
+			                    const data = buildLineData(key).slice(-Math.min(80, series.length));
+			                    if (data.length < 2) return;
+
+			                    const chart = LightweightCharts.createChart(el, {
+			                        layout: { background: { type: 'solid', color: chartBg }, textColor: textCol, fontSize: 10 },
+			                        grid: { vertLines: { visible: false }, horzLines: { visible: false } },
+			                        rightPriceScale: { visible: false },
+			                        leftPriceScale: { visible: false },
+			                        timeScale: { visible: false },
+			                        crosshair: { mode: LightweightCharts.CrosshairMode.Hidden },
+			                        handleScroll: false,
+			                        handleScale: false,
+			                        height: el.clientHeight || 70,
+			                        width: el.clientWidth || 160,
+			                    });
+			                    box.__uiGlmSparkChart = chart;
+			                    const line = chart.addLineSeries({ color: isDark ? 'rgba(226,232,240,0.80)' : 'rgba(15,23,42,0.70)', lineWidth: 2 });
+			                    line.setData(data);
+			                    chart.timeScale().fitContent();
+
+			                    if (box.__uiGlmSparkResizeObs) {
+			                        try { box.__uiGlmSparkResizeObs.disconnect(); } catch (_) {}
+			                        box.__uiGlmSparkResizeObs = null;
+			                    }
+			                    const ro = new ResizeObserver(() => {
+			                        try {
+			                            chart.applyOptions({ width: el.clientWidth, height: el.clientHeight });
+			                            chart.timeScale().fitContent();
+			                        } catch (_) {}
+			                    });
+			                    ro.observe(el);
+			                    box.__uiGlmSparkResizeObs = ro;
+			                });
+			            };
+
+			            const bindControls = () => {
+			                if (!levelsEl) return;
+			                levelsEl.querySelectorAll('input[type=\"checkbox\"][data-bh]').forEach(inp => {
+			                    inp.addEventListener('change', () => drawMain());
+			                });
+			            };
+
+			            bindControls();
+			            drawMain();
+			            drawSparks();
+			        }
+
 			        function parseBreadthMetricsFromReportHtml(sectionHtml) {
 			            try {
 			                const root = document.createElement('div');
@@ -4265,14 +4736,15 @@
 			            const normalizedSectionTitle = normalizeTitle(section.title);
 			            const isKeyLevelsSection = normalizedSectionTitle === 'MỨC GIÁ QUAN TRỌNG';
 			            const isTargetLevelsSection = normalizedSectionTitle === 'GIÁ MỤC TIÊU';
-			            const isTrendChartSection =
-			                normalizedSectionTitle === 'XU HƯỚNG GIÁ' ||
-			                normalizedSectionTitle === 'XU HƯỚNG KHỐI LƯỢNG';
-			            const isBreadthSentimentSection = normalizedSectionTitle === 'MARKET BREADTH & TÂM LÝ THỊ TRƯỜNG';
-			            const isPriceContextSection =
-			                normalizedSectionTitle.includes('WHAT-IF') ||
-			                normalizedSectionTitle === 'CUNG-CẦU' ||
-			                (normalizedSectionTitle.includes('MÔ HÌNH') && normalizedSectionTitle.includes('NẾN'));
+				            const isTrendChartSection =
+				                normalizedSectionTitle === 'XU HƯỚNG GIÁ' ||
+				                normalizedSectionTitle === 'XU HƯỚNG KHỐI LƯỢNG';
+				            const isBreadthSentimentSection = normalizedSectionTitle === 'MARKET BREADTH & TÂM LÝ THỊ TRƯỜNG';
+				            const isBreadthHistorySection = normalizedSectionTitle === 'LỊCH SỬ & XU HƯỚNG BREADTH';
+				            const isPriceContextSection =
+				                normalizedSectionTitle.includes('WHAT-IF') ||
+				                normalizedSectionTitle === 'CUNG-CẦU' ||
+				                (normalizedSectionTitle.includes('MÔ HÌNH') && normalizedSectionTitle.includes('NẾN'));
 			            const pricePanelMode =
 			                (normalizedSectionTitle.includes('MÔ HÌNH') && normalizedSectionTitle.includes('NẾN'))
 			                    ? 'candles'
@@ -4365,12 +4837,25 @@
 		                            ${panelHtml}
 		                        </div>
 		                    </div>
-		                `;
-		                setTimeout(() => initIndexOhlcvPanel(panelId, currentIndex), 0);
+			                `;
+			                setTimeout(() => initIndexOhlcvPanel(panelId, currentIndex), 0);
+			            } else if (isBreadthHistorySection) {
+			                const panelId = `breadthhist_${currentIndex}_${sectionIndex}`;
+			                const panelHtml = renderBreadthHistoryPanelHtml(panelId, currentIndex);
+			                contentDiv.innerHTML = `
+			                    <div class="section-card">
+			                        <div class="section-body">
+			                            ${formatter.format(cleanContent)}
+			                            <div style="height: 12px;"></div>
+			                            ${panelHtml}
+			                        </div>
+			                    </div>
+			                `;
+			                setTimeout(() => initBreadthHistoryPanel(panelId), 0);
 			            } else {
-		                const isMarketOverview =
-		                    currentIndex === 'overview' &&
-		                    normalizeTitle(section.title) === 'TỔNG QUAN THỊ TRƯỜNG';
+			                const isMarketOverview =
+			                    currentIndex === 'overview' &&
+			                    normalizeTitle(section.title) === 'TỔNG QUAN THỊ TRƯỜNG';
 		                const extras = isMarketOverview ? buildMarketOverviewExtrasHtml() : '';
 
 	                const isRanking =
