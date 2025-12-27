@@ -1896,20 +1896,22 @@
 	            color: rgba(226, 232, 240, 0.92);
 	        }
 
-	        .keylevels-panel {
-	            margin-top: 14px;
-	            border: 1px solid var(--glass-border);
-	            border-radius: 16px;
-	            background: rgba(255, 255, 255, 0.04);
-	            overflow: hidden;
-	            max-width: 760px;
-	            margin-left: auto;
-	            margin-right: auto;
-	        }
+		        .keylevels-panel,
+		        .targetlevels-panel {
+		            margin-top: 14px;
+		            border: 1px solid var(--glass-border);
+		            border-radius: 16px;
+		            background: rgba(255, 255, 255, 0.04);
+		            overflow: hidden;
+		            max-width: 760px;
+		            margin-left: auto;
+		            margin-right: auto;
+		        }
 
-	        [data-theme="dark"] .keylevels-panel {
-	            background: rgba(255, 255, 255, 0.02);
-	        }
+		        [data-theme="dark"] .keylevels-panel,
+		        [data-theme="dark"] .targetlevels-panel {
+		            background: rgba(255, 255, 255, 0.02);
+		        }
 
 	        .keylevels-toolbar {
 	            display: flex;
@@ -2029,10 +2031,10 @@
 	            height: 14px;
 	        }
 
-	        @media (max-width: 900px) {
-	            .keylevels-panel { max-width: 100%; }
-	            .keylevels-chart { height: 300px; }
-	        }
+		        @media (max-width: 900px) {
+		            .keylevels-panel, .targetlevels-panel { max-width: 100%; }
+		            .keylevels-chart { height: 300px; }
+		        }
     </style>
 </head>
 <body data-theme="light">
@@ -2109,26 +2111,33 @@
         body.setAttribute('data-theme', currentTheme);
         updateThemeIcon(currentTheme);
 
-	        themeToggle.addEventListener('click', () => {
-	            currentTheme = currentTheme === 'light' ? 'dark' : 'light';
-	            body.setAttribute('data-theme', currentTheme);
-	            localStorage.setItem('theme', currentTheme);
-	            updateThemeIcon(currentTheme);
-	            // Re-init trend charts to match theme
-	            document.querySelectorAll('.ohlcv-panel').forEach(panel => {
-	                const idxKey = panel.getAttribute('data-index-key');
-	                if (panel.id && idxKey) {
-	                    try { initIndexOhlcvPanel(panel.id, idxKey); } catch (_) {}
-	                }
-	            });
-	            document.querySelectorAll('.keylevels-panel').forEach(panel => {
-	                const idxKey = panel.getAttribute('data-index-key');
-	                if (panel.id && idxKey) {
-	                    const stored = (window.__uiGlmKeyLevelsStore || {})[panel.id];
-	                    try { initKeyLevelsPanel(panel.id, idxKey, stored ? stored.sectionHtml : ''); } catch (_) {}
-	                }
-	            });
-	        });
+		        themeToggle.addEventListener('click', () => {
+		            currentTheme = currentTheme === 'light' ? 'dark' : 'light';
+		            body.setAttribute('data-theme', currentTheme);
+		            localStorage.setItem('theme', currentTheme);
+		            updateThemeIcon(currentTheme);
+		            // Re-init trend charts to match theme
+		            document.querySelectorAll('.ohlcv-panel').forEach(panel => {
+		                const idxKey = panel.getAttribute('data-index-key');
+		                if (panel.id && idxKey) {
+		                    try { initIndexOhlcvPanel(panel.id, idxKey); } catch (_) {}
+		                }
+		            });
+		            document.querySelectorAll('.keylevels-panel').forEach(panel => {
+		                const idxKey = panel.getAttribute('data-index-key');
+		                if (panel.id && idxKey) {
+		                    const stored = (window.__uiGlmKeyLevelsStore || {})[panel.id];
+		                    try { initKeyLevelsPanel(panel.id, idxKey, stored ? stored.sectionHtml : ''); } catch (_) {}
+		                }
+		            });
+		            document.querySelectorAll('.targetlevels-panel').forEach(panel => {
+		                const idxKey = panel.getAttribute('data-index-key');
+		                if (panel.id && idxKey) {
+		                    const stored = (window.__uiGlmTargetLevelsStore || {})[panel.id];
+		                    try { initTargetLevelsPanel(panel.id, idxKey, stored ? stored.sectionHtml : ''); } catch (_) {}
+		                }
+		            });
+		        });
 
         function updateThemeIcon(theme) {
             themeToggle.textContent = theme === 'light' ? '🌙' : '☀️';
@@ -2900,9 +2909,9 @@
 		            `;
 		        }
 
-		        function initKeyLevelsPanel(panelId, indexKey, sectionHtml) {
-		            const panelEl = document.getElementById(panelId);
-		            if (!panelEl) return;
+			        function initKeyLevelsPanel(panelId, indexKey, sectionHtml) {
+			            const panelEl = document.getElementById(panelId);
+			            if (!panelEl) return;
 		            const payload = getIndexOhlcvPayload(indexKey);
 		            if (!payload) return;
 		            const chartEl = panelEl.querySelector('[data-role="chart"]');
@@ -3062,15 +3071,226 @@
 		                }
 		            };
 
-		            bindControls();
-		            draw();
-		        }
+			            bindControls();
+			            draw();
+			        }
 
-		        function renderIndexOhlcvPanelHtml(panelId, indexKey) {
-		            const payload = getIndexOhlcvPayload(indexKey);
-		            if (!payload) {
-		                return `<div class="info-box"><p>Không có dữ liệu OHLCV cho index này.</p></div>`;
-		            }
+			        function extractTargetPriceZonesFromHtml(html) {
+			            const base = extractKeyPriceZonesFromHtml(html);
+			            const keep = new Set(['H1', 'H2', 'R1', 'R2']);
+			            return (Array.isArray(base) ? base : []).filter(z => z && keep.has(z.label));
+			        }
+
+			        function renderTargetLevelsPanelHtml(panelId, indexKey) {
+			            const payload = getIndexOhlcvPayload(indexKey);
+			            if (!payload) {
+			                return `<div class="info-box"><p>Không có dữ liệu giá cho index này.</p></div>`;
+			            }
+			            const metaLeft = payload.asof ? `As-of: ${escapeHtml(payload.asof)}` : '';
+			            const metaRight = payload.name ? `Index: ${escapeHtml(payload.name)}` : '';
+			            return `
+			                <div class="targetlevels-panel" id="${panelId}" data-index-key="${escapeHtml(indexKey)}">
+			                    <div class="keylevels-toolbar">
+			                        <div class="title">Biểu đồ giá &amp; vùng mục tiêu</div>
+			                        <div class="keylevels-controls">
+			                            <div class="keylevels-segment" data-role="side">
+			                                <button class="keylevels-segbtn active" data-side="both" type="button">Cả hai</button>
+			                                <button class="keylevels-segbtn" data-side="support" type="button">Bên Mua</button>
+			                                <button class="keylevels-segbtn" data-side="resistance" type="button">Bên Bán</button>
+			                            </div>
+			                            <div class="keylevels-checks" data-role="levels">
+			                                ${['H1','H2','R1','R2'].map(l => `
+			                                    <label class="keylevels-check">
+			                                        <input type="checkbox" data-level="${l}" checked />
+			                                        <span>${l}</span>
+			                                    </label>
+			                                `).join('')}
+			                            </div>
+			                        </div>
+			                    </div>
+			                    <div class="keylevels-body">
+			                        <div class="keylevels-chart" data-role="chart"></div>
+			                        <div class="keylevels-tags" data-role="tags"></div>
+			                        <div class="ohlcv-meta" style="margin-top:10px;">
+			                            <div>${metaLeft}</div>
+			                            <div>${metaRight}</div>
+			                        </div>
+			                    </div>
+			                </div>
+			            `;
+			        }
+
+			        function initTargetLevelsPanel(panelId, indexKey, sectionHtml) {
+			            const panelEl = document.getElementById(panelId);
+			            if (!panelEl) return;
+			            const payload = getIndexOhlcvPayload(indexKey);
+			            if (!payload) return;
+			            const chartEl = panelEl.querySelector('[data-role="chart"]');
+			            const tagsEl = panelEl.querySelector('[data-role="tags"]');
+			            if (!chartEl || typeof LightweightCharts === 'undefined') return;
+
+			            const barsAll = payload.bars || [];
+			            const bars = barsAll.slice(-Math.min(200, barsAll.length));
+			            if (bars.length < 5) return;
+
+			            const allZones = extractTargetPriceZonesFromHtml(sectionHtml || '');
+
+			            const sideEl = panelEl.querySelector('[data-role="side"]');
+			            const levelsEl = panelEl.querySelector('[data-role="levels"]');
+			            const getSelectedSide = () => {
+			                const btn = sideEl ? sideEl.querySelector('.keylevels-segbtn.active') : null;
+			                const v = btn ? btn.getAttribute('data-side') : 'both';
+			                return v || 'both';
+			            };
+			            const getSelectedLevels = () => {
+			                const set = new Set();
+			                if (!levelsEl) return set;
+			                levelsEl.querySelectorAll('input[type="checkbox"][data-level]').forEach(inp => {
+			                    if (inp.checked) set.add(inp.getAttribute('data-level'));
+			                });
+			                return set;
+			            };
+
+			            const filterZones = () => {
+			                const side = getSelectedSide();
+			                const levels = getSelectedLevels();
+			                return allZones.filter(z => {
+			                    if (levels.size && !levels.has(z.label)) return false;
+			                    if (side === 'support') return z.kind === 'support';
+			                    if (side === 'resistance') return z.kind === 'resistance';
+			                    return true;
+			                });
+			            };
+
+			            const renderTags = (zones) => {
+			                if (!tagsEl) return;
+			                if (!zones.length) {
+			                    tagsEl.innerHTML = `<span class="keylevels-tag">Không trích xuất được H1–H2/R1–R2 từ báo cáo.</span>`;
+			                    return;
+			                }
+			                const toText = (z) => {
+			                    if (z.low != null && z.high != null) return `${z.label}: ${z.low.toLocaleString()}–${z.high.toLocaleString()}`;
+			                    return `${z.label}: ${(z.price ?? 0).toLocaleString()}`;
+			                };
+			                tagsEl.innerHTML = zones.map(z =>
+			                    `<span class="keylevels-tag ${z.kind}">${escapeHtml(toText(z))}</span>`
+			                ).join('');
+			            };
+
+			            const theme = document.body.getAttribute('data-theme') || 'light';
+			            const isDark = theme === 'dark';
+			            const chartBg = isDark ? 'rgba(2,6,23,0.0)' : 'rgba(255,255,255,0.0)';
+			            const textCol = isDark ? 'rgba(226,232,240,0.85)' : 'rgba(15,23,42,0.75)';
+			            const gridCol = isDark ? 'rgba(148,163,184,0.16)' : 'rgba(148,163,184,0.28)';
+
+			            const draw = () => {
+			                const zones = filterZones();
+			                renderTags(zones);
+
+			                if (panelEl.__uiGlmTargetChart) {
+			                    try { panelEl.__uiGlmTargetChart.remove(); } catch (_) {}
+			                    panelEl.__uiGlmTargetChart = null;
+			                }
+			                const chart = LightweightCharts.createChart(chartEl, {
+			                    layout: {
+			                        background: { type: 'solid', color: chartBg },
+			                        textColor: textCol,
+			                        fontFamily: '-apple-system, system-ui, Segoe UI, Roboto, Arial',
+			                        fontSize: 12,
+			                    },
+			                    grid: {
+			                        vertLines: { color: gridCol },
+			                        horzLines: { color: gridCol },
+			                    },
+			                    rightPriceScale: { borderVisible: false },
+			                    timeScale: { borderVisible: false, rightOffset: 6, fixLeftEdge: true, fixRightEdge: true },
+			                    crosshair: { mode: LightweightCharts.CrosshairMode.Magnet },
+			                    handleScroll: { mouseWheel: true, pressedMouseMove: true, horzTouchDrag: true, vertTouchDrag: false },
+			                    handleScale: { mouseWheel: true, pinch: true, axisPressedMouseMove: true },
+			                    height: chartEl.clientHeight || 380,
+			                    width: chartEl.clientWidth || 700,
+			                });
+			                panelEl.__uiGlmTargetChart = chart;
+
+			                const line = chart.addLineSeries({
+			                    color: isDark ? 'rgba(96,165,250,0.95)' : 'rgba(59,130,246,0.95)',
+			                    lineWidth: 2,
+			                });
+			                line.setData(bars.map(b => ({ time: b.d, value: b.c })));
+
+			                const makeLine = (price, color, title, axisVisible, width, style) => {
+			                    try {
+			                        return line.createPriceLine({
+			                            price,
+			                            color,
+			                            lineWidth: width,
+			                            lineStyle: style,
+			                            axisLabelVisible: axisVisible,
+			                            title: title || '',
+			                        });
+			                    } catch (_) {
+			                        return null;
+			                    }
+			                };
+
+			                const supportCol = 'rgba(16,185,129,0.92)';
+			                const resistCol = 'rgba(239,68,68,0.92)';
+
+			                for (const z of zones) {
+			                    const color = z.kind === 'support' ? supportCol : resistCol;
+			                    const style = LightweightCharts.LineStyle.Dashed;
+			                    if (z.low != null && z.high != null) {
+			                        const mid = (z.low + z.high) / 2;
+			                        makeLine(z.low, color.replace('0.92', '0.35'), '', false, 1, style);
+			                        makeLine(z.high, color.replace('0.92', '0.35'), '', false, 1, style);
+			                        makeLine(mid, color, z.label || '', true, 2, style);
+			                    } else if (z.price != null) {
+			                        makeLine(z.price, color, z.label || '', true, 2, style);
+			                    }
+			                }
+
+			                chart.timeScale().fitContent();
+
+			                if (panelEl.__uiGlmTargetResizeObs) {
+			                    try { panelEl.__uiGlmTargetResizeObs.disconnect(); } catch (_) {}
+			                    panelEl.__uiGlmTargetResizeObs = null;
+			                }
+			                const ro = new ResizeObserver(() => {
+			                    try {
+			                        chart.applyOptions({ width: chartEl.clientWidth, height: chartEl.clientHeight });
+			                        chart.timeScale().fitContent();
+			                    } catch (_) {}
+			                });
+			                ro.observe(chartEl);
+			                panelEl.__uiGlmTargetResizeObs = ro;
+			            };
+
+			            const bindControls = () => {
+			                if (sideEl) {
+			                    sideEl.querySelectorAll('.keylevels-segbtn[data-side]').forEach(btn => {
+			                        btn.addEventListener('click', () => {
+			                            sideEl.querySelectorAll('.keylevels-segbtn').forEach(b => b.classList.remove('active'));
+			                            btn.classList.add('active');
+			                            draw();
+			                        });
+			                    });
+			                }
+			                if (levelsEl) {
+			                    levelsEl.querySelectorAll('input[type="checkbox"][data-level]').forEach(inp => {
+			                        inp.addEventListener('change', () => draw());
+			                    });
+			                }
+			            };
+
+			            bindControls();
+			            draw();
+			        }
+
+			        function renderIndexOhlcvPanelHtml(panelId, indexKey) {
+			            const payload = getIndexOhlcvPayload(indexKey);
+			            if (!payload) {
+			                return `<div class="info-box"><p>Không có dữ liệu OHLCV cho index này.</p></div>`;
+			            }
 
 			            const metaLeft = payload.asof ? `As-of: ${escapeHtml(payload.asof)}` : '';
 			            const metaRight = payload.constituents ? `Constituents: ${escapeHtml(payload.constituents)} (${escapeHtml(payload.name)})` : '';
@@ -3415,12 +3635,13 @@
             const contentDiv = document.getElementById('singleSectionContent');
             contentDiv.style.display = 'block';
 
-		            const isUiHeatmapSection = section.__uiType === 'heatmap_gainers' || section.__uiType === 'heatmap_losers';
-		            const normalizedSectionTitle = normalizeTitle(section.title);
-		            const isKeyLevelsSection = normalizedSectionTitle === 'MỨC GIÁ QUAN TRỌNG';
-		            const isTrendChartSection =
-		                normalizedSectionTitle === 'XU HƯỚNG GIÁ' ||
-		                normalizedSectionTitle === 'XU HƯỚNG KHỐI LƯỢNG';
+			            const isUiHeatmapSection = section.__uiType === 'heatmap_gainers' || section.__uiType === 'heatmap_losers';
+			            const normalizedSectionTitle = normalizeTitle(section.title);
+			            const isKeyLevelsSection = normalizedSectionTitle === 'MỨC GIÁ QUAN TRỌNG';
+			            const isTargetLevelsSection = normalizedSectionTitle === 'GIÁ MỤC TIÊU';
+			            const isTrendChartSection =
+			                normalizedSectionTitle === 'XU HƯỚNG GIÁ' ||
+			                normalizedSectionTitle === 'XU HƯỚNG KHỐI LƯỢNG';
 
 	            // Clean and format content
 	            const formatter = new ContentFormatter();
@@ -3457,12 +3678,12 @@
 		                        </div>
 		                    </div>
 		                `;
-		            } else if (isKeyLevelsSection) {
-		                const panelId = `keylevels_${currentIndex}_${sectionIndex}`;
-		                const panelHtml = renderKeyLevelsPanelHtml(panelId, currentIndex);
+			            } else if (isKeyLevelsSection) {
+			                const panelId = `keylevels_${currentIndex}_${sectionIndex}`;
+			                const panelHtml = renderKeyLevelsPanelHtml(panelId, currentIndex);
 
-		                window.__uiGlmKeyLevelsStore = window.__uiGlmKeyLevelsStore || {};
-		                window.__uiGlmKeyLevelsStore[panelId] = { sectionHtml: cleanContent };
+			                window.__uiGlmKeyLevelsStore = window.__uiGlmKeyLevelsStore || {};
+			                window.__uiGlmKeyLevelsStore[panelId] = { sectionHtml: cleanContent };
 
 		                contentDiv.innerHTML = `
 		                    <div class="section-card">
@@ -3472,11 +3693,28 @@
 		                            ${panelHtml}
 		                        </div>
 		                    </div>
-		                `;
-		                setTimeout(() => initKeyLevelsPanel(panelId, currentIndex, cleanContent), 0);
-			            } else if (isTrendChartSection) {
-			                const panelId = `ohlcv_${currentIndex}_${sectionIndex}`;
-			                const panelHtml = renderIndexOhlcvPanelHtml(panelId, currentIndex);
+			                `;
+			                setTimeout(() => initKeyLevelsPanel(panelId, currentIndex, cleanContent), 0);
+			            } else if (isTargetLevelsSection) {
+			                const panelId = `targetlevels_${currentIndex}_${sectionIndex}`;
+			                const panelHtml = renderTargetLevelsPanelHtml(panelId, currentIndex);
+
+			                window.__uiGlmTargetLevelsStore = window.__uiGlmTargetLevelsStore || {};
+			                window.__uiGlmTargetLevelsStore[panelId] = { sectionHtml: cleanContent };
+
+			                contentDiv.innerHTML = `
+			                    <div class="section-card">
+			                        <div class="section-body">
+			                            ${formatter.format(cleanContent)}
+			                            <div style="height: 12px;"></div>
+			                            ${panelHtml}
+			                        </div>
+			                    </div>
+			                `;
+			                setTimeout(() => initTargetLevelsPanel(panelId, currentIndex, cleanContent), 0);
+				            } else if (isTrendChartSection) {
+				                const panelId = `ohlcv_${currentIndex}_${sectionIndex}`;
+				                const panelHtml = renderIndexOhlcvPanelHtml(panelId, currentIndex);
 
 		                contentDiv.innerHTML = `
 		                    <div class="section-card">
