@@ -1094,12 +1094,49 @@
 
         /* Responsive */
         @media (max-width: 768px) {
+            /* Mobile: make index + sections accessible (no hidden sidebar) */
             .dashboard {
-                grid-template-columns: 1fr;
+                display: flex;
+                flex-direction: column;
+                gap: 12px;
+                padding: 12px;
+                min-height: auto;
+            }
+
+            .sidebar,
+            .section-nav {
+                display: block;
+                position: relative;
+                top: auto;
+                height: auto;
+                overflow: visible;
             }
 
             .sidebar {
-                display: none;
+                padding: 14px 0;
+            }
+
+            .section-nav {
+                padding: 14px 0;
+            }
+
+            /* Put section list above content for faster flow: pick index → pick section → read */
+            .sidebar { order: 1; }
+            .section-nav { order: 2; }
+            .main-content { order: 3; }
+
+            /* Avoid nested 100vh scrolling containers on iOS */
+            .main-content {
+                height: auto;
+                overflow: visible;
+                padding: 16px;
+            }
+
+            .index-list,
+            #sectionList {
+                max-height: 52vh;
+                overflow: auto;
+                -webkit-overflow-scrolling: touch;
             }
 
             .metrics-grid {
@@ -6006,6 +6043,13 @@
             const contentDiv = document.getElementById('singleSectionContent');
             contentDiv.style.display = 'block';
 
+            // Mobile: after selecting a section, bring content into view.
+            try {
+                if (window.matchMedia && window.matchMedia('(max-width: 768px)').matches) {
+                    document.querySelector('.main-content')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }
+            } catch (_) {}
+
 			            const isUiHeatmapSection = section.__uiType === 'heatmap_gainers' || section.__uiType === 'heatmap_losers';
 			            const normalizedSectionTitle = normalizeTitle(section.title);
 			            const isKeyLevelsSection = normalizedSectionTitle === 'MỨC GIÁ QUAN TRỌNG';
@@ -6192,6 +6236,13 @@
 
             // Render section list
             renderSectionList(key);
+
+            // Mobile: after selecting an index, bring the section list into view.
+            try {
+                if (window.matchMedia && window.matchMedia('(max-width: 768px)').matches) {
+                    document.querySelector('.section-nav')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }
+            } catch (_) {}
 
             // Reset main content
             document.getElementById('pageTitle').textContent = 'Chọn mục phân tích để xem';
