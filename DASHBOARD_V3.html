@@ -293,6 +293,60 @@
             color: var(--text-secondary);
         }
 
+        .plan-toggle {
+            margin-top: 12px;
+            display: flex;
+            gap: 8px;
+            padding: 10px;
+            border-radius: 14px;
+            background: var(--lg-surface-ghost);
+            border: 1px solid var(--lg-glass-border);
+        }
+
+        .plan-btn {
+            flex: 1;
+            appearance: none;
+            -webkit-appearance: none;
+            border: 1px solid var(--lg-glass-border);
+            background: var(--lg-surface-semi);
+            color: var(--text-primary);
+            border-radius: 999px;
+            padding: 8px 10px;
+            font-weight: 900;
+            font-size: 0.82rem;
+            cursor: pointer;
+            transition: transform var(--motion-med) var(--motion-ease),
+                        box-shadow var(--motion-med) var(--motion-ease),
+                        border-color var(--motion-med) var(--motion-ease),
+                        background-color var(--motion-med) var(--motion-ease),
+                        color var(--motion-med) var(--motion-ease);
+        }
+
+        .plan-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: var(--shadow-sm);
+            border-color: color-mix(in srgb, var(--lg-glass-border) 60%, var(--text-primary) 10%);
+        }
+
+        .plan-btn.active {
+            background: linear-gradient(135deg, var(--primary-dark) 0%, var(--primary) 55%, var(--primary-light) 100%);
+            border-color: var(--primary-light);
+            color: var(--text-on-accent);
+            box-shadow: 0 14px 34px color-mix(in srgb, var(--primary) 34%, transparent);
+        }
+
+        .plan-btn:focus-visible {
+            outline: none;
+            box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary) 22%, transparent);
+        }
+
+        .plan-note {
+            margin-top: 8px;
+            font-size: 0.74rem;
+            color: var(--text-secondary);
+            line-height: 1.4;
+        }
+
         .search-box {
             padding: 0 20px 15px;
         }
@@ -3047,6 +3101,11 @@
             <div class="sidebar-header">
                 <h2>📊 Index</h2>
                 <div class="date">25/12/2025</div>
+                <div class="plan-toggle" role="group" aria-label="Chế độ xem">
+                    <button type="button" class="plan-btn" id="planLiteBtn">Lite</button>
+                    <button type="button" class="plan-btn" id="planProBtn">Pro</button>
+                </div>
+                <div class="plan-note" id="planNote"></div>
             </div>
 
             <div class="search-box">
@@ -3168,9 +3227,121 @@
         // Data từ full_data.js
         const data = FULL_DATA;
 
+        // ---------------------------
+        // Lite / Pro access control
+        // ---------------------------
+        const UI_GLM_PLAN = {
+            LITE: 'lite',
+            PRO: 'pro',
+        };
+
+        const UI_GLM_PLAN_PREF_KEY = 'ui_glm_plan_pref';
+        const UI_GLM_PRO_OK_KEY = 'ui_glm_pro_ok_session';
+        const UI_GLM_PRO_PASSWORD = 'Matkhau@123';
+
+        const UI_GLM_LITE_ALLOWED_INDICES = new Set(['overview', 'vnindex', 'vn30', 'vn100', 'vnmidcap']);
+        const UI_GLM_LITE_HIDDEN_SECTIONS = new Set([
+            'MÔ HÌNH GIÁ - MÔ HÌNH NẾN',
+            'MARKET BREADTH & TÂM LÝ THỊ TRƯỜNG',
+            'LỊCH SỬ & XU HƯỚNG BREADTH',
+        ].map(s => s.trim().toUpperCase()));
+
+        function getPlanPreference() {
+            const raw = (localStorage.getItem(UI_GLM_PLAN_PREF_KEY) || '').trim().toLowerCase();
+            return (raw === UI_GLM_PLAN.PRO) ? UI_GLM_PLAN.PRO : UI_GLM_PLAN.LITE;
+        }
+
+        function isProUnlocked() {
+            return sessionStorage.getItem(UI_GLM_PRO_OK_KEY) === '1';
+        }
+
+        function getEffectivePlan() {
+            const pref = getPlanPreference();
+            if (pref === UI_GLM_PLAN.PRO && isProUnlocked()) return UI_GLM_PLAN.PRO;
+            return UI_GLM_PLAN.LITE;
+        }
+
+        function setPlanPreference(plan) {
+            localStorage.setItem(UI_GLM_PLAN_PREF_KEY, plan === UI_GLM_PLAN.PRO ? UI_GLM_PLAN.PRO : UI_GLM_PLAN.LITE);
+        }
+
+        function renderPlanToggle() {
+            const plan = getEffectivePlan();
+            const pref = getPlanPreference();
+
+            const liteBtn = document.getElementById('planLiteBtn');
+            const proBtn = document.getElementById('planProBtn');
+            const noteEl = document.getElementById('planNote');
+            if (!liteBtn || !proBtn || !noteEl) return;
+
+            liteBtn.classList.toggle('active', plan === UI_GLM_PLAN.LITE);
+            proBtn.classList.toggle('active', plan === UI_GLM_PLAN.PRO);
+
+            if (pref === UI_GLM_PLAN.PRO && !isProUnlocked()) {
+                noteEl.textContent = 'Pro đang khóa. Nhấn Pro để nhập mật khẩu hoặc dùng Lite.';
+            } else if (plan === UI_GLM_PLAN.LITE) {
+                noteEl.textContent = 'Lite: chỉ xem Tổng hợp + 4 chỉ số chính, ẩn một số mục nâng cao.';
+            } else {
+                noteEl.textContent = 'Pro: xem đầy đủ (đã mở khóa phiên này).';
+            }
+        }
+
+        function requestProUnlock() {
+            const pwd = prompt('Nhập mật khẩu để xem bản Pro:');
+            if (pwd === UI_GLM_PRO_PASSWORD) {
+                sessionStorage.setItem(UI_GLM_PRO_OK_KEY, '1');
+                setPlanPreference(UI_GLM_PLAN.PRO);
+                applyPlanToUi();
+                return true;
+            }
+
+            alert('Sai mật khẩu. Gợi ý: bạn có thể xem bản Lite.');
+            sessionStorage.removeItem(UI_GLM_PRO_OK_KEY);
+            setPlanPreference(UI_GLM_PLAN.LITE);
+            applyPlanToUi();
+            return false;
+        }
+
+        function isIndexAllowedForCurrentPlan(indexKey) {
+            const plan = getEffectivePlan();
+            if (plan === UI_GLM_PLAN.PRO) return true;
+            return UI_GLM_LITE_ALLOWED_INDICES.has(String(indexKey || '').trim().toLowerCase());
+        }
+
+        function filterSectionsForCurrentPlan(sections) {
+            const plan = getEffectivePlan();
+            if (plan === UI_GLM_PLAN.PRO) return sections || [];
+
+            return (sections || []).filter(s => {
+                const title = normalizeTitle(s && s.title ? s.title : '');
+                return !UI_GLM_LITE_HIDDEN_SECTIONS.has(title);
+            });
+        }
+
+        function applyPlanToUi() {
+            renderPlanToggle();
+            renderSidebar();
+
+            if (currentIndex && !isIndexAllowedForCurrentPlan(currentIndex)) {
+                currentIndex = null;
+                currentSectionIndex = null;
+            }
+
+            // Re-render right section list based on current selection (if any).
+            if (currentIndex && isIndexAllowedForCurrentPlan(currentIndex)) {
+                renderSectionList(currentIndex);
+            } else {
+                document.getElementById('sectionList').innerHTML = '<div class="no-sections">Chọn chỉ số để xem</div>';
+                document.getElementById('sectionNavTitle').textContent = 'Mục phân tích';
+                document.getElementById('pageTitle').textContent = 'Chọn chỉ số và mục để xem';
+                document.getElementById('emptyState').style.display = 'block';
+                document.getElementById('singleSectionContent').style.display = 'none';
+            }
+        }
+
         // Render sidebar
         function renderSidebar() {
-            const indices = [
+            const all = [
                 { key: 'overview', name: 'TỔNG HỢP' },
                 { key: 'vnindex', name: 'VNINDEX' },
                 { key: 'vn30', name: 'VN30' },
@@ -3188,6 +3359,8 @@
                 { key: 'vnfinselect', name: 'VNFINSELECT' },
                 { key: 'vndiamond', name: 'VNDIAMOND' }
             ];
+
+            const indices = all.filter(i => isIndexAllowedForCurrentPlan(i.key));
 
             const container = document.getElementById('indexList');
             container.innerHTML = indices.map(idx => `
@@ -3506,7 +3679,7 @@
 
 	        function getSectionsForIndex(indexKey) {
 	            const indexData = data[indexKey];
-	            const base = processSections(indexData);
+	            const base = filterSectionsForCurrentPlan(processSections(indexData));
 	            if (!indexKey || indexKey === 'overview' || indexKey === 'vnindex') return base;
 
 	            const payload = getIndexHeatmapPayload(indexKey);
@@ -5351,6 +5524,8 @@
 	                const indexKey = (params.get('index') || '').trim();
 	                if (!indexKey) return;
 
+	                if (!isIndexAllowedForCurrentPlan(indexKey)) return;
+
 	                const sectionIndexRaw = params.get('section');
 	                const sectionTitleRaw = params.get('sectionTitle');
 
@@ -5645,6 +5820,18 @@
 
         // Select index (left sidebar)
         function selectIndex(key) {
+            if (!isIndexAllowedForCurrentPlan(key)) {
+                // Suggest Lite if Pro is locked.
+                const pref = getPlanPreference();
+                if (pref === UI_GLM_PLAN.PRO && !isProUnlocked()) {
+                    const ok = confirm('Bản Pro đang khóa. Bạn muốn nhập mật khẩu để xem Pro không?');
+                    if (ok) requestProUnlock();
+                } else {
+                    alert('Chỉ số này không có trong bản Lite. Vui lòng chọn Pro để xem đầy đủ.');
+                }
+                return;
+            }
+
             currentIndex = key;
             currentSectionIndex = null;
 
@@ -5673,7 +5860,19 @@
         });
 
 			        // Initialize
-			        renderSidebar();
+			        // Plan toggle wiring
+			        document.getElementById('planLiteBtn')?.addEventListener('click', () => {
+			            sessionStorage.removeItem(UI_GLM_PRO_OK_KEY);
+			            setPlanPreference(UI_GLM_PLAN.LITE);
+			            applyPlanToUi();
+			        });
+			        document.getElementById('planProBtn')?.addEventListener('click', () => {
+			            setPlanPreference(UI_GLM_PLAN.PRO);
+			            if (!isProUnlocked()) requestProUnlock();
+			            else applyPlanToUi();
+			        });
+
+			        applyPlanToUi();
 			        setTimeout(() => {
 			            tryAutoSelectFromUrl();
 			            tryAutoOpenStockPopupFromUrl();
