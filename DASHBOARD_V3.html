@@ -961,7 +961,16 @@
         }
 
         /* Section Boxes */
-        .conclusion-box, .evidence-box, .conditions-box {
+        .conclusion-box,
+        .evidence-box,
+        .conditions-box,
+        .action-box,
+        .risk-box,
+        .levels-box,
+        .scenario-box,
+        .confidence-box,
+        .metrics-box,
+        .hero-box {
             display: flex;
             align-items: center;
             gap: 12px;
@@ -1098,6 +1107,204 @@
             font-weight: 600;
             color: var(--warning);
         }
+
+        /* ACTION BOX - recommendations & next steps */
+	        .action-box {
+	            background: linear-gradient(135deg,
+	                color-mix(in srgb, var(--primary) 14%, transparent) 0%,
+	                color-mix(in srgb, var(--indigo) 10%, transparent) 100%
+	            );
+	            border-left: 5px solid var(--primary);
+	        }
+
+	        .action-box .action-icon {
+	            font-size: 1.4rem;
+	            width: 38px;
+	            height: 38px;
+	            display: flex;
+	            align-items: center;
+	            justify-content: center;
+	            border-radius: 10px;
+	            background: linear-gradient(135deg,
+	                color-mix(in srgb, var(--primary) 22%, transparent) 0%,
+	                color-mix(in srgb, var(--indigo) 12%, transparent) 100%
+	            );
+	            flex-shrink: 0;
+	        }
+
+	        .action-box .action-text {
+	            font-weight: 650;
+	            color: var(--text-primary);
+	        }
+
+        /* RISK BOX - warnings, stop-loss, black swan */
+	        .risk-box {
+	            background: linear-gradient(135deg,
+	                color-mix(in srgb, var(--danger) 14%, transparent) 0%,
+	                color-mix(in srgb, var(--warning) 8%, transparent) 100%
+	            );
+	            border-left: 5px solid var(--danger);
+	        }
+
+	        .risk-box .risk-icon {
+	            font-size: 1.4rem;
+	            width: 38px;
+	            height: 38px;
+	            display: flex;
+	            align-items: center;
+	            justify-content: center;
+	            border-radius: 10px;
+	            background: linear-gradient(135deg,
+	                color-mix(in srgb, var(--danger) 22%, transparent) 0%,
+	                color-mix(in srgb, var(--warning) 12%, transparent) 100%
+	            );
+	            flex-shrink: 0;
+	        }
+
+	        .risk-box .risk-text {
+	            font-weight: 650;
+	            color: var(--danger);
+	        }
+
+        /* LEVELS BOX - support/resistance, MA/VWAP/POC */
+	        .levels-box {
+	            background: linear-gradient(135deg,
+	                color-mix(in srgb, var(--primary) 10%, transparent) 0%,
+	                color-mix(in srgb, var(--text-primary) 4%, transparent) 100%
+	            );
+	            border-left: 5px solid color-mix(in srgb, var(--primary) 65%, transparent);
+	        }
+
+	        .levels-box .levels-icon {
+	            font-size: 1.4rem;
+	            width: 38px;
+	            height: 38px;
+	            display: flex;
+	            align-items: center;
+	            justify-content: center;
+	            border-radius: 10px;
+	            background: linear-gradient(135deg,
+	                color-mix(in srgb, var(--primary) 20%, transparent) 0%,
+	                color-mix(in srgb, var(--primary-light) 12%, transparent) 100%
+	            );
+	            flex-shrink: 0;
+	        }
+
+	        .levels-box .levels-text {
+	            font-weight: 650;
+	            color: var(--text-primary);
+	        }
+
+        /* SCENARIO BOX - what-if + probabilities */
+	        .scenario-box {
+	            background: linear-gradient(135deg,
+	                color-mix(in srgb, var(--indigo) 14%, transparent) 0%,
+	                color-mix(in srgb, var(--purple) 10%, transparent) 100%
+	            );
+	            border-left: 5px solid var(--indigo);
+	        }
+
+	        .scenario-box .scenario-icon {
+	            font-size: 1.4rem;
+	            width: 38px;
+	            height: 38px;
+	            display: flex;
+	            align-items: center;
+	            justify-content: center;
+	            border-radius: 10px;
+	            background: linear-gradient(135deg,
+	                color-mix(in srgb, var(--indigo) 22%, transparent) 0%,
+	                color-mix(in srgb, var(--purple) 14%, transparent) 100%
+	            );
+	            flex-shrink: 0;
+	        }
+
+	        .scenario-box .scenario-text {
+	            font-weight: 650;
+	            color: var(--text-primary);
+	        }
+
+        /* CONFIDENCE BOX - confidence/quality badges */
+	        .confidence-box {
+	            background: linear-gradient(135deg,
+	                color-mix(in srgb, var(--success) 12%, transparent) 0%,
+	                color-mix(in srgb, var(--success) 6%, transparent) 100%
+	            );
+	            border-left: 5px solid var(--success);
+	        }
+
+	        .confidence-box .confidence-icon {
+	            font-size: 1.4rem;
+	            width: 38px;
+	            height: 38px;
+	            display: flex;
+	            align-items: center;
+	            justify-content: center;
+	            border-radius: 10px;
+	            background: linear-gradient(135deg,
+	                color-mix(in srgb, var(--success) 20%, transparent) 0%,
+	                color-mix(in srgb, var(--success) 10%, transparent) 100%
+	            );
+	            flex-shrink: 0;
+	        }
+
+	        .confidence-box .confidence-text {
+	            font-weight: 650;
+	            color: var(--success);
+	        }
+
+        /* METRICS BOX - A/D, TRIN, Volume Ratio snapshot */
+	        .metrics-box {
+	            background: color-mix(in srgb, var(--lg-surface-ghost) 70%, transparent 30%);
+	            border: 1px solid var(--lg-glass-border);
+	            box-shadow: var(--shadow-sm);
+	        }
+
+	        .metrics-box .metrics-icon {
+	            font-size: 1.4rem;
+	            width: 38px;
+	            height: 38px;
+	            display: flex;
+	            align-items: center;
+	            justify-content: center;
+	            border-radius: 10px;
+	            background: color-mix(in srgb, var(--lg-surface-semi) 65%, transparent);
+	            flex-shrink: 0;
+	        }
+
+	        .metrics-box .metrics-text {
+	            font-weight: 650;
+	            color: var(--text-primary);
+	        }
+
+        /* HERO BOX - one-line high-signal headline */
+	        .hero-box {
+	            background: linear-gradient(135deg,
+	                color-mix(in srgb, var(--indigo) 18%, transparent) 0%,
+	                color-mix(in srgb, var(--primary) 10%, transparent) 100%
+	            );
+	            border: 1px solid color-mix(in srgb, var(--indigo) 30%, transparent);
+	            box-shadow: 0 12px 40px color-mix(in srgb, var(--indigo) 16%, transparent);
+	        }
+
+	        .hero-box .hero-icon {
+	            font-size: 1.5rem;
+	            width: 40px;
+	            height: 40px;
+	            display: flex;
+	            align-items: center;
+	            justify-content: center;
+	            border-radius: 12px;
+	            background: linear-gradient(135deg, var(--indigo) 0%, var(--primary) 100%);
+	            color: var(--text-on-accent);
+	            flex-shrink: 0;
+	        }
+
+	        .hero-box .hero-text {
+	            font-weight: 750;
+	            color: var(--text-primary);
+	            letter-spacing: 0.2px;
+	        }
 
         /* Fallback for old class names */
         .conclusion-icon, .evidence-icon, .conditions-icon {

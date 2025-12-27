@@ -21,11 +21,149 @@ class ContentFormatter {
             bearish: /\bgiảm\b|bearish|negative|áp lực|\bbán\b|tháo chạy|\bđiều chỉnh\b|yếu(?!\s*tố)|xấu/gi,
             warning: /\bcảnh báo\b|rủi ro|thận trọng|canh giác|nguy hiểm/gi,
 
-            // Section markers
-            conclusion: /kết\s+luận\s*:/gmi,
-            evidence: /^dẫn chứng|^ý nghĩa/gi,
-            conditions: /^điều kiện/gmi
+            // Section markers (non-global to avoid RegExp.lastIndex bugs)
+            conclusion: /^kết\s+luận\s*:/mi,
+            conclusionShort: /^kết\s+luận\s+ngắn\s*:/mi,
+            evidence: /^dẫn\s+chứng\b/mi,
+            action: /^(ý\s+nghĩa(?:\/hành\s+động)?|hành\s+động\s+đề\s+xuất)\s*:/mi,
+            invalidation: /^điều\s+kiện\s+(khiến\s+kết\s+luận\s+sai|sai)\s*:/mi,
+            risk: /^(rủi\s+ro|cảnh\s+báo\s+rủi\s+ro)\s*:/mi,
+            levels: /^(hỗ\s+trợ|kháng\s+cự|hỗ\s+trợ\s+then\s+chốt|mức\s+quan\s+trọng\s+cần\s+theo\s+dõi)\s*:/mi,
+            scenario: /^kịch\s+bản\b/mi,
+            confidence: /^(mức\s+độ\s+tự\s+tin|độ\s+tin\s+cậy)\s*:/mi,
+            metrics: /^độ\s+rộng\s*:/mi
         };
+    }
+
+    stripTagsUnsafe(html) {
+        return String(html || '').replace(/<[^>]*>/g, '');
+    }
+
+    escapeRegExp(str) {
+        return String(str).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    }
+
+    stripPrefix(htmlText, prefix) {
+        const re = new RegExp(`^\\s*${this.escapeRegExp(prefix)}\\s*`, 'i');
+        return htmlText.replace(re, '');
+    }
+
+    isAllCapsHeadline(rawLine) {
+        const line = (rawLine || '').trim();
+        if (line.length < 10 || line.length > 120) return false;
+        if (/^PHẦN\s+[IVX]+\b/i.test(line)) return false;
+
+        // Consider only letter characters for all-caps detection.
+        const letters = line.replace(/[^\p{L}]+/gu, '');
+        if (letters.length < 6) return false;
+        return letters === letters.toUpperCase();
+    }
+
+    renderCallout({ boxClass, icon, iconClass, textClass }, htmlText) {
+        return `<div class="${boxClass}">
+            <span class="${iconClass}">${icon}</span>
+            <span class="${textClass}">${htmlText}</span>
+        </div>`;
+    }
+
+    tryRenderCalloutParagraph(htmlParagraph) {
+        const raw = this.stripTagsUnsafe(htmlParagraph).trim();
+        if (!raw) return null;
+
+        // HERO: quoted headline or all-caps headline.
+        if ((raw.startsWith('"') && raw.endsWith('"') && raw.length <= 140) || this.isAllCapsHeadline(raw)) {
+            const cleaned = raw.startsWith('"') && raw.endsWith('"') ? raw.slice(1, -1).trim() : htmlParagraph;
+            return this.renderCallout(
+                { boxClass: 'hero-box', icon: '✨', iconClass: 'hero-icon', textClass: 'hero-text' },
+                cleaned
+            );
+        }
+
+        if (this.patterns.conclusionShort.test(raw)) {
+            const body = this.stripPrefix(htmlParagraph, 'Kết luận ngắn:');
+            return this.renderCallout(
+                { boxClass: 'conclusion-box', icon: '📌', iconClass: 'conclusion-icon', textClass: 'conclusion-text' },
+                body
+            );
+        }
+
+        if (this.patterns.conclusion.test(raw)) {
+            const body = this.stripPrefix(htmlParagraph, 'Kết luận:');
+            return this.renderCallout(
+                { boxClass: 'conclusion-box', icon: '📌', iconClass: 'conclusion-icon', textClass: 'conclusion-text' },
+                body
+            );
+        }
+
+        if (this.patterns.action.test(raw)) {
+            // Prefer the more specific prefix first.
+            let body = htmlParagraph;
+            body = this.stripPrefix(body, 'Ý nghĩa/Hành động:');
+            body = this.stripPrefix(body, 'Ý nghĩa:');
+            body = this.stripPrefix(body, 'Hành động đề xuất:');
+            return this.renderCallout(
+                { boxClass: 'action-box', icon: '🎯', iconClass: 'action-icon', textClass: 'action-text' },
+                body
+            );
+        }
+
+        if (this.patterns.risk.test(raw) || /\b(Black\s+Swan|RỦI\s+RO\s+LỚN|Tuyệt\s+đối|cắt\s+lỗ|stop-?loss)\b/i.test(raw)) {
+            let body = htmlParagraph;
+            body = this.stripPrefix(body, 'Rủi ro:');
+            body = this.stripPrefix(body, 'Cảnh báo rủi ro:');
+            return this.renderCallout(
+                { boxClass: 'risk-box', icon: '⛔', iconClass: 'risk-icon', textClass: 'risk-text' },
+                body
+            );
+        }
+
+        if (this.patterns.invalidation.test(raw) || /^3\s+điều\s+kiện\b/i.test(raw)) {
+            let body = htmlParagraph;
+            body = this.stripPrefix(body, 'Điều kiện khiến kết luận sai:');
+            body = this.stripPrefix(body, 'Điều kiện sai:');
+            return this.renderCallout(
+                { boxClass: 'conditions-box', icon: '⚠️', iconClass: 'conditions-icon', textClass: 'conditions-text' },
+                body
+            );
+        }
+
+        if (this.patterns.levels.test(raw) || /\b(H\d|R\d|MA\d+|VWAP\d*|POC|Value\s+Area|HVN)\b/i.test(raw)) {
+            return this.renderCallout(
+                { boxClass: 'levels-box', icon: '🎯', iconClass: 'levels-icon', textClass: 'levels-text' },
+                htmlParagraph
+            );
+        }
+
+        if (this.patterns.scenario.test(raw) || /\bXác\s+suất\b/i.test(raw)) {
+            return this.renderCallout(
+                { boxClass: 'scenario-box', icon: '🎲', iconClass: 'scenario-icon', textClass: 'scenario-text' },
+                htmlParagraph
+            );
+        }
+
+        if (this.patterns.confidence.test(raw) || /\b\d+\s*\/\s*10\b/.test(raw) || /\b\d{1,3}\s*%\b/.test(raw)) {
+            return this.renderCallout(
+                { boxClass: 'confidence-box', icon: '✅', iconClass: 'confidence-icon', textClass: 'confidence-text' },
+                htmlParagraph
+            );
+        }
+
+        if (this.patterns.metrics.test(raw) || /\b(TRIN|A\/D|Volume\s+Ratio|52W)\b/i.test(raw)) {
+            return this.renderCallout(
+                { boxClass: 'metrics-box', icon: '📊', iconClass: 'metrics-icon', textClass: 'metrics-text' },
+                htmlParagraph
+            );
+        }
+
+        if (this.patterns.evidence.test(raw)) {
+            const body = this.stripPrefix(htmlParagraph, 'Dẫn chứng:');
+            return this.renderCallout(
+                { boxClass: 'evidence-box', icon: '📊', iconClass: 'evidence-icon', textClass: 'evidence-text' },
+                body
+            );
+        }
+
+        return null;
     }
 
     // Format content với visual elements
@@ -54,9 +192,6 @@ class ContentFormatter {
 
         // Add color coding
         formatted = this.colorCode(formatted);
-
-        // Format sections
-        formatted = this.formatSections(formatted);
 
         return formatted;
     }
@@ -202,6 +337,7 @@ class ContentFormatter {
         return paragraphs.map(para => {
             // Check if it's a numbered list
             const lines = para.split('\n');
+            const nonEmptyLines = lines.map(l => l.trim()).filter(Boolean);
 
             // Check for numbered items
             if (lines.some(line => /^\d+\.\s/.test(line))) {
@@ -257,7 +393,12 @@ class ContentFormatter {
                 }).join('')}</div>`;
             }
 
-            // Regular paragraph
+            // Regular paragraph (single-line callouts)
+            if (nonEmptyLines.length === 1) {
+                const callout = this.tryRenderCalloutParagraph(this.formatInline(nonEmptyLines[0]));
+                if (callout) return callout;
+            }
+
             return `<p class="content-paragraph">${this.formatInline(para)}</p>`;
         }).join('\n\n');
     }
@@ -282,35 +423,8 @@ class ContentFormatter {
         return text;
     }
 
-    formatSections(text) {
-        const lines = text.split('\n');
-
-        return lines.map(line => {
-            const trimmedLine = line.trim();
-
-            // Section headers - Enhanced with icons and backgrounds
-            if (this.patterns.conclusion.test(trimmedLine)) {
-                return `<div class="conclusion-box">
-                    <span class="conclusion-icon">📌</span>
-                    <span class="conclusion-text">${trimmedLine.replace(/^Kết luận:\s*/i, '')}</span>
-                </div>`;
-            }
-            if (this.patterns.evidence.test(trimmedLine)) {
-                return `<div class="evidence-box">
-                    <span class="evidence-icon">📊</span>
-                    <span class="evidence-text">${trimmedLine}</span>
-                </div>`;
-            }
-            if (this.patterns.conditions.test(trimmedLine)) {
-                return `<div class="conditions-box">
-                    <span class="conditions-icon">⚠️</span>
-                    <span class="conditions-text">${trimmedLine}</span>
-                </div>`;
-            }
-
-            return line;
-        }).join('\n');
-    }
+    // Kept for backward compatibility; callouts are now handled in `formatLists()`.
+    formatSections(text) { return text; }
 }
 
 // Export để dùng trong DASHBOARD
