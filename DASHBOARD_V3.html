@@ -2704,113 +2704,147 @@
 		            };
 		        }
 
-		        function extractKeyPriceZonesFromHtml(html) {
-		            const el = document.createElement('div');
-		            el.innerHTML = html || '';
-		            const text = (el.textContent || '').replace(/\s+/g, ' ').trim();
-		            if (!text) return [];
+			        function extractKeyPriceZonesFromHtml(html) {
+			            const el = document.createElement('div');
+			            el.innerHTML = html || '';
+			            const text = (el.textContent || '').replace(/\s+/g, ' ').trim();
+			            if (!text) return [];
 
-		            const parseNumber = (raw) => {
-		                if (!raw) return null;
-		                let s = String(raw).trim();
-		                s = s.replace(/\s/g, '');
-		                s = s.replace(/[()]/g, '');
-		                // remove trailing non-numeric markers
-		                s = s.replace(/[^0-9,.\-–~]/g, '');
-		                if (!s) return null;
+			            const parseNumber = (raw) => {
+			                if (!raw) return null;
+			                let s = String(raw).trim();
+			                s = s.replace(/\s/g, '');
+			                s = s.replace(/[()]/g, '');
+			                s = s.replace(/[^0-9,.\-–~]/g, '');
+			                if (!s) return null;
 
-		                // handle ranges elsewhere; this is single number parsing
-		                // heuristic for thousands/decimals (VN: 1,750.25 or 1.750,25)
-		                const hasComma = s.includes(',');
-		                const hasDot = s.includes('.');
-		                if (hasComma && hasDot) {
-		                    // assume comma thousands, dot decimals
-		                    s = s.replace(/,/g, '');
-		                } else if (hasComma && !hasDot) {
-		                    const parts = s.split(',');
-		                    const last = parts[parts.length - 1] || '';
-		                    // if last group looks like decimals (not 3 digits), treat comma as decimal separator
-		                    if (last.length !== 3) s = s.replace(/,/g, '.');
-		                    else s = s.replace(/,/g, '');
-		                } else if (!hasComma && hasDot) {
-		                    const parts = s.split('.');
-		                    const last = parts[parts.length - 1] || '';
-		                    // if groups are thousands-like, strip dots
-		                    if (last.length === 3 && parts.length > 1) s = s.replace(/\./g, '');
-		                }
-		                const v = Number(s);
-		                return Number.isFinite(v) ? v : null;
-		            };
+			                const hasComma = s.includes(',');
+			                const hasDot = s.includes('.');
+			                if (hasComma && hasDot) {
+			                    s = s.replace(/,/g, '');
+			                } else if (hasComma && !hasDot) {
+			                    const parts = s.split(',');
+			                    const last = parts[parts.length - 1] || '';
+			                    if (last.length !== 3) s = s.replace(/,/g, '.');
+			                    else s = s.replace(/,/g, '');
+			                } else if (!hasComma && hasDot) {
+			                    const parts = s.split('.');
+			                    const last = parts[parts.length - 1] || '';
+			                    if (last.length === 3 && parts.length > 1) s = s.replace(/\./g, '');
+			                }
+			                const v = Number(s);
+			                return Number.isFinite(v) ? v : null;
+			            };
 
-		            const parseRange = (raw) => {
-		                if (!raw) return null;
-		                const s = String(raw).replace(/[–~]/g, '-');
-		                const m = s.match(/([0-9][0-9,.\s]*)\s*-\s*([0-9][0-9,.\s]*)/);
-		                if (!m) return null;
-		                const a = parseNumber(m[1]);
-		                const b = parseNumber(m[2]);
-		                if (a == null || b == null) return null;
-		                const low = Math.min(a, b);
-		                const high = Math.max(a, b);
-		                if (!Number.isFinite(low) || !Number.isFinite(high) || low === high) return null;
-		                return { low, high };
-		            };
+			            const parseRange = (raw) => {
+			                if (!raw) return null;
+			                const s = String(raw).replace(/[–~]/g, '-');
+			                const m = s.match(/([0-9][0-9,.\s]*)\s*(?:-|đến|to)\s*([0-9][0-9,.\s]*)/i);
+			                if (!m) return null;
+			                const a = parseNumber(m[1]);
+			                const b = parseNumber(m[2]);
+			                if (a == null || b == null) return null;
+			                const low = Math.min(a, b);
+			                const high = Math.max(a, b);
+			                if (!Number.isFinite(low) || !Number.isFinite(high) || low === high) return null;
+			                return { low, high };
+			            };
 
-		            const zones = [];
-		            const pushZone = (z) => {
-		                if (!z) return;
-		                const key = `${z.kind}|${z.label}|${z.low ?? ''}|${z.high ?? ''}|${z.price ?? ''}`;
-		                if (zones.__seen && zones.__seen.has(key)) return;
-		                zones.__seen = zones.__seen || new Set();
-		                zones.__seen.add(key);
-		                zones.push(z);
-		            };
+			            const zones = [];
+			            const pushZone = (z) => {
+			                if (!z) return;
+			                const key = `${z.kind}|${z.label}|${z.low ?? ''}|${z.high ?? ''}|${z.price ?? ''}`;
+			                zones.__seen = zones.__seen || new Set();
+			                if (zones.__seen.has(key)) return;
+			                zones.__seen.add(key);
+			                zones.push(z);
+			            };
 
-		            // H1/R1 structured patterns inside this section (high confidence)
-		            const hrRe = /(?:^|\\b)(H|R)\\s*(\\d{1,2})\\s*\\(([^)]{1,80})\\)/gi;
-		            let m;
-		            while ((m = hrRe.exec(text)) !== null) {
-		                const kind = (m[1] || '').toUpperCase() === 'H' ? 'support' : 'resistance';
-		                const label = `${(m[1] || '').toUpperCase()}${m[2] || ''}`;
-		                const inside = (m[3] || '').trim();
-		                const range = parseRange(inside);
-		                if (range) {
-		                    pushZone({ kind, label, low: range.low, high: range.high });
-		                } else {
-		                    const n = parseNumber(inside);
-		                    if (n != null) pushZone({ kind, label, price: n });
-		                }
-		            }
+			            const detectKind = (frag) => {
+			                const s = String(frag || '').toLowerCase();
+			                const hasSupport = s.includes('hỗ trợ') || s.includes('support') || /\bh\d{1,2}\b/i.test(frag || '');
+			                const hasRes = s.includes('kháng cự') || s.includes('resistance') || /\br\d{1,2}\b/i.test(frag || '');
+			                if (hasSupport && !hasRes) return 'support';
+			                if (hasRes && !hasSupport) return 'resistance';
+			                if (hasSupport && hasRes) return 'neutral';
+			                // Upside/Downside hints
+			                if (s.includes('downside') || s.includes('cắt lỗ')) return 'support';
+			                if (s.includes('upside') || s.includes('chốt lời')) return 'resistance';
+			                return 'neutral';
+			            };
 
-		            // Fallback within the section: "Hỗ trợ ...", "Kháng cự ..." sentences
-		            const kwRe = /(Hỗ trợ|Kháng cự)\\s*(?:then chốt|chính|gần|mạnh)?\\s*(?:tại|:)?\\s*([^\\.]{0,140})/gi;
-		            while ((m = kwRe.exec(text)) !== null) {
-		                const kind = (m[1] || '').toLowerCase().includes('hỗ') ? 'support' : 'resistance';
-		                const frag = m[2] || '';
-		                const r = parseRange(frag);
-		                if (r) pushZone({ kind, label: kind === 'support' ? 'H' : 'R', low: r.low, high: r.high });
-		                const nums = frag.match(/[0-9][0-9,\\.]{1,}/g) || [];
-		                for (const rawNum of nums.slice(0, 6)) {
-		                    const n = parseNumber(rawNum);
-		                    if (n != null) pushZone({ kind, label: kind === 'support' ? 'H' : 'R', price: n });
-		                }
-		            }
+			            // 1) H1/R1 patterns with or without parentheses
+			            const hrRe = /(?:^|\\b)(H|R)\\s*(\\d{1,2})\\s*(?:\\(|:)?\\s*([0-9][0-9,.\s]*)(?:\\s*[–~\\-]\\s*([0-9][0-9,.\s]*))?/gi;
+			            let m;
+			            while ((m = hrRe.exec(text)) !== null) {
+			                const kind = (m[1] || '').toUpperCase() === 'H' ? 'support' : 'resistance';
+			                const label = `${(m[1] || '').toUpperCase()}${m[2] || ''}`;
+			                const a = parseNumber(m[3]);
+			                const b = parseNumber(m[4]);
+			                if (a != null && b != null) pushZone({ kind, label, low: Math.min(a, b), high: Math.max(a, b) });
+			                else if (a != null) pushZone({ kind, label, price: a });
+			            }
 
-		            // cleanup helper property
-		            if (zones.__seen) delete zones.__seen;
+			            // 2) Keyword-based sentences (support/resistance)
+			            const kwRe = /(Hỗ trợ|Kháng cự|Support|Resistance)\\b[^\\.]{0,200}/gi;
+			            while ((m = kwRe.exec(text)) !== null) {
+			                const frag = m[0] || '';
+			                const kind = detectKind(frag);
+			                // extract all ranges first
+			                const rangeRe = /([0-9][0-9,.\s]*)\\s*[–~\\-]\\s*([0-9][0-9,.\s]*)/g;
+			                let rm;
+			                while ((rm = rangeRe.exec(frag)) !== null) {
+			                    const a = parseNumber(rm[1]);
+			                    const b = parseNumber(rm[2]);
+			                    if (a != null && b != null) {
+			                        pushZone({ kind, label: kind === 'support' ? 'H' : (kind === 'resistance' ? 'R' : '?'), low: Math.min(a, b), high: Math.max(a, b) });
+			                    }
+			                }
+			                const nums = frag.match(/[0-9][0-9,\\.]{1,}/g) || [];
+			                for (const rawNum of nums.slice(0, 10)) {
+			                    const n = parseNumber(rawNum);
+			                    if (n != null) pushZone({ kind, label: kind === 'support' ? 'H' : (kind === 'resistance' ? 'R' : '?'), price: n });
+			                }
+			            }
 
-		            // Sort: supports ascending, resistances ascending, then neutrals
-		            const rank = (k) => (k === 'support' ? 0 : (k === 'resistance' ? 1 : 2));
-		            zones.sort((a, b) => {
-		                const ra = rank(a.kind), rb = rank(b.kind);
-		                if (ra !== rb) return ra - rb;
-		                const va = (a.price != null ? a.price : ((a.low + a.high) / 2));
-		                const vb = (b.price != null ? b.price : ((b.low + b.high) / 2));
-		                return va - vb;
-		            });
+			            // 3) "Vùng ..." patterns with contextual kind
+			            const zoneRe = /Vùng\\s*([0-9][0-9,.\s]*)(?:\\s*[–~\\-]\\s*([0-9][0-9,.\s]*))?/gi;
+			            while ((m = zoneRe.exec(text)) !== null) {
+			                const context = text.slice(Math.max(0, m.index - 40), Math.min(text.length, m.index + 120));
+			                const kind = detectKind(context);
+			                const a = parseNumber(m[1]);
+			                const b = parseNumber(m[2]);
+			                if (a != null && b != null) pushZone({ kind, label: kind === 'support' ? 'H' : (kind === 'resistance' ? 'R' : '?'), low: Math.min(a, b), high: Math.max(a, b) });
+			                else if (a != null) pushZone({ kind, label: kind === 'support' ? 'H' : (kind === 'resistance' ? 'R' : '?'), price: a });
+			            }
 
-		            return zones;
-		        }
+			            // 4) Specific anchors like POC/VWAP/MA/Donchian/Bollinger levels (neutral by default)
+			            const anchorRe = /(POC|VWAP\\d{1,3}|MA\\d{1,3}|BB\\d{1,3}|DC\\d{1,3})\\s*\\(?\\s*([0-9][0-9,\\.]{1,})\\s*\\)?/gi;
+			            while ((m = anchorRe.exec(text)) !== null) {
+			                const label = (m[1] || '').toUpperCase();
+			                const n = parseNumber(m[2]);
+			                if (n != null) pushZone({ kind: 'neutral', label, price: n });
+			            }
+
+			            if (zones.__seen) delete zones.__seen;
+
+			            // de-noise: keep only plausible positive levels
+			            const cleaned = zones.filter(z => {
+			                const v = (z.price != null) ? z.price : ((z.low + z.high) / 2);
+			                return typeof v === 'number' && Number.isFinite(v) && v > 0 && v < 1e7;
+			            });
+
+			            const rank = (k) => (k === 'support' ? 0 : (k === 'resistance' ? 1 : 2));
+			            cleaned.sort((a, b) => {
+			                const ra = rank(a.kind), rb = rank(b.kind);
+			                if (ra !== rb) return ra - rb;
+			                const va = (a.price != null ? a.price : ((a.low + a.high) / 2));
+			                const vb = (b.price != null ? b.price : ((b.low + b.high) / 2));
+			                return va - vb;
+			            });
+
+			            return cleaned;
+			        }
 
 		        function renderKeyLevelsPanelHtml(panelId, indexKey) {
 		            const payload = getIndexOhlcvPayload(indexKey);
@@ -2851,11 +2885,20 @@
 		            if (bars.length < 5) return;
 
 		            const zones = extractKeyPriceZonesFromHtml(sectionHtml || '');
+		            const lastClose = bars[bars.length - 1] && Number.isFinite(bars[bars.length - 1].c) ? Number(bars[bars.length - 1].c) : null;
+		            if (lastClose != null) {
+		                for (const z of zones) {
+		                    if (z.kind === 'neutral') {
+		                        const v = (z.price != null) ? z.price : ((z.low + z.high) / 2);
+		                        if (Number.isFinite(v)) z.kind = v <= lastClose ? 'support' : 'resistance';
+		                    }
+		                }
+		            }
 
 		            // render tags summary (no fallback: if empty, show explicit message)
 		            if (tagsEl) {
 		                if (!zones.length) {
-		                    tagsEl.innerHTML = `<span class="keylevels-tag">Không trích xuất được vùng giá từ báo cáo.</span>`;
+		                    tagsEl.innerHTML = `<span class="keylevels-tag">Không trích xuất được vùng giá từ báo cáo (format không chuẩn).</span>`;
 		                } else {
 		                    const toText = (z) => {
 		                        if (z.low != null && z.high != null) return `${z.label}: ${z.low.toLocaleString()}–${z.high.toLocaleString()}`;
