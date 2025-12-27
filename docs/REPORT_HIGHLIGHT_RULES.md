@@ -11,6 +11,7 @@ Nguồn áp dụng hiện tại:
    - Nghĩa là: chỉ các paragraph có đúng 1 dòng (sau normalize) mới được nâng cấp thành box.
 2) **Ưu tiên “signal” cao** (headline/summary/action/risk) hơn các dòng mô tả.
 3) **Dark-theme first**: dùng token (`--success`, `--danger`, `--warning`, `--primary`, `--indigo`, `--lg-*`) để đảm bảo đổi theme không làm mất tương phản.
+4) **Không flood UI**: giới hạn số box được tạo ra cho mỗi section (mặc định tổng `10`), tránh “highlight mọi thứ”.
 
 ## Thứ tự ưu tiên (priority)
 
@@ -35,4 +36,5 @@ Các class này được style trong `DASHBOARD_V3.html`:
 
 - “ALL CAPS” được kiểm tra theo **chữ cái** (Unicode) và giới hạn độ dài để tránh biến thành “highlight everything”.
 - Không highlight các dòng bắt đầu bằng `PHẦN I/II/III...` như hero headline.
-
+- Không dùng `%` để suy ra `confidence-box` (vì % xuất hiện quá nhiều trong số liệu); chỉ dùng khi có `Mức độ tự tin` / `Độ tin cậy` / `x/10`.
+- `levels-box` ưu tiên các dòng `Hỗ trợ/Kháng cự/H1/R1...` (không auto-match theo MA/VWAP để tránh quá nhiều).

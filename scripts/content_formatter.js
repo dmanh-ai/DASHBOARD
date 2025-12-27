@@ -33,6 +33,44 @@ class ContentFormatter {
             confidence: /^(mức\s+độ\s+tự\s+tin|độ\s+tin\s+cậy)\s*:/mi,
             metrics: /^độ\s+rộng\s*:/mi
         };
+
+        // Safety: cap number of callouts per formatted section (prevents UI flooding/slowness).
+        // Reset for each `format()` call.
+        this.calloutLimits = {
+            total: 10,
+            hero: 1,
+            conclusion: 2,
+            action: 2,
+            risk: 2,
+            invalidation: 1,
+            levels: 2,
+            scenario: 3,
+            confidence: 1,
+            metrics: 1,
+            evidence: 1,
+        };
+    }
+
+    resetCalloutState() {
+        this._calloutTotal = 0;
+        this._calloutByType = Object.create(null);
+    }
+
+    canEmitCallout(type) {
+        if (!this._calloutByType) this.resetCalloutState();
+
+        const limitTotal = this.calloutLimits.total ?? 0;
+        if (limitTotal > 0 && this._calloutTotal >= limitTotal) return false;
+
+        const limitType = this.calloutLimits[type];
+        if (typeof limitType === 'number' && limitType >= 0) {
+            const current = this._calloutByType[type] || 0;
+            if (current >= limitType) return false;
+        }
+
+        this._calloutTotal += 1;
+        this._calloutByType[type] = (this._calloutByType[type] || 0) + 1;
+        return true;
     }
 
     stripTagsUnsafe(html) {
@@ -53,10 +91,10 @@ class ContentFormatter {
         if (line.length < 10 || line.length > 120) return false;
         if (/^PHẦN\s+[IVX]+\b/i.test(line)) return false;
 
-        // Consider only letter characters for all-caps detection.
-        const letters = line.replace(/[^\p{L}]+/gu, '');
+        // Browser-safe all-caps detection without Unicode property escapes.
+        const letters = Array.from(line).filter(ch => ch.toLowerCase() !== ch.toUpperCase());
         if (letters.length < 6) return false;
-        return letters === letters.toUpperCase();
+        return letters.every(ch => ch === ch.toUpperCase());
     }
 
     renderCallout({ boxClass, icon, iconClass, textClass }, htmlText) {
@@ -73,6 +111,7 @@ class ContentFormatter {
         // HERO: quoted headline or all-caps headline.
         if ((raw.startsWith('"') && raw.endsWith('"') && raw.length <= 140) || this.isAllCapsHeadline(raw)) {
             const cleaned = raw.startsWith('"') && raw.endsWith('"') ? raw.slice(1, -1).trim() : htmlParagraph;
+            if (!this.canEmitCallout('hero')) return null;
             return this.renderCallout(
                 { boxClass: 'hero-box', icon: '✨', iconClass: 'hero-icon', textClass: 'hero-text' },
                 cleaned
@@ -81,6 +120,7 @@ class ContentFormatter {
 
         if (this.patterns.conclusionShort.test(raw)) {
             const body = this.stripPrefix(htmlParagraph, 'Kết luận ngắn:');
+            if (!this.canEmitCallout('conclusion')) return null;
             return this.renderCallout(
                 { boxClass: 'conclusion-box', icon: '📌', iconClass: 'conclusion-icon', textClass: 'conclusion-text' },
                 body
@@ -89,6 +129,7 @@ class ContentFormatter {
 
         if (this.patterns.conclusion.test(raw)) {
             const body = this.stripPrefix(htmlParagraph, 'Kết luận:');
+            if (!this.canEmitCallout('conclusion')) return null;
             return this.renderCallout(
                 { boxClass: 'conclusion-box', icon: '📌', iconClass: 'conclusion-icon', textClass: 'conclusion-text' },
                 body
@@ -101,6 +142,7 @@ class ContentFormatter {
             body = this.stripPrefix(body, 'Ý nghĩa/Hành động:');
             body = this.stripPrefix(body, 'Ý nghĩa:');
             body = this.stripPrefix(body, 'Hành động đề xuất:');
+            if (!this.canEmitCallout('action')) return null;
             return this.renderCallout(
                 { boxClass: 'action-box', icon: '🎯', iconClass: 'action-icon', textClass: 'action-text' },
                 body
@@ -111,6 +153,7 @@ class ContentFormatter {
             let body = htmlParagraph;
             body = this.stripPrefix(body, 'Rủi ro:');
             body = this.stripPrefix(body, 'Cảnh báo rủi ro:');
+            if (!this.canEmitCallout('risk')) return null;
             return this.renderCallout(
                 { boxClass: 'risk-box', icon: '⛔', iconClass: 'risk-icon', textClass: 'risk-text' },
                 body
@@ -121,13 +164,16 @@ class ContentFormatter {
             let body = htmlParagraph;
             body = this.stripPrefix(body, 'Điều kiện khiến kết luận sai:');
             body = this.stripPrefix(body, 'Điều kiện sai:');
+            if (!this.canEmitCallout('invalidation')) return null;
             return this.renderCallout(
                 { boxClass: 'conditions-box', icon: '⚠️', iconClass: 'conditions-icon', textClass: 'conditions-text' },
                 body
             );
         }
 
-        if (this.patterns.levels.test(raw) || /\b(H\d|R\d|MA\d+|VWAP\d*|POC|Value\s+Area|HVN)\b/i.test(raw)) {
+        // Levels: prefer explicit support/resistance / H1/R1 style markers to avoid over-highlighting MA/RSI lines.
+        if (this.patterns.levels.test(raw) || /^(H\d|R\d)\b/i.test(raw) || /\b(H[1-9]|R[1-9])\b/i.test(raw)) {
+            if (!this.canEmitCallout('levels')) return null;
             return this.renderCallout(
                 { boxClass: 'levels-box', icon: '🎯', iconClass: 'levels-icon', textClass: 'levels-text' },
                 htmlParagraph
@@ -135,13 +181,16 @@ class ContentFormatter {
         }
 
         if (this.patterns.scenario.test(raw) || /\bXác\s+suất\b/i.test(raw)) {
+            if (!this.canEmitCallout('scenario')) return null;
             return this.renderCallout(
                 { boxClass: 'scenario-box', icon: '🎲', iconClass: 'scenario-icon', textClass: 'scenario-text' },
                 htmlParagraph
             );
         }
 
-        if (this.patterns.confidence.test(raw) || /\b\d+\s*\/\s*10\b/.test(raw) || /\b\d{1,3}\s*%\b/.test(raw)) {
+        // Confidence: avoid catching every % change line; require explicit wording or x/10 score.
+        if (this.patterns.confidence.test(raw) || /\b\d+\s*\/\s*10\b/.test(raw) || /\b(tự\s+tin|tin\s+cậy)\b/i.test(raw)) {
+            if (!this.canEmitCallout('confidence')) return null;
             return this.renderCallout(
                 { boxClass: 'confidence-box', icon: '✅', iconClass: 'confidence-icon', textClass: 'confidence-text' },
                 htmlParagraph
@@ -149,6 +198,7 @@ class ContentFormatter {
         }
 
         if (this.patterns.metrics.test(raw) || /\b(TRIN|A\/D|Volume\s+Ratio|52W)\b/i.test(raw)) {
+            if (!this.canEmitCallout('metrics')) return null;
             return this.renderCallout(
                 { boxClass: 'metrics-box', icon: '📊', iconClass: 'metrics-icon', textClass: 'metrics-text' },
                 htmlParagraph
@@ -157,6 +207,7 @@ class ContentFormatter {
 
         if (this.patterns.evidence.test(raw)) {
             const body = this.stripPrefix(htmlParagraph, 'Dẫn chứng:');
+            if (!this.canEmitCallout('evidence')) return null;
             return this.renderCallout(
                 { boxClass: 'evidence-box', icon: '📊', iconClass: 'evidence-icon', textClass: 'evidence-text' },
                 body
@@ -169,6 +220,8 @@ class ContentFormatter {
     // Format content với visual elements
     format(content) {
         if (!content) return '';
+
+        this.resetCalloutState();
 
         // Strip existing HTML tags to get plain text
         let plainText = this.stripHtml(content);
