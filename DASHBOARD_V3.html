@@ -3344,6 +3344,8 @@
         const UI_GLM_PLAN_PREF_KEY = 'ui_glm_plan_pref';
         const UI_GLM_PRO_OK_KEY = 'ui_glm_pro_ok_session';
         const UI_GLM_PRO_PASSWORD = 'Matkhau@123';
+        const UI_GLM_PLAN_CHOOSER_VER = '1';
+        const UI_GLM_PLAN_CHOOSER_VER_KEY = 'ui_glm_plan_chooser_ver';
 
         const UI_GLM_LITE_ALLOWED_INDICES = new Set(['overview', 'vnindex', 'vn30', 'vn100', 'vnmidcap']);
         const UI_GLM_LITE_HIDDEN_SECTIONS = new Set([
@@ -3409,14 +3411,29 @@
         }
 
         function shouldShowPlanChooserOnStartup() {
+            const params = new URLSearchParams(window.location.search || '');
+            if ((params.get('choosePlan') || '') === '1') return true;
+
+            // Don't interrupt deep-links unless explicitly requested.
+            if (params.get('index') || params.get('stockPopup')) return false;
+
             const prefRaw = localStorage.getItem(UI_GLM_PLAN_PREF_KEY);
+            const chooserVer = (localStorage.getItem(UI_GLM_PLAN_CHOOSER_VER_KEY) || '').trim();
+
+            // Show once after updates (so existing users also see it).
+            if (chooserVer !== UI_GLM_PLAN_CHOOSER_VER) return true;
+
+            // First run: no preference saved yet.
             if (prefRaw == null || String(prefRaw).trim() === '') return true;
+
+            // Pro selected but not unlocked → prompt again.
             return getPlanPreference() === UI_GLM_PLAN.PRO && !isProUnlocked();
         }
 
         function openPlanChooserModal() {
             const pref = getPlanPreference();
             const unlocked = isProUnlocked();
+            try { localStorage.setItem(UI_GLM_PLAN_CHOOSER_VER_KEY, UI_GLM_PLAN_CHOOSER_VER); } catch (_) {}
 
             const bodyHtml = `
                 <div class="plan-chooser">
