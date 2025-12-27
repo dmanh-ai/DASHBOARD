@@ -4220,7 +4220,7 @@
 			        }
 
 				        function buildBreadthSnapshotPanelHtml(panelId, indexKey, payload) {
-				            if (!payload) return `<div class="info-box"><p>Không trích xuất được dữ liệu breadth (snapshot) từ báo cáo.</p></div>`;
+				            if (!payload) return `<div class="info-box"><p>Không có dữ liệu breadth snapshot (1 ngày).</p></div>`;
 
 				            const adv = payload.adv;
 				            const dec = payload.dec;
@@ -4881,17 +4881,21 @@
 	                const rankingExtras = isRanking ? buildIndexSummaryHtml() : '';
 		                const pricePanelId = isPriceContextSection ? `price_${currentIndex}_${sectionIndex}` : null;
 		                const pricePanelHtml = isPriceContextSection ? renderIndexPricePanelHtml(pricePanelId, currentIndex, pricePanelMode) : '';
-		                const breadthPanelId = isBreadthSentimentSection ? `breadth_${currentIndex}_${sectionIndex}` : null;
-		                const breadthReport = isBreadthSentimentSection ? parseBreadthMetricsFromReportHtml(cleanContent) : null;
-		                const breadthSnap = isBreadthSentimentSection ? getMarketBreadthSnapshotPayload() : null;
-		                const breadthPayload = isBreadthSentimentSection && breadthReport
-		                    ? {
-		                        ...breadthReport,
-		                        mcclellan: (breadthSnap && typeof breadthSnap.mcclellan === 'number') ? breadthSnap.mcclellan : null,
-		                        mcclellan_type: breadthSnap ? breadthSnap.mcclellan_type : '',
-		                    }
-		                    : null;
-		                const breadthPanelHtml = isBreadthSentimentSection ? buildBreadthSnapshotPanelHtml(breadthPanelId, currentIndex, breadthPayload) : '';
+			                const breadthPanelId = isBreadthSentimentSection ? `breadth_${currentIndex}_${sectionIndex}` : null;
+			                const breadthSnap = isBreadthSentimentSection ? getMarketBreadthSnapshotPayload() : null;
+			                const breadthPayload = isBreadthSentimentSection && breadthSnap
+			                    ? {
+			                        adv: breadthSnap.advancing,
+			                        dec: breadthSnap.declining,
+			                        unchanged: breadthSnap.unchanged,
+			                        total: breadthSnap.total_stocks,
+			                        trin: breadthSnap.trin,
+			                        volumeRatio: breadthSnap.volume_ratio,
+			                        mcclellan: breadthSnap.mcclellan,
+			                        mcclellan_type: breadthSnap.mcclellan_type || '',
+			                    }
+			                    : null;
+			                const breadthPanelHtml = isBreadthSentimentSection ? buildBreadthSnapshotPanelHtml(breadthPanelId, currentIndex, breadthPayload) : '';
 		                if (isBreadthSentimentSection) {
 		                    window.__uiGlmBreadthSectionHtml = cleanContent || '';
 		                }
