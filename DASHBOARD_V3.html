@@ -61,6 +61,9 @@
 				            --heatmap-text-positive: var(--text-on-accent);
 				            --heatmap-text-negative: var(--text-on-accent);
 				            --heatmap-text-neutral: var(--text-primary);
+				            --heatmap-bg-positive: var(--success);
+				            --heatmap-bg-negative: var(--danger);
+				            --heatmap-text-shadow: 0 0 3px rgba(0, 0, 0, 0.4);
 
 		            --bg-dark: #070b17;
 		            --bg-card: var(--lg-glass-surface-2);
@@ -127,6 +130,9 @@
 			            --heatmap-text-positive: var(--text-primary);
 			            --heatmap-text-negative: var(--text-on-accent);
 			            --heatmap-text-neutral: var(--text-primary);
+			            --heatmap-bg-positive: color-mix(in srgb, var(--success) 80%, #000 20%);
+			            --heatmap-bg-negative: color-mix(in srgb, var(--danger) 80%, #000 20%);
+			            --heatmap-text-shadow: 0 0 3px rgba(0, 0, 0, 0.4);
 
 		            /* Light Theme */
 		            --bg-dark: #f1f5f9;
@@ -1558,12 +1564,12 @@
 
 	        .heatmap-tile {
 	            border-radius: var(--lg-radius-card);
-	            border: 1px solid var(--heatmap-border);
+	            border: 1px solid var(--lg-glass-border);
 	            padding: 10px 12px;
 	            display: flex;
 	            flex-direction: column;
 	            gap: 6px;
-	            background: var(--lg-surface-semi);
+	            background: var(--lg-surface-semi) !important;
 	            color: var(--heatmap-text-neutral);
 	            text-shadow: var(--shadow-text);
 	            overflow: hidden;
@@ -1599,9 +1605,30 @@
 	            z-index: 1;
 	        }
 
-	        .heatmap-tile.positive { color: var(--heatmap-text-positive); }
-	        .heatmap-tile.negative { color: var(--heatmap-text-negative); }
-	        .heatmap-tile.neutral  { color: var(--heatmap-text-neutral); }
+	        /* Index heatmap tiles (state inferred from title text) */
+	        .heatmap-tile[title*="| +"] {
+	            background: var(--heatmap-bg-positive) !important;
+	            color: var(--text-on-accent);
+	            text-shadow: var(--heatmap-text-shadow);
+	            --heatmap-tile-overlay: transparent;
+	            --heatmap-tile-overlay-hover: transparent;
+	        }
+
+	        .heatmap-tile[title*="| -"] {
+	            background: var(--heatmap-bg-negative) !important;
+	            color: var(--text-on-accent);
+	            text-shadow: var(--heatmap-text-shadow);
+	            --heatmap-tile-overlay: transparent;
+	            --heatmap-tile-overlay-hover: transparent;
+	        }
+
+	        .heatmap-tile:not([title*="| +"]):not([title*="| -"]) {
+	            background: var(--lg-surface-semi) !important;
+	            color: var(--text-primary);
+	            text-shadow: var(--shadow-text);
+	            --heatmap-tile-overlay: transparent;
+	            --heatmap-tile-overlay-hover: transparent;
+	        }
 
 	        .heatmap-tile .symbol {
 	            font-weight: 900;
@@ -1635,7 +1662,7 @@
 	        .heatmap-cell {
 	            border-radius: var(--lg-radius-card);
 	            padding: 10px 10px;
-	            border: 1px solid var(--heatmap-border);
+	            border: 1px solid var(--lg-glass-border);
 	            background: var(--lg-surface-ghost);
 	            text-align: center;
 	            color: var(--heatmap-text-neutral);
@@ -1659,9 +1686,40 @@
 	            background: var(--heatmap-tile-overlay-hover);
 	        }
 
-	        .heatmap-cell.positive { color: var(--heatmap-text-positive); }
-	        .heatmap-cell.negative { color: var(--heatmap-text-negative); }
-	        .heatmap-cell.neutral  { color: var(--heatmap-text-neutral); }
+	        /* Stock heatmap cells (state inferred from data-change-pct attribute) */
+	        .heatmap-cell:has(.heatmap-cell-btn[data-change-pct^="-"]) {
+	            background: var(--heatmap-bg-negative) !important;
+	            color: var(--text-on-accent);
+	            text-shadow: var(--heatmap-text-shadow);
+	            --heatmap-tile-overlay: transparent;
+	            --heatmap-tile-overlay-hover: transparent;
+	        }
+
+	        .heatmap-cell:has(.heatmap-cell-btn[data-change-pct]:not([data-change-pct^="-"]):not([data-change-pct=""]):not([data-change-pct="0"]):not([data-change-pct="0.0"]):not([data-change-pct="0.00"])) {
+	            background: var(--heatmap-bg-positive) !important;
+	            color: var(--text-on-accent);
+	            text-shadow: var(--heatmap-text-shadow);
+	            --heatmap-tile-overlay: transparent;
+	            --heatmap-tile-overlay-hover: transparent;
+	        }
+
+	        .heatmap-cell:has(.heatmap-cell-btn[data-change-pct=""]):not(:has(.heatmap-cell-btn[data-change-pct^="-"])) {
+	            background: var(--lg-surface-semi) !important;
+	            color: var(--text-primary);
+	            text-shadow: var(--shadow-text);
+	            --heatmap-tile-overlay: transparent;
+	            --heatmap-tile-overlay-hover: transparent;
+	        }
+
+	        .heatmap-cell:has(.heatmap-cell-btn[data-change-pct="0"]),
+	        .heatmap-cell:has(.heatmap-cell-btn[data-change-pct="0.0"]),
+	        .heatmap-cell:has(.heatmap-cell-btn[data-change-pct="0.00"]) {
+	            background: var(--lg-surface-semi) !important;
+	            color: var(--text-primary);
+	            text-shadow: var(--shadow-text);
+	            --heatmap-tile-overlay: transparent;
+	            --heatmap-tile-overlay-hover: transparent;
+	        }
 
 	        .heatmap-cell-btn {
 	            appearance: none;
