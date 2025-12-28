@@ -1132,15 +1132,15 @@
         }
 
         /* Responsive */
-        @media (max-width: 768px) {
-            /* Mobile: make index + sections accessible (no hidden sidebar) */
-            .dashboard {
-                display: flex;
-                flex-direction: column;
-                gap: 12px;
-                padding: 12px;
-                min-height: auto;
-            }
+	        @media (max-width: 768px) {
+	            /* Mobile: make index + sections accessible (no hidden sidebar) */
+	            .dashboard {
+	                display: flex;
+	                flex-direction: column;
+	                gap: 12px;
+	                padding: 12px;
+	                min-height: auto;
+	            }
 
             /* Mobile: hide heatmaps (space constrained) */
             .heatmap-block,
@@ -1149,9 +1149,18 @@
                 display: none !important;
             }
 
-            .mobile-menu-fab {
-                display: inline-flex;
-            }
+	            .mobile-menu-fab {
+	                display: inline-flex;
+	                right: 12px;
+	                bottom: 84px;
+	            }
+
+	            @supports (right: max(12px, env(safe-area-inset-right))) {
+	                .mobile-menu-fab {
+	                    right: max(12px, env(safe-area-inset-right));
+	                    bottom: max(84px, env(safe-area-inset-bottom));
+	                }
+	            }
 
             /* Mobile: hide empty-state instructions (index/section lists are already visible above) */
             #emptyState {
@@ -1199,12 +1208,21 @@
                 grid-template-columns: repeat(2, 1fr);
             }
 
-            .theme-toggle {
-                width: 45px;
-                height: 45px;
-                font-size: 1.3rem;
-            }
-        }
+	            .theme-toggle {
+	                width: 45px;
+	                height: 45px;
+	                font-size: 1.3rem;
+	                top: 12px;
+	                right: 12px;
+	            }
+
+	            @supports (right: max(12px, env(safe-area-inset-right))) {
+	                .theme-toggle {
+	                    top: max(12px, env(safe-area-inset-top));
+	                    right: max(12px, env(safe-area-inset-right));
+	                }
+	            }
+	        }
 
         /* Additional utility styles from V2 */
         .content-paragraph {
