@@ -896,10 +896,21 @@
             transform: translateY(-1px) scale(1.02);
         }
 
-	        @keyframes pulse-glow {
-	            0%, 100% { box-shadow: var(--donate-shadow); }
-	            50% { box-shadow: var(--donate-shadow-hover); }
-	        }
+        .donate-footer {
+            display: none;
+            margin-top: 18px;
+            padding: 0 12px calc(28px + env(safe-area-inset-bottom, 0px));
+            justify-content: center;
+        }
+
+        .donate-footer .donate-btn {
+            width: min(520px, 100%);
+        }
+
+		        @keyframes pulse-glow {
+		            0%, 100% { box-shadow: var(--donate-shadow); }
+		            50% { box-shadow: var(--donate-shadow-hover); }
+		        }
 
         @keyframes shimmer {
             0% { transform: translateX(-100%) rotate(45deg); }
@@ -1162,17 +1173,26 @@
 	                }
 	            }
 
-            /* Mobile: hide empty-state instructions (index/section lists are already visible above) */
-            #emptyState {
-                display: none !important;
-                padding: 0 !important;
-            }
+	            /* Mobile: hide empty-state instructions (index/section lists are already visible above) */
+	            #emptyState {
+	                display: none !important;
+	                padding: 0 !important;
+	            }
 
-            .sidebar,
-            .section-nav {
-                display: block;
-                position: relative;
-                top: auto;
+	            /* Mobile: keep donate CTA at the bottom, not in the header */
+	            .page-header .donate-btn {
+	                display: none;
+	            }
+
+	            .donate-footer {
+	                display: flex;
+	            }
+
+	            .sidebar,
+	            .section-nav {
+	                display: block;
+	                position: relative;
+	                top: auto;
                 height: auto;
                 overflow: visible;
             }
@@ -3415,15 +3435,21 @@
             </div>
 
             <!-- Empty State -->
-            <div id="emptyState" style="display: block; text-align: center; padding: 100px 20px;">
-                <div style="font-size: 4rem; margin-bottom: 20px;">👈 👉</div>
-                <h2 style="color: var(--text-secondary); margin-bottom: 10px;">Chưa chọn mục phân tích</h2>
-                <p style="color: var(--text-secondary); font-size: 0.9rem;">
-                    1. Chọn chỉ số ở cột <strong>bên trái</strong><br>
-                    2. Chọn mục phân tích ở cột <strong>bên phải</strong>
-                </p>
-            </div>
-        </div>
+	            <div id="emptyState" style="display: block; text-align: center; padding: 100px 20px;">
+	                <div style="font-size: 4rem; margin-bottom: 20px;">👈 👉</div>
+	                <h2 style="color: var(--text-secondary); margin-bottom: 10px;">Chưa chọn mục phân tích</h2>
+	                <p style="color: var(--text-secondary); font-size: 0.9rem;">
+	                    1. Chọn chỉ số ở cột <strong>bên trái</strong><br>
+	                    2. Chọn mục phân tích ở cột <strong>bên phải</strong>
+	                </p>
+	            </div>
+
+	            <div class="donate-footer" id="donateFooter">
+	                <button class="donate-btn" onclick="showDonateModal()">
+	                    💝 Mời bạn cafe / Ủng hộ
+	                </button>
+	            </div>
+	        </div>
 
         <!-- Sidebar 2: Section Navigation (Right) -->
         <div class="section-nav">
