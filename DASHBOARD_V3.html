@@ -3623,12 +3623,17 @@
 		            } catch (_) {}
 		        })();
 
-	        // ---------------------------
-	        // Lite / Pro access control
-	        // ---------------------------
-	        const UI_GLM_PLAN = {
-	            LITE: 'lite',
-	        };
+		        // ---------------------------
+		        // Lite / Pro access control
+		        // ---------------------------
+		        // Feature flags
+		        // Tạm tắt logic trích xuất H1–H2/R1–R2 cho "MỨC GIÁ QUAN TRỌNG" và "GIÁ MỤC TIÊU"
+		        // vì output AI có thể không đồng nhất giữa các lần chạy.
+		        const UI_GLM_DISABLE_LEVELS_EXTRACTION = true;
+
+		        const UI_GLM_PLAN = {
+		            LITE: 'lite',
+		        };
 
 	        const UI_GLM_PUBLIC_BUILD = true;
 
@@ -6104,13 +6109,14 @@
 	                if (isMobileViewport()) document.body.classList.add('mobile-reading');
 	            } catch (_) {}
 
-			            const isUiHeatmapSection = section.__uiType === 'heatmap_gainers' || section.__uiType === 'heatmap_losers';
-			            const normalizedSectionTitle = normalizeTitle(section.title);
-			            const isKeyLevelsSection = normalizedSectionTitle === 'MỨC GIÁ QUAN TRỌNG';
-			            const isTargetLevelsSection = normalizedSectionTitle === 'GIÁ MỤC TIÊU';
-				            const isTrendChartSection =
-				                normalizedSectionTitle === 'XU HƯỚNG GIÁ' ||
-				                normalizedSectionTitle === 'XU HƯỚNG KHỐI LƯỢNG';
+				            const isUiHeatmapSection = section.__uiType === 'heatmap_gainers' || section.__uiType === 'heatmap_losers';
+				            const normalizedSectionTitle = normalizeTitle(section.title);
+				            const isKeyLevelsSection = normalizedSectionTitle === 'MỨC GIÁ QUAN TRỌNG';
+				            const isTargetLevelsSection = normalizedSectionTitle === 'GIÁ MỤC TIÊU';
+				            const levelsExtractionEnabled = !UI_GLM_DISABLE_LEVELS_EXTRACTION;
+					            const isTrendChartSection =
+					                normalizedSectionTitle === 'XU HƯỚNG GIÁ' ||
+					                normalizedSectionTitle === 'XU HƯỚNG KHỐI LƯỢNG';
 				            const isBreadthSentimentSection = normalizedSectionTitle === 'MARKET BREADTH & TÂM LÝ THỊ TRƯỜNG';
 				            const isBreadthHistorySection = normalizedSectionTitle === 'LỊCH SỬ & XU HƯỚNG BREADTH';
 				            const isPriceContextSection =
@@ -6163,12 +6169,12 @@
 			                if (isPriceContextSection && pricePanelId) {
 			                    setTimeout(() => initIndexPricePanel(pricePanelId, currentIndex, pricePanelMode), 0);
 			                }
-			            } else if (isKeyLevelsSection) {
-			                const panelId = `keylevels_${currentIndex}_${sectionIndex}`;
-			                const panelHtml = renderKeyLevelsPanelHtml(panelId, currentIndex);
+				            } else if (isKeyLevelsSection && levelsExtractionEnabled) {
+				                const panelId = `keylevels_${currentIndex}_${sectionIndex}`;
+				                const panelHtml = renderKeyLevelsPanelHtml(panelId, currentIndex);
 
-			                window.__uiGlmKeyLevelsStore = window.__uiGlmKeyLevelsStore || {};
-			                window.__uiGlmKeyLevelsStore[panelId] = { sectionHtml: cleanContent };
+				                window.__uiGlmKeyLevelsStore = window.__uiGlmKeyLevelsStore || {};
+				                window.__uiGlmKeyLevelsStore[panelId] = { sectionHtml: cleanContent };
 
 		                contentDiv.innerHTML = `
 		                    <div class="section-card">
@@ -6178,14 +6184,14 @@
 		                            ${panelHtml}
 		                        </div>
 		                    </div>
-			                `;
-			                setTimeout(() => initKeyLevelsPanel(panelId, currentIndex, cleanContent), 0);
-			            } else if (isTargetLevelsSection) {
-			                const panelId = `targetlevels_${currentIndex}_${sectionIndex}`;
-			                const panelHtml = renderTargetLevelsPanelHtml(panelId, currentIndex);
+				                `;
+				                setTimeout(() => initKeyLevelsPanel(panelId, currentIndex, cleanContent), 0);
+				            } else if (isTargetLevelsSection && levelsExtractionEnabled) {
+				                const panelId = `targetlevels_${currentIndex}_${sectionIndex}`;
+				                const panelHtml = renderTargetLevelsPanelHtml(panelId, currentIndex);
 
-			                window.__uiGlmTargetLevelsStore = window.__uiGlmTargetLevelsStore || {};
-			                window.__uiGlmTargetLevelsStore[panelId] = { sectionHtml: cleanContent };
+				                window.__uiGlmTargetLevelsStore = window.__uiGlmTargetLevelsStore || {};
+				                window.__uiGlmTargetLevelsStore[panelId] = { sectionHtml: cleanContent };
 
 			                contentDiv.innerHTML = `
 			                    <div class="section-card">
