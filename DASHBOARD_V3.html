@@ -3,17 +3,17 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-	    <title>📊 Market Dashboard V3 - Premium</title>
-	    <script src="full_data.js"></script>
-		    <script src="vnindex_heatmap_data.js"></script>
-		    <script src="index_heatmap_data.js"></script>
-			    <script src="vnindex_company_meta.js"></script>
-			    <script src="vnindex_price_20d.js"></script>
-			    <script src="market_breadth_snapshot.js"></script>
-			    <script src="breadth_history.js"></script>
-			    <script src="index_ohlcv.js"></script>
-			    <script src="vendor/lightweight-charts.standalone.production.js"></script>
-			    <script src="scripts/content_formatter.js"></script>
+				    <title>📊 Market Dashboard V3 - Premium</title>
+				    <script src="full_data.js"></script>
+					    <script src="vnindex_heatmap_data.js"></script>
+					    <script src="index_heatmap_data.js"></script>
+						    <script src="vnindex_company_meta.js"></script>
+						    <script src="vnindex_price_20d.js"></script>
+						    <script src="market_breadth_snapshot.js"></script>
+						    <script src="breadth_history.js"></script>
+						    <script src="index_ohlcv.js"></script>
+						    <script src="vendor/lightweight-charts.standalone.production.js"></script>
+						    <script src="scripts/content_formatter.js"></script>
 
     <style>
         * {
@@ -34,8 +34,8 @@
 
 			        /* Dark Theme (Liquid Glass) */
 				        [data-theme="dark"] {
-				            --lg-radius-card: 20px;
-				            --lg-blur: 8px;
+					            --lg-radius-card: 20px;
+					            --lg-blur: 8px;
 				            --lg-glass-surface: rgba(2, 6, 23, 0.38);
 				            --lg-glass-surface-2: rgba(2, 6, 23, 0.62);
 				            --lg-glass-border: rgba(226, 232, 240, 0.14);
@@ -71,11 +71,21 @@
 				            --heatmap-text-positive: var(--text-on-accent);
 				            --heatmap-text-negative: var(--text-on-accent);
 				            --heatmap-text-neutral: var(--text-primary);
-				            --heatmap-bg-positive: var(--success);
-				            --heatmap-bg-negative: var(--danger);
-				            --heatmap-text-shadow: 0 0 3px rgba(0, 0, 0, 0.4);
+					            --heatmap-bg-positive: var(--success);
+					            --heatmap-bg-negative: var(--danger);
+					            --heatmap-text-shadow: 0 0 3px rgba(0, 0, 0, 0.4);
+					            --chart-up: rgba(16, 185, 129, 0.95);
+					            --chart-down: rgba(239, 68, 68, 0.95);
+					            --chart-up-soft: rgba(16, 185, 129, 0.45);
+					            --chart-down-soft: rgba(239, 68, 68, 0.45);
+					            --chart-up-mid: rgba(16, 185, 129, 0.70);
+					            --chart-down-mid: rgba(239, 68, 68, 0.70);
+					            --chart-wick: rgba(226, 232, 240, 0.55);
+					            --chart-level-support: rgba(16, 185, 129, 0.92);
+					            --chart-level-resist: rgba(239, 68, 68, 0.92);
+					            --heatmap-cell-bg: var(--lg-surface-semi);
 
-		            --bg-dark: #070b17;
+			            --bg-dark: #070b17;
 		            --bg-card: var(--lg-glass-surface-2);
 		            --bg-hover: rgba(148, 163, 184, 0.12);
 		            --text-primary: #f8fafc;
@@ -98,18 +108,28 @@
 			            --motion-ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
 			        }
 
-		        :root {
-	            /* Colors */
-	            --primary: #3b82f6;
+			        :root {
+		            /* Colors */
+		            --primary: #3b82f6;
 	            --primary-light: #60a5fa;
 	            --primary-dark: #2563eb;
 	            --success: #10b981;
 	            --danger: #ef4444;
 	            --warning: #f59e0b;
 	            --info: #06b6d4;
-	            --purple: #8b5cf6;
+		            --purple: #8b5cf6;
+		            --chart-up: rgba(16, 185, 129, 0.95);
+		            --chart-down: rgba(239, 68, 68, 0.95);
+		            --chart-up-soft: rgba(16, 185, 129, 0.45);
+		            --chart-down-soft: rgba(239, 68, 68, 0.45);
+		            --chart-up-mid: rgba(16, 185, 129, 0.70);
+		            --chart-down-mid: rgba(239, 68, 68, 0.70);
+		            --chart-wick: rgba(15, 23, 42, 0.35);
+		            --chart-level-support: rgba(16, 185, 129, 0.92);
+		            --chart-level-resist: rgba(239, 68, 68, 0.92);
+		            --heatmap-cell-bg: var(--lg-surface-semi);
 
-			            /* Liquid Glass (Light) */
+				            /* Liquid Glass (Light) */
 			            --lg-radius-card: 20px;
 				            --lg-blur: 8px;
 				            --lg-glass-surface: rgba(255, 255, 255, 0.55);
@@ -1153,17 +1173,29 @@
 	                min-height: auto;
 	            }
 
-            /* Mobile: hide heatmaps (space constrained) */
-            .heatmap-block,
-            .heatmap-index-grid,
-            .heatmap-table {
-                display: none !important;
-            }
+	            /* Mobile: hide heatmaps (space constrained) */
+	            .heatmap-block,
+	            .heatmap-index-grid,
+	            .heatmap-table {
+	                display: none !important;
+	            }
 
-	            .mobile-menu-fab {
-	                display: inline-flex;
-	                right: 12px;
-	                bottom: 84px;
+		            /* Mobile: reduce background animation repaints */
+		            body::before { animation: none; }
+
+		            /* Mobile: reduce blur cost */
+		            :root { --lg-blur: 6px; }
+		            [data-theme="dark"] { --lg-blur: 6px; }
+
+		            /* Mobile: reduce long-running animations */
+		            .section-item.conclusion-section .icon { animation: none; }
+		            .donate-btn { animation: none; }
+		            .donate-btn::before { animation: none; }
+
+		            .mobile-menu-fab {
+		                display: inline-flex;
+		                right: 12px;
+		                bottom: 84px;
 	            }
 
 	            @supports (right: max(12px, env(safe-area-inset-right))) {
@@ -1205,15 +1237,25 @@
                 padding: 14px 0;
             }
 
-            /* Put section list above content for faster flow: pick index → pick section → read */
-            .sidebar { order: 1; }
-            .section-nav { order: 2; }
-            .main-content { order: 3; }
+	            /* Put section list above content for faster flow: pick index → pick section → read */
+	            .sidebar { order: 1; }
+	            .section-nav { order: 2; }
+	            .main-content { order: 3; }
 
-            /* Avoid nested 100vh scrolling containers on iOS */
-            .main-content {
-                height: auto;
-                overflow: visible;
+	            /* Mobile reading mode: after picking a section, focus only on content */
+	            body.mobile-reading .sidebar,
+	            body.mobile-reading .section-nav {
+	                display: none;
+	            }
+
+	            body.mobile-reading .main-content {
+	                order: 1;
+	            }
+
+	            /* Avoid nested 100vh scrolling containers on iOS */
+	            .main-content {
+	                height: auto;
+	                overflow: visible;
                 padding: 16px;
             }
 
@@ -2191,18 +2233,28 @@
 	            cursor: pointer;
 	        }
 
-	        .heatmap-tile:hover {
-	            transform: translateY(-1px);
-	            box-shadow: var(--shadow-md);
-	            border-color: color-mix(in srgb, var(--lg-glass-border) 70%, var(--text-primary) 10%);
-	        }
+		        .heatmap-tile:hover {
+		            transform: translateY(-1px);
+		            box-shadow: var(--shadow-md);
+		            border-color: color-mix(in srgb, var(--lg-glass-border) 70%, var(--text-primary) 10%);
+		        }
 
-	        .heatmap-tile:has(.heatmap-tile-btn:focus-visible) {
-	            box-shadow: var(--shadow-md), 0 0 0 2px color-mix(in srgb, var(--primary) 45%, transparent);
-	            border-color: color-mix(in srgb, var(--primary) 45%, var(--lg-glass-border));
-	        }
+		        @media (prefers-reduced-motion: reduce) {
+		            body::before { animation: none !important; }
+		            .section-card,
+		            .donate-btn,
+		            .donate-btn::before,
+		            .section-item.conclusion-section .icon,
+		            .page-header h1,
+		            .last-update { animation: none !important; }
+		        }
 
-	        .heatmap-tile-btn:focus-visible { outline: none; }
+		        .heatmap-tile:focus-visible {
+		            box-shadow: var(--shadow-md), 0 0 0 2px color-mix(in srgb, var(--primary) 45%, transparent);
+		            border-color: color-mix(in srgb, var(--primary) 45%, var(--lg-glass-border));
+		        }
+
+		        .heatmap-tile-btn:focus-visible { outline: none; }
 
 	        /* Index heatmap tiles: keep neutral surface, use neon-like metric + small indicator */
 	        .heatmap-tile[title*="| +"] .metric { color: var(--success); }
@@ -2255,15 +2307,15 @@
 
 	        [data-theme="dark"] .heatmap-table { background: transparent; border-color: transparent; box-shadow: none; }
 
-	        .heatmap-cell {
-	            border-radius: var(--lg-radius-card);
-	            padding: 10px 10px;
-	            border: 1px solid var(--lg-glass-border);
-	            background: var(--lg-surface-semi) !important;
-	            text-align: center;
-	            color: var(--heatmap-text-neutral);
-	            position: relative;
-	            overflow: hidden;
+		        .heatmap-cell {
+		            border-radius: var(--lg-radius-card);
+		            padding: 10px 10px;
+		            border: 1px solid var(--lg-glass-border);
+		            background: var(--heatmap-cell-bg, var(--lg-surface-semi)) !important;
+		            text-align: center;
+		            color: var(--heatmap-text-neutral);
+		            position: relative;
+		            overflow: hidden;
 	            isolation: isolate;
 	            transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
 	        }
@@ -2274,57 +2326,58 @@
 	            border-color: color-mix(in srgb, var(--lg-glass-border) 70%, var(--text-primary) 10%);
 	        }
 
-	        .heatmap-symbol { color: var(--text-primary); }
+		        .heatmap-symbol { color: var(--text-primary); }
 
-	        /* Stock heatmap cells (state inferred from data-change-pct attribute): neutral background, colored metric + dot */
-	        .heatmap-cell::before {
-	            content: '';
-	            position: absolute;
-	            top: 10px;
-	            right: 10px;
-	            width: 8px;
-	            height: 8px;
-	            border-radius: 999px;
-	            background: color-mix(in srgb, var(--text-secondary) 60%, transparent);
-	            box-shadow: 0 0 0 1px color-mix(in srgb, var(--lg-glass-border) 85%, transparent);
-	        }
+		        /* Stock heatmap cells (state inferred from data-change-pct attribute): neutral background, colored metric + dot */
+		        .heatmap-cell-btn::before {
+		            content: '';
+		            position: absolute;
+		            top: 10px;
+		            right: 10px;
+		            width: 8px;
+		            height: 8px;
+		            border-radius: 999px;
+		            background: color-mix(in srgb, var(--text-secondary) 60%, transparent);
+		            box-shadow: 0 0 0 1px color-mix(in srgb, var(--lg-glass-border) 85%, transparent);
+		            pointer-events: none;
+		        }
 
-	        .heatmap-cell:has(.heatmap-cell-btn[data-change-pct^="-"]) .heatmap-metric {
-	            color: var(--danger);
-	        }
+		        .heatmap-cell-btn[data-change-pct^="-"] .heatmap-metric {
+		            color: var(--danger);
+		        }
 
-	        .heatmap-cell:has(.heatmap-cell-btn[data-change-pct^="-"])::before {
-	            background: var(--danger);
-	            box-shadow: 0 0 10px color-mix(in srgb, var(--danger) 45%, transparent), 0 0 0 1px color-mix(in srgb, var(--danger) 55%, transparent);
-	        }
+		        .heatmap-cell-btn[data-change-pct^="-"]::before {
+		            background: var(--danger);
+		            box-shadow: 0 0 10px color-mix(in srgb, var(--danger) 45%, transparent), 0 0 0 1px color-mix(in srgb, var(--danger) 55%, transparent);
+		        }
 
-	        .heatmap-cell:has(.heatmap-cell-btn[data-change-pct]:not([data-change-pct^="-"]):not([data-change-pct=""]):not([data-change-pct="0"]):not([data-change-pct="0.0"]):not([data-change-pct="0.00"])) .heatmap-metric {
-	            color: var(--success);
-	        }
+		        .heatmap-cell-btn[data-change-pct]:not([data-change-pct^="-"]):not([data-change-pct=""]):not([data-change-pct="0"]):not([data-change-pct="0.0"]):not([data-change-pct="0.00"]) .heatmap-metric {
+		            color: var(--success);
+		        }
 
-	        .heatmap-cell:has(.heatmap-cell-btn[data-change-pct]:not([data-change-pct^="-"]):not([data-change-pct=""]):not([data-change-pct="0"]):not([data-change-pct="0.0"]):not([data-change-pct="0.00"]))::before {
-	            background: var(--success);
-	            box-shadow: 0 0 10px color-mix(in srgb, var(--success) 45%, transparent), 0 0 0 1px color-mix(in srgb, var(--success) 55%, transparent);
-	        }
+		        .heatmap-cell-btn[data-change-pct]:not([data-change-pct^="-"]):not([data-change-pct=""]):not([data-change-pct="0"]):not([data-change-pct="0.0"]):not([data-change-pct="0.00"])::before {
+		            background: var(--success);
+		            box-shadow: 0 0 10px color-mix(in srgb, var(--success) 45%, transparent), 0 0 0 1px color-mix(in srgb, var(--success) 55%, transparent);
+		        }
 
-	        .heatmap-cell-btn {
-	            appearance: none;
-	            -webkit-appearance: none;
-	            display: block;
-	            width: 100%;
-	            border: 0;
-	            background: transparent;
-	            padding: 0;
-	            color: inherit;
-	            cursor: pointer;
-	            position: relative;
-	            z-index: 1;
-	        }
+		        .heatmap-cell-btn {
+		            appearance: none;
+		            -webkit-appearance: none;
+		            display: block;
+		            width: 100%;
+		            border: 0;
+		            background: transparent;
+		            padding: 0;
+		            color: inherit;
+		            cursor: pointer;
+		            position: relative;
+		            z-index: 1;
+		        }
 
-	        .heatmap-cell:has(.heatmap-cell-btn:focus-visible) {
-	            box-shadow: var(--shadow-md), 0 0 0 2px color-mix(in srgb, var(--primary) 45%, transparent);
-	            border-color: color-mix(in srgb, var(--primary) 45%, var(--lg-glass-border));
-	        }
+		        .heatmap-cell:focus-within {
+		            box-shadow: var(--shadow-md), 0 0 0 2px color-mix(in srgb, var(--primary) 45%, transparent);
+		            border-color: color-mix(in srgb, var(--primary) 45%, var(--lg-glass-border));
+		        }
 
 	        .heatmap-cell-btn:focus-visible {
 	            outline: none;
@@ -3530,22 +3583,24 @@
 			            });
 			        });
 
-				        // Mobile: floating back-to-menu button
-				        document.getElementById('mobileMenuFab')?.addEventListener('click', () => {
-				            try { closeUiModal(); } catch (_) {}
-				            try { closeDonateModal(); } catch (_) {}
-				            try {
-				                const target = currentIndex ? document.querySelector('.section-nav') : document.querySelector('.sidebar');
-				                scrollWindowToEl(target);
-				            } catch (_) {}
-				        });
+					        // Mobile: floating back-to-menu button
+					        document.getElementById('mobileMenuFab')?.addEventListener('click', () => {
+					            try { closeUiModal(); } catch (_) {}
+					            try { closeDonateModal(); } catch (_) {}
+					            try {
+					                if (isMobileViewport()) document.body.classList.remove('mobile-reading');
+					                const target = currentIndex ? document.querySelector('.section-nav') : document.querySelector('.sidebar');
+					                scrollToElAfterRender(target, 12);
+					                setTimeout(() => scrollToElAfterRender(target, 12), 140);
+					            } catch (_) {}
+					        });
 
         function updateThemeIcon(theme) {
             themeToggle.textContent = theme === 'light' ? '🌙' : '☀️';
         }
 
-        // Data từ full_data.js
-        const data = FULL_DATA;
+	        // Data from full_data.js
+	        const data = FULL_DATA;
 
         // ---------------------------
         // Lite / Pro access control
@@ -4225,10 +4280,19 @@
             }
         }
 
-	        function scrollWindowToEl(el, yPad = 12) {
-	            if (!el) return;
-	            try {
-	                const scroller = document.scrollingElement || document.documentElement;
+        function cssVar(name, fallback = '') {
+            try {
+                const v = getComputedStyle(document.body).getPropertyValue(name).trim();
+                return v || fallback;
+            } catch (_) {
+                return fallback;
+            }
+        }
+
+		        function scrollWindowToEl(el, yPad = 12) {
+		            if (!el) return;
+		            try {
+		                const scroller = document.scrollingElement || document.documentElement;
 	                const top = Math.max(0, scroller.scrollTop + el.getBoundingClientRect().top - (yPad || 0));
 	                try { scroller.scrollTo({ top, behavior: 'smooth' }); } catch (_) {}
 	                try { window.scrollTo({ top, behavior: 'smooth' }); } catch (_) {}
@@ -4381,38 +4445,18 @@
 	            return `<div class="idx-cards">${cards}</div>`;
 	        }
 
-        function tileBackgroundForChangeVolume(changePct, volumeValue, maxAbsChange, maxVolume) {
-            if (changePct == null || volumeValue == null) {
-                return 'rgba(148, 163, 184, 0.10)';
-            }
-            const normChange = maxAbsChange ? Math.min(Math.abs(changePct) / maxAbsChange, 1) : 0;
-            const normVol = maxVolume ? Math.min(volumeValue / maxVolume, 1) : 0;
-            const intensity = 0.4 * normChange + 0.6 * normVol;
-            const isUp = changePct >= 0;
-            const base = isUp ? [16, 185, 129] : [239, 68, 68];
-            // blend toward white based on intensity
-            const mix = (c) => Math.round(255 - (255 - c) * (0.25 + 0.55 * intensity));
-            const [r, g, b] = [mix(base[0]), mix(base[1]), mix(base[2])];
-            return `rgb(${r}, ${g}, ${b})`;
-        }
-
-	        function renderIndexHeatmap(rows) {
-	            const usable = rows.filter(r => r.changePct != null && r.volumeValue != null);
-	            const maxAbsChange = usable.length ? Math.max(...usable.map(r => Math.abs(r.changePct))) : 1;
-	            const maxVolume = usable.length ? Math.max(...usable.map(r => r.volumeValue)) : 1;
-
-	            const tiles = rows.map(r => {
-	                const bg = tileBackgroundForChangeVolume(r.changePct, r.volumeValue, maxAbsChange, maxVolume);
-	                const change = r.changeText || 'N/A';
-	                const vol = r.volumeText || 'N/A';
-	                const title = `${r.label} | ${change} | Vol ${vol}`;
-	                return `
-	                    <button type="button" class="heatmap-tile heatmap-tile-btn" style="background:${bg}" title="${escapeHtml(title)}" onclick="openIndexPopup('${r.key}')">
-	                        <div class="symbol">${r.label}</div>
-	                        <div class="metric">${change}</div>
-	                    </button>
-	                `;
-	            }).join('');
+		        function renderIndexHeatmap(rows) {
+		            const tiles = rows.map(r => {
+		                const change = r.changeText || 'N/A';
+		                const vol = r.volumeText || 'N/A';
+		                const title = `${r.label} | ${change} | Vol ${vol}`;
+		                return `
+		                    <button type="button" class="heatmap-tile heatmap-tile-btn" title="${escapeHtml(title)}" onclick="openIndexPopup('${r.key}')">
+		                        <div class="symbol">${r.label}</div>
+		                        <div class="metric">${change}</div>
+		                    </button>
+		                `;
+		            }).join('');
 
             return `<div class="heatmap-index-grid">${tiles}</div>`;
         }
@@ -4444,17 +4488,15 @@
                         continue;
                     }
 	                    const p = points[idx++];
-	                    const symbol = (p && p.symbol != null ? String(p.symbol) : '').trim();
-	                    const changePct = Number(p && p.change_pct);
-	                    const changeOk = Number.isFinite(changePct);
-	                    const isUp = changeOk ? changePct >= 0 : true;
-	                    const bg = isUp ? '#d4efdf' : '#f9d6d5';
-	                    const changeFactor = changeOk ? Math.min(Math.abs(changePct) / maxAbsChange, 1) : 0;
-	                    const sizePercent = 60 + Math.round(40 * changeFactor);
-	                    const changeStr = changeOk ? ((changePct >= 0 ? '+' : '') + changePct.toFixed(2) + '%') : 'N/A';
-	                    const priceStr = (p && p.price != null && Number.isFinite(Number(p.price))) ? Number(p.price).toFixed(2) : 'N/A';
-	                    const valueStr = p && p.value != null && Number.isFinite(Number(p.value)) ? formatCompactNumber(Number(p.value)) : 'N/A';
-	                    const volumeStr = p && p.volume != null && Number.isFinite(Number(p.volume)) ? formatCompactNumber(Number(p.volume)) : 'N/A';
+		                    const symbol = (p && p.symbol != null ? String(p.symbol) : '').trim();
+		                    const changePct = Number(p && p.change_pct);
+		                    const changeOk = Number.isFinite(changePct);
+		                    const changeFactor = changeOk ? Math.min(Math.abs(changePct) / maxAbsChange, 1) : 0;
+		                    const sizePercent = 60 + Math.round(40 * changeFactor);
+		                    const changeStr = changeOk ? ((changePct >= 0 ? '+' : '') + changePct.toFixed(2) + '%') : 'N/A';
+		                    const priceStr = (p && p.price != null && Number.isFinite(Number(p.price))) ? Number(p.price).toFixed(2) : 'N/A';
+		                    const valueStr = p && p.value != null && Number.isFinite(Number(p.value)) ? formatCompactNumber(Number(p.value)) : 'N/A';
+		                    const volumeStr = p && p.volume != null && Number.isFinite(Number(p.volume)) ? formatCompactNumber(Number(p.volume)) : 'N/A';
 	                    const metaAll = (typeof window !== 'undefined' && window.UI_GLM_COMPANY_META) ? window.UI_GLM_COMPANY_META : null;
 	                    const meta = metaAll && symbol && metaAll[symbol] ? metaAll[symbol] : null;
 	                    const sectorRaw = meta && meta.sector ? String(meta.sector) : '';
@@ -4462,12 +4504,12 @@
 	                    const sectorVi = sectorParts && sectorParts[1] ? sectorParts[1] : sectorRaw;
 	                    const tooltip = `${symbol || 'N/A'} | ${changeStr}${sectorVi ? ' | ' + sectorVi : ''}`;
 
-	                    rowHtml += `
-	                        <td class="heatmap-cell" style="background-color:${bg}" title="${escapeHtml(tooltip)}">
-	                            <button type="button" class="heatmap-cell-btn"
-	                                    data-symbol="${escapeHtml(symbol || 'N/A')}"
-	                                    data-change-pct="${changeOk ? String(changePct) : ''}"
-	                                    data-price="${escapeHtml(priceStr)}"
+		                    rowHtml += `
+		                        <td class="heatmap-cell" title="${escapeHtml(tooltip)}">
+		                            <button type="button" class="heatmap-cell-btn"
+		                                    data-symbol="${escapeHtml(symbol || 'N/A')}"
+		                                    data-change-pct="${changeOk ? String(changePct) : ''}"
+		                                    data-price="${escapeHtml(priceStr)}"
 	                                    data-value="${escapeHtml(valueStr)}"
 	                                    data-volume="${escapeHtml(volumeStr)}"
 	                                    onclick="openVnindexStockPopupFromEl(this)">
@@ -4747,13 +4789,14 @@
 		                    height: chartEl.clientHeight || 380,
 		                    width: chartEl.clientWidth || 700,
 		                });
-		                panelEl.__uiGlmKeyChart = chart;
+			                panelEl.__uiGlmKeyChart = chart;
 
-		                const line = chart.addLineSeries({
-		                    color: isDark ? 'rgba(96,165,250,0.95)' : 'rgba(59,130,246,0.95)',
-		                    lineWidth: 2,
-		                });
-		                line.setData(bars.map(b => ({ time: b.d, value: b.c })));
+			                const lineCol = cssVar('--primary-light', isDark ? 'rgba(96,165,250,0.95)' : 'rgba(59,130,246,0.95)');
+			                const line = chart.addLineSeries({
+			                    color: lineCol,
+			                    lineWidth: 2,
+			                });
+			                line.setData(bars.map(b => ({ time: b.d, value: b.c })));
 
 		                const makeLine = (price, color, title, axisVisible, width, style) => {
 		                    try {
@@ -4770,20 +4813,23 @@
 		                    }
 		                };
 
-		                const supportCol = 'rgba(16,185,129,0.92)';
-		                const resistCol = 'rgba(239,68,68,0.92)';
+			                const supportCol = cssVar('--chart-level-support', 'rgba(16,185,129,0.92)');
+			                const resistCol = cssVar('--chart-level-resist', 'rgba(239,68,68,0.92)');
+			                const supportSoft = cssVar('--chart-up-soft', 'rgba(16,185,129,0.45)');
+			                const resistSoft = cssVar('--chart-down-soft', 'rgba(239,68,68,0.45)');
 
-		                for (const z of zones) {
-		                    const color = z.kind === 'support' ? supportCol : resistCol;
-		                    const style = LightweightCharts.LineStyle.Dashed;
-		                    if (z.low != null && z.high != null) {
-		                        const mid = (z.low + z.high) / 2;
-		                        makeLine(z.low, color.replace('0.92', '0.35'), '', false, 1, style);
-		                        makeLine(z.high, color.replace('0.92', '0.35'), '', false, 1, style);
-		                        makeLine(mid, color, z.label || '', true, 2, style);
-		                    } else if (z.price != null) {
-		                        makeLine(z.price, color, z.label || '', true, 2, style);
-		                    }
+			                for (const z of zones) {
+			                    const color = z.kind === 'support' ? supportCol : resistCol;
+			                    const soft = z.kind === 'support' ? supportSoft : resistSoft;
+			                    const style = LightweightCharts.LineStyle.Dashed;
+			                    if (z.low != null && z.high != null) {
+			                        const mid = (z.low + z.high) / 2;
+			                        makeLine(z.low, soft, '', false, 1, style);
+			                        makeLine(z.high, soft, '', false, 1, style);
+			                        makeLine(mid, color, z.label || '', true, 2, style);
+			                    } else if (z.price != null) {
+			                        makeLine(z.price, color, z.label || '', true, 2, style);
+			                    }
 		                }
 
 		                chart.timeScale().fitContent();
@@ -4961,10 +5007,11 @@
 			                });
 			                panelEl.__uiGlmTargetChart = chart;
 
-			                const line = chart.addLineSeries({
-			                    color: isDark ? 'rgba(96,165,250,0.95)' : 'rgba(59,130,246,0.95)',
-			                    lineWidth: 2,
-			                });
+				                const lineCol = cssVar('--primary-light', isDark ? 'rgba(96,165,250,0.95)' : 'rgba(59,130,246,0.95)');
+				                const line = chart.addLineSeries({
+				                    color: lineCol,
+				                    lineWidth: 2,
+				                });
 			                line.setData(bars.map(b => ({ time: b.d, value: b.c })));
 
 			                const makeLine = (price, color, title, axisVisible, width, style) => {
@@ -4982,16 +5029,19 @@
 			                    }
 			                };
 
-			                const supportCol = 'rgba(16,185,129,0.92)';
-			                const resistCol = 'rgba(239,68,68,0.92)';
+			                const supportCol = cssVar('--chart-level-support', 'rgba(16,185,129,0.92)');
+			                const resistCol = cssVar('--chart-level-resist', 'rgba(239,68,68,0.92)');
+			                const supportSoft = cssVar('--chart-up-soft', 'rgba(16,185,129,0.45)');
+			                const resistSoft = cssVar('--chart-down-soft', 'rgba(239,68,68,0.45)');
 
 			                for (const z of zones) {
 			                    const color = z.kind === 'support' ? supportCol : resistCol;
+			                    const soft = z.kind === 'support' ? supportSoft : resistSoft;
 			                    const style = LightweightCharts.LineStyle.Dashed;
 			                    if (z.low != null && z.high != null) {
 			                        const mid = (z.low + z.high) / 2;
-			                        makeLine(z.low, color.replace('0.92', '0.35'), '', false, 1, style);
-			                        makeLine(z.high, color.replace('0.92', '0.35'), '', false, 1, style);
+			                        makeLine(z.low, soft, '', false, 1, style);
+			                        makeLine(z.high, soft, '', false, 1, style);
 			                        makeLine(mid, color, z.label || '', true, 2, style);
 			                    } else if (z.price != null) {
 			                        makeLine(z.price, color, z.label || '', true, 2, style);
@@ -5079,8 +5129,9 @@
 			            const chartBg = isDark ? 'rgba(2,6,23,0.0)' : 'rgba(255,255,255,0.0)';
 			            const textCol = isDark ? 'rgba(226,232,240,0.85)' : 'rgba(15,23,42,0.75)';
 			            const gridCol = isDark ? 'rgba(148,163,184,0.16)' : 'rgba(148,163,184,0.28)';
-			            const upCol = 'rgba(16,185,129,0.95)';
-			            const downCol = 'rgba(239,68,68,0.95)';
+				            const upCol = cssVar('--chart-up', 'rgba(16,185,129,0.95)');
+				            const downCol = cssVar('--chart-down', 'rgba(239,68,68,0.95)');
+				            const wickCol = cssVar('--chart-wick', isDark ? 'rgba(226,232,240,0.55)' : 'rgba(15,23,42,0.35)');
 
 			            if (panelEl.__uiGlmPriceChart) {
 			                try { panelEl.__uiGlmPriceChart.remove(); } catch (_) {}
@@ -5109,23 +5160,24 @@
 			            });
 			            panelEl.__uiGlmPriceChart = chart;
 
-			            if (String(mode || 'line') === 'candles') {
-			                const candles = chart.addCandlestickSeries({
-			                    upColor: upCol,
-			                    downColor: downCol,
-			                    borderUpColor: upCol,
-			                    borderDownColor: downCol,
-			                    wickUpColor: 'rgba(148,163,184,0.85)',
-			                    wickDownColor: 'rgba(148,163,184,0.85)',
-			                });
-			                candles.setData(bars.map(b => ({ time: b.d, open: b.o, high: b.h, low: b.l, close: b.c })));
-			            } else {
-			                const line = chart.addLineSeries({
-			                    color: isDark ? 'rgba(96,165,250,0.95)' : 'rgba(59,130,246,0.95)',
-			                    lineWidth: 2,
-			                });
-			                line.setData(bars.map(b => ({ time: b.d, value: b.c })));
-			            }
+				            if (String(mode || 'line') === 'candles') {
+				                const candles = chart.addCandlestickSeries({
+				                    upColor: upCol,
+				                    downColor: downCol,
+				                    borderUpColor: upCol,
+				                    borderDownColor: downCol,
+				                    wickUpColor: wickCol,
+				                    wickDownColor: wickCol,
+				                });
+				                candles.setData(bars.map(b => ({ time: b.d, open: b.o, high: b.h, low: b.l, close: b.c })));
+				            } else {
+				                const lineCol = cssVar('--primary-light', isDark ? 'rgba(96,165,250,0.95)' : 'rgba(59,130,246,0.95)');
+				                const line = chart.addLineSeries({
+				                    color: lineCol,
+				                    lineWidth: 2,
+				                });
+				                line.setData(bars.map(b => ({ time: b.d, value: b.c })));
+				            }
 
 			            chart.timeScale().fitContent();
 
@@ -5316,12 +5368,12 @@
 			                });
 			                panelEl.__uiGlmBhMainChart = chart;
 
-			                const colors = {
-			                    pct_ma5: isDark ? 'rgba(34,211,238,0.95)' : 'rgba(6,182,212,0.95)',
-			                    pct_ma20: isDark ? 'rgba(96,165,250,0.95)' : 'rgba(59,130,246,0.95)',
-			                    pct_ma50: isDark ? 'rgba(167,139,250,0.95)' : 'rgba(139,92,246,0.95)',
-			                    pct_ma200: 'rgba(16,185,129,0.95)',
-			                };
+				                const colors = {
+				                    pct_ma5: cssVar('--info', isDark ? 'rgba(34,211,238,0.95)' : 'rgba(6,182,212,0.95)'),
+				                    pct_ma20: cssVar('--primary-light', isDark ? 'rgba(96,165,250,0.95)' : 'rgba(59,130,246,0.95)'),
+				                    pct_ma50: cssVar('--purple', isDark ? 'rgba(167,139,250,0.95)' : 'rgba(139,92,246,0.95)'),
+				                    pct_ma200: cssVar('--chart-up', 'rgba(16,185,129,0.95)'),
+				                };
 
 			                const selected = getSelected();
 			                const keys = Array.from(selected.size ? selected : new Set(['pct_ma20']));
@@ -5692,9 +5744,11 @@
 			            const unPct = pct(unchanged);
 
 			            const clamp01 = (v) => Math.max(0, Math.min(1, v));
-				            const trinPos = trin == null ? 0.5 : clamp01(trin / 4.0);
-				            const vrPos = volumeRatio == null ? 0.5 : clamp01(volumeRatio / 2.0);
-				            const oscPos = mcclellan == null ? 0.5 : clamp01((mcclellan + 100) / 200);
+					            const trinPos = trin == null ? 0.5 : clamp01(trin / 4.0);
+					            const vrPos = volumeRatio == null ? 0.5 : clamp01(volumeRatio / 2.0);
+					            const oscPos = mcclellan == null ? 0.5 : clamp01((mcclellan + 100) / 200);
+					            const upMid = cssVar('--chart-up-mid', 'rgba(16,185,129,0.70)');
+					            const downMid = cssVar('--chart-down-mid', 'rgba(239,68,68,0.70)');
 
 			            const fmt2 = (v) => (v == null ? 'N/A' : Number(v).toFixed(2));
 			            const fmt0 = (v) => (v == null ? 'N/A' : Number(v).toLocaleString());
@@ -5746,10 +5800,10 @@
 			                             onclick="openBreadthDetailFromEl(this)">
 			                            <div class="k">📊 McClellan Oscillator</div>
 			                            <div class="v"><span>${mcclellan != null ? fmt2(mcclellan) : 'N/A'}</span><span>${mcclellan != null ? (mcclellan > 0 ? 'Dương' : (mcclellan < 0 ? 'Âm' : '0')) : 'N/A'}</span></div>
-			                            <div class="mini-osc" aria-hidden="true">
-			                                <span class="zero"></span>
-			                                <span class="fill" style="${mcclellan == null ? 'display:none;' : (mcclellan >= 0 ? `left:50%; width:${((oscPos - 0.5) * 200).toFixed(1)}%; background: rgba(16,185,129,0.70);` : `left:${(oscPos * 100).toFixed(1)}%; width:${((0.5 - oscPos) * 200).toFixed(1)}%; background: rgba(239,68,68,0.70);`)}"></span>
-			                            </div>
+				                            <div class="mini-osc" aria-hidden="true">
+				                                <span class="zero"></span>
+				                                <span class="fill" style="${mcclellan == null ? 'display:none;' : (mcclellan >= 0 ? `left:50%; width:${((oscPos - 0.5) * 200).toFixed(1)}%; background: ${upMid};` : `left:${(oscPos * 100).toFixed(1)}%; width:${((0.5 - oscPos) * 200).toFixed(1)}%; background: ${downMid};`)}"></span>
+				                            </div>
 			                            <div class="hint">Snapshot value quanh 0</div>
 			                        </div>
 			                    </div>
@@ -5900,8 +5954,11 @@
 			            const chartBg = isDark ? 'rgba(2,6,23,0.0)' : 'rgba(255,255,255,0.0)';
 			            const textCol = isDark ? 'rgba(226,232,240,0.85)' : 'rgba(15,23,42,0.75)';
 			            const gridCol = isDark ? 'rgba(148,163,184,0.16)' : 'rgba(148,163,184,0.28)';
-			            const upCol = 'rgba(16,185,129,0.95)';
-			            const downCol = 'rgba(239,68,68,0.95)';
+				            const upCol = cssVar('--chart-up', 'rgba(16,185,129,0.95)');
+				            const downCol = cssVar('--chart-down', 'rgba(239,68,68,0.95)');
+				            const upColSoft = cssVar('--chart-up-soft', 'rgba(16,185,129,0.45)');
+				            const downColSoft = cssVar('--chart-down-soft', 'rgba(239,68,68,0.45)');
+				            const wickCol = cssVar('--chart-wick', isDark ? 'rgba(226,232,240,0.55)' : 'rgba(15,23,42,0.35)');
 
 			            // Cleanup previous instance if exists
 			            if (panelEl.__uiGlmChart) {
@@ -5940,14 +5997,14 @@
 			            });
 			            panelEl.__uiGlmChart = chart;
 
-			            const candle = chart.addCandlestickSeries({
-			                upColor: upCol,
-			                downColor: downCol,
-			                borderUpColor: upCol,
-			                borderDownColor: downCol,
-			                wickUpColor: isDark ? 'rgba(226,232,240,0.55)' : 'rgba(15,23,42,0.35)',
-			                wickDownColor: isDark ? 'rgba(226,232,240,0.55)' : 'rgba(15,23,42,0.35)',
-			            });
+				            const candle = chart.addCandlestickSeries({
+				                upColor: upCol,
+				                downColor: downCol,
+				                borderUpColor: upCol,
+				                borderDownColor: downCol,
+				                wickUpColor: wickCol,
+				                wickDownColor: wickCol,
+				            });
 
 			            const volume = chart.addHistogramSeries({
 			                priceFormat: { type: 'volume' },
@@ -5957,11 +6014,11 @@
 
 			            const candleData = bars.map(b => ({ time: b.d, open: b.o, high: b.h, low: b.l, close: b.c }));
 			            candle.setData(candleData);
-			            const volData = bars.map(b => ({
-			                time: b.d,
-			                value: b.v || 0,
-			                color: (b.c >= b.o) ? 'rgba(16,185,129,0.45)' : 'rgba(239,68,68,0.45)',
-			            }));
+				            const volData = bars.map(b => ({
+				                time: b.d,
+				                value: b.v || 0,
+				                color: (b.c >= b.o) ? upColSoft : downColSoft,
+				            }));
 			            volume.setData(volData);
 			            chart.timeScale().fitContent();
 
@@ -6180,8 +6237,8 @@
 	        }
 
         // Select and display a single section
-	        function selectSection(sectionIndex) {
-	            if (!currentIndex) return;
+		        function selectSection(sectionIndex) {
+		            if (!currentIndex) return;
 
 	            const index = data[currentIndex];
 	            const sections = getSectionsForIndex(currentIndex);
@@ -6203,10 +6260,13 @@
             // Update page title
             document.getElementById('pageTitle').textContent = section.title.replace(/`/g, '');
 
-            // Show content, hide empty state
-            document.getElementById('emptyState').style.display = 'none';
-            const contentDiv = document.getElementById('singleSectionContent');
-            contentDiv.style.display = 'block';
+	            // Show content, hide empty state
+	            document.getElementById('emptyState').style.display = 'none';
+	            const contentDiv = document.getElementById('singleSectionContent');
+	            contentDiv.style.display = 'block';
+	            try {
+	                if (isMobileViewport()) document.body.classList.add('mobile-reading');
+	            } catch (_) {}
 
 			            const isUiHeatmapSection = section.__uiType === 'heatmap_gainers' || section.__uiType === 'heatmap_losers';
 			            const normalizedSectionTitle = normalizeTitle(section.title);
@@ -6387,14 +6447,17 @@
 	            } catch (_) {}
 
         // Select index (left sidebar)
-        function selectIndex(key) {
-            if (!isIndexAllowedForCurrentPlan(key)) {
-                openPlanChooserModal();
-                return;
-            }
+	        function selectIndex(key) {
+	            if (!isIndexAllowedForCurrentPlan(key)) {
+	                openPlanChooserModal();
+	                return;
+	            }
 
-            currentIndex = key;
-            currentSectionIndex = null;
+	            currentIndex = key;
+	            currentSectionIndex = null;
+	            try {
+	                if (isMobileViewport()) document.body.classList.remove('mobile-reading');
+	            } catch (_) {}
 
             // Update active state in index list
             document.querySelectorAll('.index-item').forEach(item => {
