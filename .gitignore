@@ -16,6 +16,8 @@ reports/
 *.bak
 *~
 ~$*
+.last_parsed_doc
+automation.log
 
 # ==================== GENERATED FILES (VARY) ====================
 # Keep main data file, ignore test outputs
