@@ -293,80 +293,6 @@
             box-shadow: var(--shadow-sm);
         }
 
-        .mobile-top-menu {
-            position: fixed;
-            top: calc(12px + env(safe-area-inset-top, 0px));
-            z-index: 9000;
-            display: none;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-            padding: 10px 12px;
-            border-radius: var(--lg-radius-card);
-            background: var(--lg-surface-glass);
-            border: 1px solid var(--lg-glass-border);
-            backdrop-filter: blur(var(--lg-blur));
-            -webkit-backdrop-filter: blur(var(--lg-blur));
-            box-shadow: var(--shadow-md);
-            color: var(--text-primary);
-            font-weight: 900;
-            letter-spacing: 0.2px;
-            cursor: pointer;
-            user-select: none;
-            -webkit-tap-highlight-color: transparent;
-            touch-action: manipulation;
-            transition: transform var(--motion-fast) var(--motion-ease),
-                        box-shadow var(--motion-fast) var(--motion-ease),
-                        border-color var(--motion-fast) var(--motion-ease),
-                        background-color var(--motion-fast) var(--motion-ease),
-                        opacity var(--motion-fast) var(--motion-ease);
-        }
-
-        .mobile-top-menu:hover {
-            box-shadow: var(--shadow-md), 0 0 0 2px color-mix(in srgb, var(--primary) 18%, transparent);
-            border-color: color-mix(in srgb, var(--primary) 28%, var(--lg-glass-border));
-        }
-
-        .mobile-top-menu:active {
-            transform: translateY(1px) scale(0.99);
-            box-shadow: var(--shadow-sm);
-        }
-
-        .mobile-top-menu--index {
-            left: calc(12px + env(safe-area-inset-left, 0px));
-        }
-
-        .mobile-top-menu--section {
-            right: calc(12px + env(safe-area-inset-right, 0px) + 52px);
-        }
-
-        .mobile-menu-scrim {
-            position: fixed;
-            inset: 0;
-            z-index: 8500;
-            display: none;
-            background: var(--overlay-scrim);
-            backdrop-filter: blur(var(--lg-blur));
-            -webkit-backdrop-filter: blur(var(--lg-blur));
-            opacity: 0;
-            pointer-events: none;
-            transition: opacity var(--motion-med) var(--motion-ease);
-        }
-
-        body.mobile-index-open .mobile-menu-scrim,
-        body.mobile-section-open .mobile-menu-scrim {
-            display: block;
-            opacity: 1;
-            pointer-events: auto;
-        }
-
-        body.mobile-index-open .sidebar,
-        body.mobile-section-open .section-nav {
-            opacity: 1;
-            pointer-events: auto;
-            transform: translateX(0);
-        }
-
         /* Sidebar with Glassmorphism */
         .sidebar {
             background: var(--lg-surface-glass);
@@ -1207,20 +1133,13 @@
 
         /* Responsive */
         @media (max-width: 768px) {
-            /* Mobile: use compact drawers instead of always-visible sidebars */
+            /* Mobile: make index + sections accessible (no hidden sidebar) */
             .dashboard {
-                display: block;
-                padding: calc(68px + env(safe-area-inset-top, 0px)) 12px 12px;
+                display: flex;
+                flex-direction: column;
+                gap: 12px;
+                padding: 12px;
                 min-height: auto;
-            }
-
-            .mobile-top-menu {
-                display: inline-flex;
-            }
-
-            /* Hide the old bottom FAB on mobile (replaced by top drawers). */
-            .mobile-menu-fab {
-                display: none !important;
             }
 
             /* Mobile: hide heatmaps (space constrained) */
@@ -1230,40 +1149,37 @@
                 display: none !important;
             }
 
+            .mobile-menu-fab {
+                display: inline-flex;
+            }
+
             /* Mobile: hide empty-state instructions (index/section lists are already visible above) */
             #emptyState {
                 display: none !important;
                 padding: 0 !important;
             }
 
-            /* Off-canvas drawers */
             .sidebar,
             .section-nav {
-                position: fixed;
-                top: calc(64px + env(safe-area-inset-top, 0px));
-                bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+                display: block;
+                position: relative;
+                top: auto;
                 height: auto;
-                overflow: hidden;
-                z-index: 8600;
-                transform: translateX(-110%);
-                opacity: 0;
-                pointer-events: none;
-                transition: transform var(--motion-med) var(--motion-ease),
-                            opacity var(--motion-med) var(--motion-ease);
+                overflow: visible;
             }
 
             .sidebar {
-                left: calc(12px + env(safe-area-inset-left, 0px));
-                width: min(86vw, 360px);
                 padding: 14px 0;
             }
 
             .section-nav {
-                right: calc(12px + env(safe-area-inset-right, 0px));
-                width: min(86vw, 360px);
                 padding: 14px 0;
-                transform: translateX(110%);
             }
+
+            /* Put section list above content for faster flow: pick index → pick section → read */
+            .sidebar { order: 1; }
+            .section-nav { order: 2; }
+            .main-content { order: 3; }
 
             /* Avoid nested 100vh scrolling containers on iOS */
             .main-content {
@@ -1274,7 +1190,7 @@
 
             .index-list,
             #sectionList {
-                max-height: calc(100% - 190px);
+                max-height: 52vh;
                 overflow: auto;
                 -webkit-overflow-scrolling: touch;
             }
@@ -1284,11 +1200,9 @@
             }
 
             .theme-toggle {
-                top: calc(12px + env(safe-area-inset-top, 0px));
-                right: calc(12px + env(safe-area-inset-right, 0px));
-                width: 44px;
-                height: 44px;
-                font-size: 1.2rem;
+                width: 45px;
+                height: 45px;
+                font-size: 1.3rem;
             }
         }
 
@@ -3439,25 +3353,17 @@
 		        }
     </style>
 </head>
-	<body data-theme="light">
-	    <!-- Theme Toggle Button -->
-	    <button class="theme-toggle" id="themeToggle" aria-label="Toggle theme">
-	        🌙
-	    </button>
+<body data-theme="light">
+    <!-- Theme Toggle Button -->
+    <button class="theme-toggle" id="themeToggle" aria-label="Toggle theme">
+        🌙
+    </button>
 
-	    <div class="mobile-menu-scrim" id="mobileMenuScrim" aria-hidden="true"></div>
-	    <button type="button" class="mobile-top-menu mobile-top-menu--index" id="mobileIndexBtn" aria-haspopup="dialog" aria-expanded="false">
-	        ☰ Index
-	    </button>
-	    <button type="button" class="mobile-top-menu mobile-top-menu--section" id="mobileSectionBtn" aria-haspopup="dialog" aria-expanded="false">
-	        ☰ Mục
-	    </button>
-
-	    <div class="dashboard">
-	        <!-- Sidebar 1: Index List (Left) -->
-	        <div class="sidebar">
-	            <div class="sidebar-header">
-	                <h2>📊 Index</h2>
+    <div class="dashboard">
+        <!-- Sidebar 1: Index List (Left) -->
+        <div class="sidebar">
+            <div class="sidebar-header">
+                <h2>📊 Index</h2>
                 <div class="date">25/12/2025</div>
                 <div class="plan-toggle" role="group" aria-label="Chế độ xem">
                     <button type="button" class="plan-btn" id="planLiteBtn">Lite</button>
@@ -3513,13 +3419,15 @@
                     Chọn một chỉ số bên trái để xem các mục phân tích
                 </div>
             </div>
-	        </div>
-	    </div>
+        </div>
+    </div>
 
-	    <script>
-		        // Theme Toggle Logic
-		        const themeToggle = document.getElementById('themeToggle');
-		        const body = document.body;
+    <button type="button" id="mobileMenuFab" class="mobile-menu-fab" aria-label="Quay lại menu">☰ Menu</button>
+
+    <script>
+	        // Theme Toggle Logic
+	        const themeToggle = document.getElementById('themeToggle');
+	        const body = document.body;
 	        let currentTheme = localStorage.getItem('theme') || 'light';
 
 	        // Disable TradingView links (UI charts are not linked externally)
@@ -3577,6 +3485,16 @@
 			                }
 			            });
 			        });
+
+				        // Mobile: floating back-to-menu button
+				        document.getElementById('mobileMenuFab')?.addEventListener('click', () => {
+				            try { closeUiModal(); } catch (_) {}
+				            try { closeDonateModal(); } catch (_) {}
+				            try {
+				                const target = currentIndex ? document.querySelector('.section-nav') : document.querySelector('.sidebar');
+				                scrollWindowToEl(target);
+				            } catch (_) {}
+				        });
 
         function updateThemeIcon(theme) {
             themeToggle.textContent = theme === 'light' ? '🌙' : '☀️';
@@ -3915,16 +3833,13 @@
             return 'neutral';
         }
 
-	        function _updateBodyOverflow() {
-	            const donateModal = document.getElementById('donateModal');
-	            const uiModal = document.getElementById('uiModal');
-	            const donateOpen = donateModal && donateModal.style.display === 'block';
-	            const uiOpen = uiModal && uiModal.style.display === 'block';
-	            const drawerOpen =
-	                document.body.classList.contains('mobile-index-open') ||
-	                document.body.classList.contains('mobile-section-open');
-	            document.body.style.overflow = (donateOpen || uiOpen || drawerOpen) ? 'hidden' : 'auto';
-	        }
+        function _updateBodyOverflow() {
+            const donateModal = document.getElementById('donateModal');
+            const uiModal = document.getElementById('uiModal');
+            const donateOpen = donateModal && donateModal.style.display === 'block';
+            const uiOpen = uiModal && uiModal.style.display === 'block';
+            document.body.style.overflow = (donateOpen || uiOpen) ? 'hidden' : 'auto';
+        }
 
         function openUiModal({ tone = 'neutral', title = '', subtitle = '', bodyHtml = '', large = false } = {}) {
             const modal = document.getElementById('uiModal');
@@ -4300,52 +4215,6 @@
             } catch (_) {
                 run();
             }
-        }
-
-        function closeMobileMenus() {
-            try {
-                document.body.classList.remove('mobile-index-open', 'mobile-section-open');
-                document.getElementById('mobileIndexBtn')?.setAttribute('aria-expanded', 'false');
-                document.getElementById('mobileSectionBtn')?.setAttribute('aria-expanded', 'false');
-                _updateBodyOverflow();
-            } catch (_) {}
-        }
-
-        function openMobileIndexMenu() {
-            try {
-                document.body.classList.remove('mobile-section-open');
-                document.body.classList.add('mobile-index-open');
-                document.getElementById('mobileIndexBtn')?.setAttribute('aria-expanded', 'true');
-                document.getElementById('mobileSectionBtn')?.setAttribute('aria-expanded', 'false');
-                _updateBodyOverflow();
-                setTimeout(() => document.getElementById('searchInput')?.focus?.(), 0);
-            } catch (_) {}
-        }
-
-        function openMobileSectionMenu() {
-            try {
-                if (!currentIndex) {
-                    openMobileIndexMenu();
-                    return;
-                }
-                document.body.classList.remove('mobile-index-open');
-                document.body.classList.add('mobile-section-open');
-                document.getElementById('mobileSectionBtn')?.setAttribute('aria-expanded', 'true');
-                document.getElementById('mobileIndexBtn')?.setAttribute('aria-expanded', 'false');
-                _updateBodyOverflow();
-            } catch (_) {}
-        }
-
-        function toggleMobileIndexMenu() {
-            const open = document.body.classList.contains('mobile-index-open');
-            if (open) closeMobileMenus();
-            else openMobileIndexMenu();
-        }
-
-        function toggleMobileSectionMenu() {
-            const open = document.body.classList.contains('mobile-section-open');
-            if (open) closeMobileMenus();
-            else openMobileSectionMenu();
         }
 
 	        function htmlToPlainText(html) {
@@ -6461,9 +6330,13 @@
 		            }
 		        }
 
-            // Mobile: close drawer after choosing a section.
+            // Mobile: after render, bring content into view (iOS: needs rAF + a retry after layout settles).
             try {
-                if (isMobileViewport()) closeMobileMenus();
+                if (isMobileViewport()) {
+                    const target = document.querySelector('.main-content') || contentDiv;
+                    scrollToElAfterRender(target, 10);
+                    setTimeout(() => scrollToElAfterRender(target, 10), 220);
+                }
             } catch (_) {}
 
         // Select index (left sidebar)
@@ -6485,12 +6358,9 @@
             // Render section list
             renderSectionList(key);
 
-            // Mobile: close index drawer and open section drawer (next step).
+            // Mobile: after selecting an index, bring the section list into view.
             try {
-                if (isMobileViewport()) {
-                    closeMobileMenus();
-                    setTimeout(() => openMobileSectionMenu(), 0);
-                }
+                if (isMobileViewport()) scrollToElAfterRender(document.querySelector('.section-nav'));
             } catch (_) {}
 
             // Reset main content
@@ -6506,23 +6376,6 @@
                 const name = item.querySelector('.name').textContent.toLowerCase();
                 item.style.display = name.includes(query) ? 'flex' : 'none';
             });
-        });
-
-        // Mobile drawer wiring
-        document.getElementById('mobileIndexBtn')?.addEventListener('click', () => {
-            if (!isMobileViewport()) return;
-            toggleMobileIndexMenu();
-        });
-        document.getElementById('mobileSectionBtn')?.addEventListener('click', () => {
-            if (!isMobileViewport()) return;
-            toggleMobileSectionMenu();
-        });
-        document.getElementById('mobileMenuScrim')?.addEventListener('click', () => {
-            closeMobileMenus();
-        });
-        document.addEventListener('keydown', (event) => {
-            if (event.key !== 'Escape') return;
-            closeMobileMenus();
         });
 
 			        // Initialize
