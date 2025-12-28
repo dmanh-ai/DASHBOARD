@@ -4184,10 +4184,36 @@
         function scrollWindowToEl(el, yPad = 12) {
             if (!el) return;
             try {
-                const top = Math.max(0, window.scrollY + el.getBoundingClientRect().top - (yPad || 0));
-                window.scrollTo({ top, behavior: 'smooth' });
+                const scroller = document.scrollingElement || document.documentElement;
+                const top = Math.max(0, scroller.scrollTop + el.getBoundingClientRect().top - (yPad || 0));
+                scroller.scrollTo({ top, behavior: 'smooth' });
             } catch (_) {
                 try { el.scrollIntoView({ behavior: 'smooth', block: 'start' }); } catch (_) {}
+            }
+        }
+
+        function scrollToElAfterRender(el, yPad = 12) {
+            if (!el) return;
+            const reduceMotion =
+                !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+            const behavior = reduceMotion ? 'auto' : 'smooth';
+            const run = () => {
+                try {
+                    const scroller = document.scrollingElement || document.documentElement;
+                    const top = Math.max(0, scroller.scrollTop + el.getBoundingClientRect().top - (yPad || 0));
+                    scroller.scrollTo({ top, behavior });
+                } catch (_) {
+                    try { el.scrollIntoView({ behavior, block: 'start' }); } catch (_) {}
+                }
+            };
+            try {
+                if (typeof requestAnimationFrame === 'function') {
+                    requestAnimationFrame(() => requestAnimationFrame(run));
+                } else {
+                    setTimeout(run, 0);
+                }
+            } catch (_) {
+                run();
             }
         }
 
@@ -6304,9 +6330,9 @@
 		            }
 		        }
 
-            // Mobile: after render, bring content into view (more reliable on iOS than scrollIntoView from inside overflow lists).
+            // Mobile: after render, bring content into view (iOS: needs rAF to wait for layout).
             try {
-                if (isMobileViewport()) setTimeout(() => scrollWindowToEl(contentDiv), 0);
+                if (isMobileViewport()) scrollToElAfterRender(contentDiv);
             } catch (_) {}
 
         // Select index (left sidebar)
@@ -6330,7 +6356,7 @@
 
             // Mobile: after selecting an index, bring the section list into view.
             try {
-                if (isMobileViewport()) setTimeout(() => scrollWindowToEl(document.querySelector('.section-nav')), 0);
+                if (isMobileViewport()) scrollToElAfterRender(document.querySelector('.section-nav'));
             } catch (_) {}
 
             // Reset main content
