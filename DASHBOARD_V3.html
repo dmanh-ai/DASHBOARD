@@ -4210,10 +4210,36 @@
             return String(Math.round(num));
         }
 
-        function parseIndexMetrics(indexKey) {
-            const idx = data[indexKey];
-            if (!idx || !Array.isArray(idx.sections)) return null;
-            const text = idx.sections.map(s => htmlToPlainText(s.content)).join('\n');
+	        function parseIndexMetrics(indexKey) {
+	            // Prefer deterministic metrics from index OHLCV export (market monthly DB)
+	            // to avoid brittle regex parsing from AI text (especially VNSML / VNFINSELECT).
+	            try {
+	                const ohlcv = getIndexOhlcvPayload(indexKey);
+	                if (ohlcv && Array.isArray(ohlcv.bars) && ohlcv.bars.length >= 2) {
+	                    const bars = ohlcv.bars;
+	                    const last = bars[bars.length - 1] || null;
+	                    const prev = bars[bars.length - 2] || null;
+	                    const lastClose = last && Number(last.c);
+	                    const prevClose = prev && Number(prev.c);
+	                    const lastVol = last && Number(last.v);
+	
+	                    let changePct = null;
+	                    let changeText = null;
+	                    if (Number.isFinite(lastClose) && Number.isFinite(prevClose) && prevClose !== 0) {
+	                        changePct = (lastClose / prevClose - 1) * 100;
+	                        changeText = (changePct >= 0 ? '+' : '') + changePct.toFixed(2) + '%';
+	                    }
+	
+	                    const priceText = Number.isFinite(lastClose) ? lastClose.toLocaleString(undefined, { maximumFractionDigits: 2 }) : null;
+	                    const volumeValue = Number.isFinite(lastVol) ? lastVol : null;
+	                    const volumeText = volumeValue != null ? formatCompactNumber(volumeValue) : null;
+	                    return { priceText, changePct, changeText, volumeText, volumeValue };
+	                }
+	            } catch (_) {}
+
+	            const idx = data[indexKey];
+	            if (!idx || !Array.isArray(idx.sections)) return null;
+	            const text = idx.sections.map(s => htmlToPlainText(s.content)).join('\n');
 
             const priceMatch = text.match(/Giá\s*hiện\s*tại\s*(?:\(|:)?\s*([0-9][0-9.,]*)/i);
             const priceText = priceMatch ? String(priceMatch[1]).replace(/[,\.\)\]\s]+$/g, '').trim() : null;

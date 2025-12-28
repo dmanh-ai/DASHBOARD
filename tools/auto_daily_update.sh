@@ -434,6 +434,35 @@ EOF
 }
 
 # ============================================================================
+# STEP 6.5: EXPORT INDEX OHLCV (FROM MARKET DB)
+# ============================================================================
+
+step6_5_export_index_ohlcv() {
+    log "🔄 Step 6.5: Exporting index OHLCV from market monthly DB..."
+
+    local exporter="$SCRIPT_DIR/export_index_ohlcv_from_market_db.py"
+    local db_path="$WORKSPACE_ROOT/market_cache/hose_monthly/latest.sqlite"
+    local out_path="$DATA_DIR/index_ohlcv.js"
+
+    if [[ ! -f "$exporter" ]]; then
+        log "⚠️  Exporter missing: $exporter (skip)"
+        return 0
+    fi
+    if [[ ! -f "$db_path" ]]; then
+        log "⚠️  Market DB missing: $db_path (skip)"
+        return 0
+    fi
+
+    if python3 "$exporter" --db "$db_path" --out "$out_path" >>"$LOG_FILE" 2>&1; then
+        log "✅ Exported: $out_path"
+        return 0
+    fi
+
+    log "⚠️  Export index OHLCV failed (continue). See $LOG_FILE"
+    return 0
+}
+
+# ============================================================================
 # STEP 7: GIT OPERATIONS
 # ============================================================================
 
@@ -452,14 +481,14 @@ step7_git_commit() {
     git config user.email "$GIT_EMAIL" 2>/dev/null || true
     git config user.name "$GIT_NAME" 2>/dev/null || true
 
-    # Check for changes (data + meta + dashboard)
-    if git diff --quiet -- "$MAIN_DATA_FILE" "$META_DATA_FILE" "$META_JSON_FILE" "$DATA_DIR/DASHBOARD_V3.html"; then
+    # Check for changes (data + meta + dashboard + OHLCV export)
+    if git diff --quiet -- "$MAIN_DATA_FILE" "$META_DATA_FILE" "$META_JSON_FILE" "$DATA_DIR/DASHBOARD_V3.html" "$DATA_DIR/index_ohlcv.js"; then
         log "ℹ️  No changes to commit"
         return 0
     fi
 
     # Add files (full_data + meta; dashboard html may change occasionally)
-    git add "$MAIN_DATA_FILE" "$META_DATA_FILE" "$META_JSON_FILE" "$DATA_DIR/DASHBOARD_V3.html" 2>/dev/null || true
+    git add "$MAIN_DATA_FILE" "$META_DATA_FILE" "$META_JSON_FILE" "$DATA_DIR/DASHBOARD_V3.html" "$DATA_DIR/index_ohlcv.js" 2>/dev/null || true
 
     # Commit
     local file_date
@@ -533,6 +562,9 @@ main() {
 
     # Step 6: Update main
     step6_update_main "$LATEST_JS"
+
+    # Step 6.5: Export index OHLCV (market DB)
+    step6_5_export_index_ohlcv
 
     # Step 7: Git commit
     step7_git_commit
