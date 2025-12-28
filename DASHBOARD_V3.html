@@ -254,6 +254,45 @@
             transform: scale(0.95);
         }
 
+        .mobile-menu-fab {
+            position: fixed;
+            right: calc(14px + env(safe-area-inset-right, 0px));
+            bottom: calc(14px + env(safe-area-inset-bottom, 0px));
+            z-index: 9000;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 12px 14px;
+            border-radius: var(--lg-radius-card);
+            background: var(--lg-surface-glass);
+            border: 1px solid var(--lg-glass-border);
+            backdrop-filter: blur(var(--lg-blur));
+            -webkit-backdrop-filter: blur(var(--lg-blur));
+            box-shadow: var(--shadow-md);
+            color: var(--text-primary);
+            font-weight: 900;
+            letter-spacing: 0.2px;
+            cursor: pointer;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+            touch-action: manipulation;
+            transition: transform var(--motion-fast) var(--motion-ease),
+                        box-shadow var(--motion-fast) var(--motion-ease),
+                        border-color var(--motion-fast) var(--motion-ease),
+                        background-color var(--motion-fast) var(--motion-ease),
+                        opacity var(--motion-fast) var(--motion-ease);
+        }
+
+        .mobile-menu-fab:hover {
+            box-shadow: var(--shadow-md), 0 0 0 2px color-mix(in srgb, var(--primary) 22%, transparent);
+            border-color: color-mix(in srgb, var(--primary) 35%, var(--lg-glass-border));
+        }
+
+        .mobile-menu-fab:active {
+            transform: translateY(1px) scale(0.98);
+            box-shadow: var(--shadow-sm);
+        }
+
         /* Sidebar with Glassmorphism */
         .sidebar {
             background: var(--lg-surface-glass);
@@ -1101,6 +1140,17 @@
                 gap: 12px;
                 padding: 12px;
                 min-height: auto;
+            }
+
+            /* Mobile: hide heatmaps (space constrained) */
+            .heatmap-block,
+            .heatmap-index-grid,
+            .heatmap-table {
+                display: none !important;
+            }
+
+            .mobile-menu-fab {
+                display: inline-flex;
             }
 
             .sidebar,
@@ -3366,6 +3416,8 @@
         </div>
     </div>
 
+    <button type="button" id="mobileMenuFab" class="mobile-menu-fab" aria-label="Quay lại menu">☰ Menu</button>
+
     <script>
 	        // Theme Toggle Logic
 	        const themeToggle = document.getElementById('themeToggle');
@@ -3388,11 +3440,11 @@
         body.setAttribute('data-theme', currentTheme);
         updateThemeIcon(currentTheme);
 
-		        themeToggle.addEventListener('click', () => {
-		            currentTheme = currentTheme === 'light' ? 'dark' : 'light';
-		            body.setAttribute('data-theme', currentTheme);
-		            localStorage.setItem('theme', currentTheme);
-		            updateThemeIcon(currentTheme);
+			        themeToggle.addEventListener('click', () => {
+			            currentTheme = currentTheme === 'light' ? 'dark' : 'light';
+			            body.setAttribute('data-theme', currentTheme);
+			            localStorage.setItem('theme', currentTheme);
+			            updateThemeIcon(currentTheme);
 		            // Re-init trend charts to match theme
 		            document.querySelectorAll('.price-panel').forEach(panel => {
 		                const idxKey = panel.getAttribute('data-index-key');
@@ -3421,12 +3473,19 @@
 		                    try { initTargetLevelsPanel(panel.id, idxKey, stored ? stored.sectionHtml : ''); } catch (_) {}
 		                }
 		            });
-		            document.querySelectorAll('.bh-panel').forEach(panel => {
-		                if (panel.id) {
-		                    try { initBreadthHistoryPanel(panel.id); } catch (_) {}
-		                }
-		            });
-		        });
+			            document.querySelectorAll('.bh-panel').forEach(panel => {
+			                if (panel.id) {
+			                    try { initBreadthHistoryPanel(panel.id); } catch (_) {}
+			                }
+			            });
+			        });
+
+			        // Mobile: floating back-to-menu button
+			        document.getElementById('mobileMenuFab')?.addEventListener('click', () => {
+			            try { closeUiModal(); } catch (_) {}
+			            try { closeDonateModal(); } catch (_) {}
+			            try { document.querySelector('.sidebar')?.scrollIntoView({ behavior: 'smooth', block: 'start' }); } catch (_) {}
+			        });
 
         function updateThemeIcon(theme) {
             themeToggle.textContent = theme === 'light' ? '🌙' : '☀️';
@@ -4077,6 +4136,7 @@
 
 	            const payload = getIndexHeatmapPayload(indexKey);
 	            if (!payload) return base;
+	            if (isMobileViewport()) return base;
 
 	            return base.concat([
 	                {
@@ -4102,6 +4162,14 @@
 
         function normalizeTitle(title) {
             return (title || '').replace(/`/g, '').trim().toUpperCase();
+        }
+
+        function isMobileViewport() {
+            try {
+                return !!(window.matchMedia && window.matchMedia('(max-width: 768px)').matches);
+            } catch (_) {
+                return false;
+            }
         }
 
 	        function htmlToPlainText(html) {
@@ -4261,7 +4329,7 @@
 	        function renderStockHeatmapTable(points, title) {
 	            if (!points || !points.length) {
 	                return `
-	                    <div class="block">
+	                    <div class="block heatmap-block">
 	                        <div class="block-header">${escapeHtml(title)}</div>
 	                        <div class="block-body"><div class="info-box"><p>Không có dữ liệu.</p></div></div>
 	                    </div>
@@ -4322,7 +4390,7 @@
             }
 
 	            return `
-	                <div class="block" data-popup-title="${escapeHtml(title)}">
+	                <div class="block heatmap-block" data-popup-title="${escapeHtml(title)}">
 	                    <div class="block-header">
 	                        <span>${escapeHtml(title)}</span>
 	                        <button type="button" class="block-expand" onclick="openBlockPopup(this)">Xem lớn</button>
@@ -5865,6 +5933,7 @@
 
 	        function buildMarketOverviewExtrasHtml() {
 	            try {
+	                const isMobile = isMobileViewport();
 	                const rows = getSummaryIndexRows();
 	                const summaryCards = renderSummaryCards(rows);
 
@@ -5873,15 +5942,19 @@
 	                const losers = stockData && Array.isArray(stockData.losers) ? stockData.losers : [];
 	                const dateText = stockData && stockData.date ? ` (date: ${stockData.date})` : '';
 
-	                const gainersBlock = renderStockHeatmapTable(
+	                const gainersBlock = isMobile ? '' : renderStockHeatmapTable(
 	                    gainers,
 	                    `🔥 Heatmap cổ phiếu VNINDEX TĂNG GIÁ (giá & giá trị giao dịch)${dateText}`
 	                );
 
-	                const losersBlock = renderStockHeatmapTable(
+	                const losersBlock = isMobile ? '' : renderStockHeatmapTable(
 	                    losers,
 	                    `🔥 Heatmap cổ phiếu VNINDEX GIẢM GIÁ (giá & giá trị giao dịch)${dateText}`
 	                );
+
+	                const mobileNote = isMobile
+	                    ? `<div class="info-box"><p><strong>Heatmap</strong> đang được ẩn trên mobile để tối ưu không gian hiển thị. Vui lòng mở trên desktop để xem.</p></div>`
+	                    : '';
 
 	                return `
 	                    <div class="overview-extras">
@@ -5889,6 +5962,7 @@
 	                            <div class="block-header">📊 THỐNG KÊ CÁC CHỈ SỐ</div>
 	                            <div class="block-body">${summaryCards}</div>
 	                        </div>
+	                        ${mobileNote}
 	                        ${gainersBlock}
 	                        ${losersBlock}
 	                    </div>
