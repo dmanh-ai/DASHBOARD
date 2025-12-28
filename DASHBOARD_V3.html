@@ -6330,9 +6330,13 @@
 		            }
 		        }
 
-            // Mobile: after render, bring content into view (iOS: needs rAF to wait for layout).
+            // Mobile: after render, bring content into view (iOS: needs rAF + a retry after layout settles).
             try {
-                if (isMobileViewport()) scrollToElAfterRender(contentDiv);
+                if (isMobileViewport()) {
+                    const target = document.querySelector('.main-content') || contentDiv;
+                    scrollToElAfterRender(target, 10);
+                    setTimeout(() => scrollToElAfterRender(target, 10), 220);
+                }
             } catch (_) {}
 
         // Select index (left sidebar)
