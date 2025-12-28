@@ -440,8 +440,8 @@ step7_git_commit() {
     git config user.email "$GIT_EMAIL" 2>/dev/null || true
     git config user.name "$GIT_NAME" 2>/dev/null || true
 
-    # Check for changes
-    if git diff --quiet "$MAIN_DATA_FILE"; then
+    # Check for changes (data + meta + dashboard)
+    if git diff --quiet -- "$MAIN_DATA_FILE" "$META_DATA_FILE" "$DATA_DIR/DASHBOARD_V3.html"; then
         log "ℹ️  No changes to commit"
         return 0
     fi
