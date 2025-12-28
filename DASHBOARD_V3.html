@@ -311,10 +311,6 @@
             color: var(--text-primary);
             font-weight: 900;
             letter-spacing: 0.2px;
-            max-width: 44vw;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
             cursor: pointer;
             user-select: none;
             -webkit-tap-highlight-color: transparent;
@@ -1267,54 +1263,6 @@
                 width: min(86vw, 360px);
                 padding: 14px 0;
                 transform: translateX(110%);
-            }
-
-            /* Make drawers feel like "mini lists" */
-            .sidebar-header {
-                padding: 0 16px 12px;
-                margin-bottom: 12px;
-            }
-
-            .sidebar-header .date,
-            .plan-note {
-                display: none;
-            }
-
-            .plan-toggle {
-                margin-top: 8px;
-                padding: 8px;
-            }
-
-            .plan-btn {
-                padding: 7px 10px;
-                font-size: 0.78rem;
-            }
-
-            .search-box {
-                padding: 0 16px 12px;
-            }
-
-            .search-input {
-                padding: 10px 14px;
-                font-size: 0.9rem;
-            }
-
-            .index-item {
-                padding: 12px 14px;
-                font-size: 0.9rem;
-            }
-
-            .section-nav-header {
-                padding: 0 16px 12px;
-                margin-bottom: 12px;
-            }
-
-            .section-nav-header .subtitle {
-                display: none;
-            }
-
-            .section-item {
-                padding: 12px 14px;
             }
 
             /* Avoid nested 100vh scrolling containers on iOS */
@@ -3924,7 +3872,7 @@
         }
 
         // Render sidebar
-	        function renderSidebar() {
+        function renderSidebar() {
             const all = [
                 { key: 'overview', name: 'TỔNG HỢP' },
                 { key: 'vnindex', name: 'VNINDEX' },
@@ -3946,16 +3894,15 @@
 
             const indices = all.filter(i => isIndexAllowedForCurrentPlan(i.key));
 
-	            const container = document.getElementById('indexList');
-	            container.innerHTML = indices.map(idx => `
-	                <div class="index-item ${idx.key === 'vnindex' ? 'active' : ''}"
-	                     onclick="selectIndex('${idx.key}')"
-	                     data-index="${idx.key}">
-	                    <span class="name">${idx.name}</span>
-	                </div>
-	            `).join('');
-	            updateMobileMenuLabels();
-	        }
+            const container = document.getElementById('indexList');
+            container.innerHTML = indices.map(idx => `
+                <div class="index-item ${idx.key === 'vnindex' ? 'active' : ''}"
+                     onclick="selectIndex('${idx.key}')"
+                     data-index="${idx.key}">
+                    <span class="name">${idx.name}</span>
+                </div>
+            `).join('');
+        }
 
         // State
         let currentIndex = null;
@@ -4401,32 +4348,11 @@
             else openMobileSectionMenu();
         }
 
-        function updateMobileMenuLabels() {
-            try {
-                const idxBtn = document.getElementById('mobileIndexBtn');
-                const secBtn = document.getElementById('mobileSectionBtn');
-
-                if (idxBtn) {
-                    const activeIdx = document.querySelector('.index-item.active .name')?.textContent?.trim();
-                    const idxLabel = currentIndex ? (activeIdx || 'Index') : 'Index';
-                    idxBtn.textContent = `☰ ${idxLabel}`;
-                }
-
-                if (secBtn) {
-                    let activeTitle = '';
-                    if (currentSectionIndex != null) {
-                        activeTitle = document.querySelector(`[data-section="${currentSectionIndex}"] .title`)?.textContent?.trim() || '';
-                    }
-                    secBtn.textContent = `☰ ${activeTitle || 'Mục'}`;
-                }
-            } catch (_) {}
-        }
-
-		        function htmlToPlainText(html) {
-		            const div = document.createElement('div');
-		            div.innerHTML = html || '';
-		            return (div.textContent || div.innerText || '').replace(/\u00A0/g, ' ').replace(/\s+/g, ' ').trim();
-		        }
+	        function htmlToPlainText(html) {
+	            const div = document.createElement('div');
+	            div.innerHTML = html || '';
+	            return (div.textContent || div.innerText || '').replace(/\u00A0/g, ' ').replace(/\s+/g, ' ').trim();
+	        }
 
 	        function escapeHtml(text) {
 	            return String(text == null ? '' : text)
@@ -6306,7 +6232,7 @@
 	        }
 
 	        // Render section list in middle column
-		        function renderSectionList(indexKey) {
+	        function renderSectionList(indexKey) {
 	            const index = data[indexKey];
 	            if (!index || !index.sections) {
 	                document.getElementById('sectionList').innerHTML = '<div class="no-sections">Không có dữ liệu</div>';
@@ -6335,9 +6261,8 @@
                 `;
             });
 
-		            container.innerHTML = html;
-		            updateMobileMenuLabels();
-		        }
+	            container.innerHTML = html;
+	        }
 
         // Select and display a single section
 	        function selectSection(sectionIndex) {
@@ -6356,10 +6281,9 @@
                 item.classList.remove('active');
             });
             const activeItem = document.querySelector(`[data-section="${sectionIndex}"]`);
-	            if (activeItem) {
-	                activeItem.classList.add('active');
-	            }
-	            updateMobileMenuLabels();
+            if (activeItem) {
+                activeItem.classList.add('active');
+            }
 
             // Update page title
             document.getElementById('pageTitle').textContent = section.title.replace(/`/g, '');
@@ -6557,7 +6481,6 @@
                 item.classList.remove('active');
             });
             document.querySelector(`[data-index="${key}"]`).classList.add('active');
-            updateMobileMenuLabels();
 
             // Render section list
             renderSectionList(key);
