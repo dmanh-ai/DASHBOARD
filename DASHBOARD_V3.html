@@ -3453,15 +3453,11 @@
     <div class="dashboard">
         <!-- Sidebar 1: Index List (Left) -->
         <div class="sidebar">
-            <div class="sidebar-header">
-                <h2>📊 Index</h2>
-                <div class="date">25/12/2025</div>
-                <div class="plan-toggle" role="group" aria-label="Chế độ xem">
-                    <button type="button" class="plan-btn" id="planLiteBtn">Lite</button>
-                    <button type="button" class="plan-btn" id="planProBtn">Pro</button>
-                </div>
-                <div class="plan-note" id="planNote"></div>
-            </div>
+	            <div class="sidebar-header">
+	                <h2>📊 Index</h2>
+	                <div class="date">25/12/2025</div>
+	                <div class="plan-note" id="planNote">Lite (Public): Tổng hợp + VNINDEX, VN30, VN100, VNMIDCAP.</div>
+	            </div>
 
             <div class="search-box">
                 <input type="text" class="search-input" placeholder="🔍 Tìm chỉ số..." id="searchInput">
@@ -3602,36 +3598,14 @@
 	        // Data from full_data.js
 	        const data = FULL_DATA;
 
-        // ---------------------------
-        // Lite / Pro access control
-        // ---------------------------
-        const UI_GLM_PLAN = {
-            LITE: 'lite',
-            PRO: 'pro',
-        };
+	        // ---------------------------
+	        // Lite / Pro access control
+	        // ---------------------------
+	        const UI_GLM_PLAN = {
+	            LITE: 'lite',
+	        };
 
-	        const UI_GLM_PLAN_PREF_KEY = 'ui_glm_plan_pref';
-	        const UI_GLM_PRO_OK_KEY = 'ui_glm_pro_ok_session';
-	        const UI_GLM_PRO_PASSWORD_SALT = 'ui-glm-pro:v1:';
-	        const UI_GLM_PRO_PASSWORD_HASH = '8b23eff3d24ca702432c31aadd45808739b3a0bb48a5bc730c2aecbd0a650185';
-	        const UI_GLM_PLAN_CHOOSER_VER = '1';
-	        const UI_GLM_PLAN_CHOOSER_VER_KEY = 'ui_glm_plan_chooser_ver';
-
-	        async function sha256Hex(text) {
-	            try {
-	                if (!window.crypto || !window.crypto.subtle) return null;
-	                const bytes = new TextEncoder().encode(String(text || ''));
-	                const digest = await window.crypto.subtle.digest('SHA-256', bytes);
-	                return Array.from(new Uint8Array(digest)).map(b => b.toString(16).padStart(2, '0')).join('');
-	            } catch (_) {
-	                return null;
-	            }
-	        }
-
-	        async function verifyProPassword(pwd) {
-	            const hash = await sha256Hex(UI_GLM_PRO_PASSWORD_SALT + String(pwd || ''));
-	            return !!(hash && hash === UI_GLM_PRO_PASSWORD_HASH);
-	        }
+	        const UI_GLM_PUBLIC_BUILD = true;
 
 	        const UI_GLM_LITE_ALLOWED_INDICES = new Set(['overview', 'vnindex', 'vn30', 'vn100', 'vnmidcap']);
 	        const UI_GLM_LITE_HIDDEN_SECTIONS = new Set([
@@ -3640,257 +3614,76 @@
             'LỊCH SỬ & XU HƯỚNG BREADTH',
         ].map(s => s.trim().toUpperCase()));
 
-        function getPlanPreference() {
-            const raw = (localStorage.getItem(UI_GLM_PLAN_PREF_KEY) || '').trim().toLowerCase();
-            return (raw === UI_GLM_PLAN.PRO) ? UI_GLM_PLAN.PRO : UI_GLM_PLAN.LITE;
-        }
+	        function getPlanPreference() {
+	            return UI_GLM_PLAN.LITE;
+	        }
 
-        function isProUnlocked() {
-            return sessionStorage.getItem(UI_GLM_PRO_OK_KEY) === '1';
-        }
+	        function isProUnlocked() {
+	            return false;
+	        }
 
-        function getEffectivePlan() {
-            const pref = getPlanPreference();
-            if (pref === UI_GLM_PLAN.PRO && isProUnlocked()) return UI_GLM_PLAN.PRO;
-            return UI_GLM_PLAN.LITE;
-        }
+	        function getEffectivePlan() {
+	            return UI_GLM_PLAN.LITE;
+	        }
 
-        function setPlanPreference(plan) {
-            localStorage.setItem(UI_GLM_PLAN_PREF_KEY, plan === UI_GLM_PLAN.PRO ? UI_GLM_PLAN.PRO : UI_GLM_PLAN.LITE);
-        }
+	        function setPlanPreference(plan) {
+	            // public Lite build: no-op
+	        }
 
-        function renderPlanToggle() {
-            const plan = getEffectivePlan();
-            const pref = getPlanPreference();
+	        function renderPlanToggle() {
+	            const noteEl = document.getElementById('planNote');
+	            if (!noteEl) return;
+	            noteEl.textContent = 'Lite (Public): Tổng hợp + VNINDEX, VN30, VN100, VNMIDCAP.';
+	        }
 
-            const liteBtn = document.getElementById('planLiteBtn');
-            const proBtn = document.getElementById('planProBtn');
-            const noteEl = document.getElementById('planNote');
-            if (!liteBtn || !proBtn || !noteEl) return;
+	        function unlockProAndApply() {
+	            openPlanChooserModal();
+	        }
 
-            liteBtn.classList.toggle('active', plan === UI_GLM_PLAN.LITE);
-            proBtn.classList.toggle('active', plan === UI_GLM_PLAN.PRO);
+	        function lockToLiteAndApply() {
+	            applyPlanToUi();
+	        }
 
-            if (pref === UI_GLM_PLAN.PRO && !isProUnlocked()) {
-                noteEl.textContent = 'Pro đang khóa. Nhấn Pro để nhập mật khẩu hoặc dùng Lite.';
-            } else if (plan === UI_GLM_PLAN.LITE) {
-                noteEl.textContent = 'Lite: chỉ xem Tổng hợp + 4 chỉ số chính, ẩn một số mục nâng cao.';
-            } else {
-                noteEl.textContent = 'Pro: xem đầy đủ (đã mở khóa phiên này).';
-            }
-        }
+	        function openProPasswordModal({ onSuccess, onCancel, showLiteSuggestion = true } = {}) {
+	            openPlanChooserModal();
+	        }
 
-        function unlockProAndApply() {
-            sessionStorage.setItem(UI_GLM_PRO_OK_KEY, '1');
-            setPlanPreference(UI_GLM_PLAN.PRO);
-            applyPlanToUi();
-        }
+	        function shouldShowPlanChooserOnStartup() {
+	            return false;
+	        }
 
-        function lockToLiteAndApply() {
-            sessionStorage.removeItem(UI_GLM_PRO_OK_KEY);
-            setPlanPreference(UI_GLM_PLAN.LITE);
-            applyPlanToUi();
-        }
+	        function openPlanChooserModal() {
+	            const bodyHtml = `
+	                <div class="plan-chooser">
+	                    <div style="font-weight:950;letter-spacing:0.2px;">Lite (Public)</div>
+	                    <div style="color:var(--text-secondary);font-weight:800;font-size:0.9rem;line-height:1.6;margin-top:10px;">
+	                        Trang này chỉ public bản Lite để tránh rủi ro lộ thông tin.<br/>
+	                        Bạn đang xem: <strong>TỔNG HỢP</strong> + <strong>VNINDEX</strong>, <strong>VN30</strong>, <strong>VN100</strong>, <strong>VNMIDCAP</strong>.
+	                    </div>
+	                    <div style="margin-top:12px;">
+	                        <button type="button" class="plan-btn" onclick="closeUiModal()">OK</button>
+	                    </div>
+	                </div>
+	            `;
+	            const modal = document.getElementById('uiModal');
+	            if (modal) modal.dataset.modalType = 'plan';
+	            openUiModal({ tone: 'neutral', title: 'Lite', subtitle: 'Bản public', bodyHtml, large: false });
+	        }
 
-        function openProPasswordModal({ onSuccess, onCancel, showLiteSuggestion = true } = {}) {
-            const modal = document.getElementById('uiModal');
-            if (modal) modal.dataset.modalType = 'proPassword';
+	        function tryOpenPlanChooserWhenReady() {
+	            // public Lite build: no-op
+	        }
 
-            const bodyHtml = `
-                <div class="plan-pass">
-                    <div style="font-weight:950;letter-spacing:0.2px;">Mở khóa bản Pro</div>
-                    <div class="plan-pass-hint">
-                        Nhập mật khẩu để xem đầy đủ tất cả chỉ số và mục phân tích chuyên sâu.
-                        ${showLiteSuggestion ? `<br/>Nếu bạn chưa có mật khẩu, bạn có thể chọn <strong>Lite</strong> để xem nhanh.` : ''}
-                    </div>
+	        function isIndexAllowedForCurrentPlan(indexKey) {
+	            return UI_GLM_LITE_ALLOWED_INDICES.has(String(indexKey || '').trim().toLowerCase());
+	        }
 
-                    <div class="plan-pass-label">Mật khẩu</div>
-                    <div class="plan-pass-row">
-                        <input class="plan-pass-input" id="proPasswordInput" type="password" autocomplete="current-password" placeholder="Nhập mật khẩu Pro..." />
-                        <button type="button" class="plan-btn" id="proPasswordSubmit">Mở khóa</button>
-                    </div>
-                    <div class="plan-pass-error" id="proPasswordError" style="display:none;"></div>
-
-                    <div class="plan-pass-actions">
-                        <button type="button" class="plan-btn" id="proPasswordCancel">Quay lại</button>
-                        ${showLiteSuggestion ? `<button type="button" class="plan-btn" id="proPasswordUseLite">Dùng Lite</button>` : ''}
-                    </div>
-                </div>
-            `;
-
-            openUiModal({ tone: 'neutral', title: 'Pro', subtitle: 'Yêu cầu mật khẩu', bodyHtml, large: false });
-
-            setTimeout(() => {
-                const input = document.getElementById('proPasswordInput');
-                const submit = document.getElementById('proPasswordSubmit');
-                const cancel = document.getElementById('proPasswordCancel');
-                const useLite = document.getElementById('proPasswordUseLite');
-                const err = document.getElementById('proPasswordError');
-
-                const setErr = (msg) => {
-                    if (!err) return;
-                    if (!msg) { err.style.display = 'none'; err.textContent = ''; return; }
-                    err.style.display = 'block';
-                    err.textContent = msg;
-                };
-
-	                const doSubmit = async () => {
-	                    const pwd = String(input && input.value ? input.value : '');
-	                    setErr('');
-	                    try { submit && (submit.disabled = true); } catch (_) {}
-	                    try {
-	                        const ok = await verifyProPassword(pwd);
-	                        if (ok) {
-	                            unlockProAndApply();
-	                            closeUiModal();
-	                            if (typeof onSuccess === 'function') onSuccess();
-	                            return;
-	                        }
-	                        setErr('Sai mật khẩu. Bạn có thể thử lại hoặc chọn Lite.');
-	                    } catch (_) {
-	                        setErr('Không thể kiểm tra mật khẩu trên trình duyệt này. Hãy thử lại hoặc chọn Lite.');
-	                    } finally {
-	                        try { submit && (submit.disabled = false); } catch (_) {}
-	                    }
-	                };
-
-                submit?.addEventListener('click', doSubmit);
-                input?.addEventListener('keydown', (e) => {
-                    if (e.key === 'Enter') doSubmit();
-                });
-
-                cancel?.addEventListener('click', () => {
-                    if (typeof onCancel === 'function') onCancel();
-                    else openPlanChooserModal();
-                }, { once: true });
-
-                useLite?.addEventListener('click', () => {
-                    lockToLiteAndApply();
-                    closeUiModal();
-                    if (typeof onCancel === 'function') onCancel();
-                }, { once: true });
-
-                input?.focus();
-            }, 0);
-        }
-
-        function shouldShowPlanChooserOnStartup() {
-            const params = new URLSearchParams(window.location.search || '');
-            const hasAnyParams = Array.from(params.keys()).length > 0;
-            const isDeepLink = params.get('index') || params.get('stockPopup') || params.get('section') || params.get('sectionTitle');
-
-            // Requirement: opening the base URL should always show the chooser.
-            if (!hasAnyParams) return true;
-
-            // Allow forcing chooser.
-            if ((params.get('choosePlan') || '') === '1') return true;
-
-            // Don't interrupt deep-links unless explicitly requested.
-            if (isDeepLink) return false;
-
-            // Otherwise, if Pro is preferred but locked, prompt.
-            return getPlanPreference() === UI_GLM_PLAN.PRO && !isProUnlocked();
-        }
-
-        function openPlanChooserModal() {
-            const pref = getPlanPreference();
-            const unlocked = isProUnlocked();
-            try { localStorage.setItem(UI_GLM_PLAN_CHOOSER_VER_KEY, UI_GLM_PLAN_CHOOSER_VER); } catch (_) {}
-
-            const bodyHtml = `
-                <div class="plan-chooser">
-                    <div style="font-weight:950;letter-spacing:0.2px;">Chọn chế độ xem</div>
-                    <div class="plan-choice-grid">
-                        <button type="button" class="plan-choice-card" id="planChoiceLite">
-                            <div class="plan-choice-top">
-                                <div class="plan-choice-title">Lite</div>
-                                <span class="plan-choice-badge">Free</span>
-                            </div>
-                            <div class="plan-choice-desc">
-                                Xem nhanh: Tổng hợp + VNINDEX, VN30, VN100, VNMIDCAP.<br/>
-                                Ẩn các mục nâng cao để đọc dễ hơn.
-                            </div>
-                            <div class="plan-choice-foot">
-                                <span class="plan-choice-pill ok">✓ Nhanh • gọn</span>
-                                <span class="plan-choice-pill ok">✓ Dễ đọc mobile</span>
-                            </div>
-                        </button>
-                        <button type="button" class="plan-choice-card" id="planChoicePro">
-                            <div class="plan-choice-top">
-                                <div class="plan-choice-title">Pro</div>
-                                <span class="plan-choice-badge pro">Password</span>
-                            </div>
-                            <div class="plan-choice-desc">
-                                Xem đầy đủ tất cả chỉ số và mục phân tích chuyên sâu.
-                            </div>
-                            <div class="plan-choice-foot">
-                                <span class="plan-choice-pill ${unlocked ? 'ok' : 'lock'}">${unlocked ? '✓ Đã mở khóa phiên này' : '🔒 Cần mật khẩu'}</span>
-                                ${pref === UI_GLM_PLAN.PRO && !unlocked ? `<span class="plan-choice-pill lock">Gợi ý: chọn Lite nếu chưa có mật khẩu</span>` : ''}
-                            </div>
-                        </button>
-                    </div>
-                    <div style="color:var(--text-secondary);font-weight:800;font-size:0.82rem;line-height:1.5;">
-                        Bạn có thể đổi lại bất cứ lúc nào ở sidebar.
-                    </div>
-                </div>
-            `;
-
-            const modal = document.getElementById('uiModal');
-            if (modal) modal.dataset.modalType = 'plan';
-            openUiModal({ tone: 'neutral', title: 'Chế độ xem', subtitle: 'Lite / Pro', bodyHtml, large: false });
-
-            // Wire buttons after DOM injection.
-            setTimeout(() => {
-                const lite = document.getElementById('planChoiceLite');
-                const pro = document.getElementById('planChoicePro');
-
-                lite?.addEventListener('click', () => {
-                    sessionStorage.removeItem(UI_GLM_PRO_OK_KEY);
-                    setPlanPreference(UI_GLM_PLAN.LITE);
-                    applyPlanToUi();
-                    closeUiModal();
-                }, { once: true });
-
-                pro?.addEventListener('click', () => {
-                    setPlanPreference(UI_GLM_PLAN.PRO);
-                    if (isProUnlocked()) {
-                        applyPlanToUi();
-                        closeUiModal();
-                        return;
-                    }
-                    openProPasswordModal({
-                        onSuccess: () => {},
-                        onCancel: () => openPlanChooserModal(),
-                        showLiteSuggestion: true,
-                    });
-                }, { once: true });
-            }, 0);
-        }
-
-        function tryOpenPlanChooserWhenReady() {
-            if (!shouldShowPlanChooserOnStartup()) return;
-            if (!document.getElementById('uiModal')) {
-                setTimeout(tryOpenPlanChooserWhenReady, 50);
-                return;
-            }
-            openPlanChooserModal();
-        }
-
-        function isIndexAllowedForCurrentPlan(indexKey) {
-            const plan = getEffectivePlan();
-            if (plan === UI_GLM_PLAN.PRO) return true;
-            return UI_GLM_LITE_ALLOWED_INDICES.has(String(indexKey || '').trim().toLowerCase());
-        }
-
-        function filterSectionsForCurrentPlan(sections) {
-            const plan = getEffectivePlan();
-            if (plan === UI_GLM_PLAN.PRO) return sections || [];
-
-            return (sections || []).filter(s => {
-                const title = normalizeTitle(s && s.title ? s.title : '');
-                return !UI_GLM_LITE_HIDDEN_SECTIONS.has(title);
-            });
-        }
+	        function filterSectionsForCurrentPlan(sections) {
+	            return (sections || []).filter(s => {
+	                const title = normalizeTitle(s && s.title ? s.title : '');
+	                return !UI_GLM_LITE_HIDDEN_SECTIONS.has(title);
+	            });
+	        }
 
         function applyPlanToUi() {
             renderPlanToggle();
@@ -3984,23 +3777,16 @@
             _updateBodyOverflow();
         }
 
-        function closeUiModal() {
-            const modal = document.getElementById('uiModal');
-            if (!modal) return;
-            const modalType = modal.dataset ? modal.dataset.modalType : '';
-            if (modalType === 'plan') {
-                // If user closes without choosing, default to Lite (first-run friendly).
-                const prefRaw = localStorage.getItem(UI_GLM_PLAN_PREF_KEY);
-                if (prefRaw == null || String(prefRaw).trim() === '') {
-                    sessionStorage.removeItem(UI_GLM_PRO_OK_KEY);
-                    setPlanPreference(UI_GLM_PLAN.LITE);
-                    applyPlanToUi();
-                }
-                try { delete modal.dataset.modalType; } catch (_) {}
-            }
-            modal.style.display = 'none';
-            const body = document.getElementById('uiModalBody');
-            if (body) body.innerHTML = '';
+	        function closeUiModal() {
+	            const modal = document.getElementById('uiModal');
+	            if (!modal) return;
+	            const modalType = modal.dataset ? modal.dataset.modalType : '';
+	            if (modalType === 'plan') {
+	                try { delete modal.dataset.modalType; } catch (_) {}
+	            }
+	            modal.style.display = 'none';
+	            const body = document.getElementById('uiModalBody');
+	            if (body) body.innerHTML = '';
             _updateBodyOverflow();
         }
 
@@ -6513,26 +6299,13 @@
             });
         });
 
-			        // Initialize
-			        // Plan toggle wiring
-			        document.getElementById('planLiteBtn')?.addEventListener('click', () => {
-			            lockToLiteAndApply();
-			        });
-			        document.getElementById('planProBtn')?.addEventListener('click', () => {
-			            setPlanPreference(UI_GLM_PLAN.PRO);
-			            if (isProUnlocked()) applyPlanToUi();
-			            else openProPasswordModal({ onCancel: () => applyPlanToUi(), showLiteSuggestion: true });
-			        });
-
-			        applyPlanToUi();
-			        setTimeout(() => {
-			            tryOpenPlanChooserWhenReady();
-			        }, 0);
-			        setTimeout(() => {
-			            tryAutoSelectFromUrl();
-			            tryAutoOpenStockPopupFromUrl();
-			        }, 0);
-			        // Don't auto-select any index by default - let user choose
+				        // Initialize (Lite public build)
+				        applyPlanToUi();
+				        setTimeout(() => {
+				            tryAutoSelectFromUrl();
+				            tryAutoOpenStockPopupFromUrl();
+				        }, 0);
+				        // Don't auto-select any index by default - let user choose
 
         // ========== DONATE MODAL FUNCTIONS ==========
         function showDonateModal() {
