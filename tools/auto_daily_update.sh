@@ -37,6 +37,7 @@ MARKET_REPORT_GLOB="${MARKET_REPORT_GLOB:-BaoCao_*.docx}"
 # Files
 MAIN_DATA_FILE="$DATA_DIR/full_data.js"
 META_DATA_FILE="$DATA_DIR/ui_glm_meta.js"
+META_JSON_FILE="$DATA_DIR/ui_glm_meta.json"
 LOG_FILE="$PROJECT_ROOT/automation.log"
 
 # Git config
@@ -415,6 +416,17 @@ window.UI_GLM_REPORT_META = {
 EOF
         log "🧷 Wrote meta: $META_DATA_FILE"
 
+        cat >"$META_JSON_FILE" <<EOF
+{
+  "stamp": "${stamp}",
+  "asof_iso": "${asof_iso}",
+  "human_date": "${human_date}",
+  "human_updated_at": "${human_updated_at}",
+  "source_docx": "$(basename "$LATEST_DOCX")"
+}
+EOF
+        log "🧷 Wrote meta: $META_JSON_FILE"
+
         return 0
     else
         error "Failed to update $MAIN_DATA_FILE"
@@ -441,13 +453,13 @@ step7_git_commit() {
     git config user.name "$GIT_NAME" 2>/dev/null || true
 
     # Check for changes (data + meta + dashboard)
-    if git diff --quiet -- "$MAIN_DATA_FILE" "$META_DATA_FILE" "$DATA_DIR/DASHBOARD_V3.html"; then
+    if git diff --quiet -- "$MAIN_DATA_FILE" "$META_DATA_FILE" "$META_JSON_FILE" "$DATA_DIR/DASHBOARD_V3.html"; then
         log "ℹ️  No changes to commit"
         return 0
     fi
 
     # Add files (full_data + meta; dashboard html may change occasionally)
-    git add "$MAIN_DATA_FILE" "$META_DATA_FILE" "$DATA_DIR/DASHBOARD_V3.html" 2>/dev/null || true
+    git add "$MAIN_DATA_FILE" "$META_DATA_FILE" "$META_JSON_FILE" "$DATA_DIR/DASHBOARD_V3.html" 2>/dev/null || true
 
     # Commit
     local file_date
