@@ -3610,16 +3610,33 @@
             PRO: 'pro',
         };
 
-        const UI_GLM_PLAN_PREF_KEY = 'ui_glm_plan_pref';
-        const UI_GLM_PRO_OK_KEY = 'ui_glm_pro_ok_session';
-        const UI_GLM_PRO_PASSWORD = 'Matkhau@123';
-        const UI_GLM_PLAN_CHOOSER_VER = '1';
-        const UI_GLM_PLAN_CHOOSER_VER_KEY = 'ui_glm_plan_chooser_ver';
+	        const UI_GLM_PLAN_PREF_KEY = 'ui_glm_plan_pref';
+	        const UI_GLM_PRO_OK_KEY = 'ui_glm_pro_ok_session';
+	        const UI_GLM_PRO_PASSWORD_SALT = 'ui-glm-pro:v1:';
+	        const UI_GLM_PRO_PASSWORD_HASH = '8b23eff3d24ca702432c31aadd45808739b3a0bb48a5bc730c2aecbd0a650185';
+	        const UI_GLM_PLAN_CHOOSER_VER = '1';
+	        const UI_GLM_PLAN_CHOOSER_VER_KEY = 'ui_glm_plan_chooser_ver';
 
-        const UI_GLM_LITE_ALLOWED_INDICES = new Set(['overview', 'vnindex', 'vn30', 'vn100', 'vnmidcap']);
-        const UI_GLM_LITE_HIDDEN_SECTIONS = new Set([
-            'MÔ HÌNH GIÁ - MÔ HÌNH NẾN',
-            'MARKET BREADTH & TÂM LÝ THỊ TRƯỜNG',
+	        async function sha256Hex(text) {
+	            try {
+	                if (!window.crypto || !window.crypto.subtle) return null;
+	                const bytes = new TextEncoder().encode(String(text || ''));
+	                const digest = await window.crypto.subtle.digest('SHA-256', bytes);
+	                return Array.from(new Uint8Array(digest)).map(b => b.toString(16).padStart(2, '0')).join('');
+	            } catch (_) {
+	                return null;
+	            }
+	        }
+
+	        async function verifyProPassword(pwd) {
+	            const hash = await sha256Hex(UI_GLM_PRO_PASSWORD_SALT + String(pwd || ''));
+	            return !!(hash && hash === UI_GLM_PRO_PASSWORD_HASH);
+	        }
+
+	        const UI_GLM_LITE_ALLOWED_INDICES = new Set(['overview', 'vnindex', 'vn30', 'vn100', 'vnmidcap']);
+	        const UI_GLM_LITE_HIDDEN_SECTIONS = new Set([
+	            'MÔ HÌNH GIÁ - MÔ HÌNH NẾN',
+	            'MARKET BREADTH & TÂM LÝ THỊ TRƯỜNG',
             'LỊCH SỬ & XU HƯỚNG BREADTH',
         ].map(s => s.trim().toUpperCase()));
 
@@ -3717,17 +3734,25 @@
                     err.textContent = msg;
                 };
 
-                const doSubmit = () => {
-                    const pwd = String(input && input.value ? input.value : '');
-                    if (pwd === UI_GLM_PRO_PASSWORD) {
-                        setErr('');
-                        unlockProAndApply();
-                        closeUiModal();
-                        if (typeof onSuccess === 'function') onSuccess();
-                        return;
-                    }
-                    setErr('Sai mật khẩu. Bạn có thể thử lại hoặc chọn Lite.');
-                };
+	                const doSubmit = async () => {
+	                    const pwd = String(input && input.value ? input.value : '');
+	                    setErr('');
+	                    try { submit && (submit.disabled = true); } catch (_) {}
+	                    try {
+	                        const ok = await verifyProPassword(pwd);
+	                        if (ok) {
+	                            unlockProAndApply();
+	                            closeUiModal();
+	                            if (typeof onSuccess === 'function') onSuccess();
+	                            return;
+	                        }
+	                        setErr('Sai mật khẩu. Bạn có thể thử lại hoặc chọn Lite.');
+	                    } catch (_) {
+	                        setErr('Không thể kiểm tra mật khẩu trên trình duyệt này. Hãy thử lại hoặc chọn Lite.');
+	                    } finally {
+	                        try { submit && (submit.disabled = false); } catch (_) {}
+	                    }
+	                };
 
                 submit?.addEventListener('click', doSubmit);
                 input?.addEventListener('keydown', (e) => {
