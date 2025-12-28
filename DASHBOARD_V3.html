@@ -4199,31 +4199,33 @@
             }
         }
 
-        function scrollWindowToEl(el, yPad = 12) {
-            if (!el) return;
-            try {
-                const scroller = document.scrollingElement || document.documentElement;
-                const top = Math.max(0, scroller.scrollTop + el.getBoundingClientRect().top - (yPad || 0));
-                scroller.scrollTo({ top, behavior: 'smooth' });
-            } catch (_) {
-                try { el.scrollIntoView({ behavior: 'smooth', block: 'start' }); } catch (_) {}
-            }
-        }
+	        function scrollWindowToEl(el, yPad = 12) {
+	            if (!el) return;
+	            try {
+	                const scroller = document.scrollingElement || document.documentElement;
+	                const top = Math.max(0, scroller.scrollTop + el.getBoundingClientRect().top - (yPad || 0));
+	                try { scroller.scrollTo({ top, behavior: 'smooth' }); } catch (_) {}
+	                try { window.scrollTo({ top, behavior: 'smooth' }); } catch (_) {}
+	            } catch (_) {
+	                try { el.scrollIntoView({ behavior: 'smooth', block: 'start' }); } catch (_) {}
+	            }
+	        }
 
-        function scrollToElAfterRender(el, yPad = 12) {
-            if (!el) return;
-            const reduceMotion =
-                !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
-            const behavior = reduceMotion ? 'auto' : 'smooth';
-            const run = () => {
-                try {
-                    const scroller = document.scrollingElement || document.documentElement;
-                    const top = Math.max(0, scroller.scrollTop + el.getBoundingClientRect().top - (yPad || 0));
-                    scroller.scrollTo({ top, behavior });
-                } catch (_) {
-                    try { el.scrollIntoView({ behavior, block: 'start' }); } catch (_) {}
-                }
-            };
+	        function scrollToElAfterRender(el, yPad = 12) {
+	            if (!el) return;
+	            const reduceMotion =
+	                !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+	            const behavior = reduceMotion ? 'auto' : 'smooth';
+	            const run = () => {
+	                try {
+	                    const scroller = document.scrollingElement || document.documentElement;
+	                    const top = Math.max(0, scroller.scrollTop + el.getBoundingClientRect().top - (yPad || 0));
+	                    try { scroller.scrollTo({ top, behavior }); } catch (_) {}
+	                    try { window.scrollTo({ top, behavior }); } catch (_) {}
+	                } catch (_) {
+	                    try { el.scrollIntoView({ behavior, block: 'start' }); } catch (_) {}
+	                }
+	            };
             try {
                 if (typeof requestAnimationFrame === 'function') {
                     requestAnimationFrame(() => requestAnimationFrame(run));
@@ -6348,14 +6350,15 @@
 		            }
 		        }
 
-            // Mobile: after render, bring content into view (iOS: needs rAF + a retry after layout settles).
-            try {
-                if (isMobileViewport()) {
-                    const target = document.querySelector('.main-content') || contentDiv;
-                    scrollToElAfterRender(target, 10);
-                    setTimeout(() => scrollToElAfterRender(target, 10), 220);
-                }
-            } catch (_) {}
+	            // Mobile: after render, bring content into view (iOS: needs rAF + a retry after layout settles).
+	            try {
+	                if (isMobileViewport()) {
+	                    const target = contentDiv || document.querySelector('#singleSectionContent') || document.querySelector('.main-content');
+	                    scrollToElAfterRender(target, 8);
+	                    setTimeout(() => scrollToElAfterRender(target, 8), 140);
+	                    setTimeout(() => scrollToElAfterRender(target, 8), 420);
+	                }
+	            } catch (_) {}
 
         // Select index (left sidebar)
         function selectIndex(key) {
