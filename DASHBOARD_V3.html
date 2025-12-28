@@ -3486,12 +3486,15 @@
 			            });
 			        });
 
-			        // Mobile: floating back-to-menu button
-			        document.getElementById('mobileMenuFab')?.addEventListener('click', () => {
-			            try { closeUiModal(); } catch (_) {}
-			            try { closeDonateModal(); } catch (_) {}
-			            try { document.querySelector('.sidebar')?.scrollIntoView({ behavior: 'smooth', block: 'start' }); } catch (_) {}
-			        });
+				        // Mobile: floating back-to-menu button
+				        document.getElementById('mobileMenuFab')?.addEventListener('click', () => {
+				            try { closeUiModal(); } catch (_) {}
+				            try { closeDonateModal(); } catch (_) {}
+				            try {
+				                const target = currentIndex ? document.querySelector('.section-nav') : document.querySelector('.sidebar');
+				                scrollWindowToEl(target);
+				            } catch (_) {}
+				        });
 
         function updateThemeIcon(theme) {
             themeToggle.textContent = theme === 'light' ? '🌙' : '☀️';
@@ -4175,6 +4178,16 @@
                 return !!(window.matchMedia && window.matchMedia('(max-width: 768px)').matches);
             } catch (_) {
                 return false;
+            }
+        }
+
+        function scrollWindowToEl(el, yPad = 12) {
+            if (!el) return;
+            try {
+                const top = Math.max(0, window.scrollY + el.getBoundingClientRect().top - (yPad || 0));
+                window.scrollTo({ top, behavior: 'smooth' });
+            } catch (_) {
+                try { el.scrollIntoView({ behavior: 'smooth', block: 'start' }); } catch (_) {}
             }
         }
 
@@ -6123,13 +6136,6 @@
             const contentDiv = document.getElementById('singleSectionContent');
             contentDiv.style.display = 'block';
 
-            // Mobile: after selecting a section, bring content into view.
-            try {
-                if (window.matchMedia && window.matchMedia('(max-width: 768px)').matches) {
-                    document.querySelector('.main-content')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                }
-            } catch (_) {}
-
 			            const isUiHeatmapSection = section.__uiType === 'heatmap_gainers' || section.__uiType === 'heatmap_losers';
 			            const normalizedSectionTitle = normalizeTitle(section.title);
 			            const isKeyLevelsSection = normalizedSectionTitle === 'MỨC GIÁ QUAN TRỌNG';
@@ -6298,6 +6304,11 @@
 		            }
 		        }
 
+            // Mobile: after render, bring content into view (more reliable on iOS than scrollIntoView from inside overflow lists).
+            try {
+                if (isMobileViewport()) setTimeout(() => scrollWindowToEl(contentDiv), 0);
+            } catch (_) {}
+
         // Select index (left sidebar)
         function selectIndex(key) {
             if (!isIndexAllowedForCurrentPlan(key)) {
@@ -6319,9 +6330,7 @@
 
             // Mobile: after selecting an index, bring the section list into view.
             try {
-                if (window.matchMedia && window.matchMedia('(max-width: 768px)').matches) {
-                    document.querySelector('.section-nav')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                }
+                if (isMobileViewport()) setTimeout(() => scrollWindowToEl(document.querySelector('.section-nav')), 0);
             } catch (_) {}
 
             // Reset main content
