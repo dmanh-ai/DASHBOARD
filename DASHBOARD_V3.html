@@ -9,11 +9,13 @@
 					    <script src="index_heatmap_data.js"></script>
 						    <script src="vnindex_company_meta.js"></script>
 						    <script src="vnindex_price_20d.js"></script>
-						    <script src="market_breadth_snapshot.js"></script>
-						    <script src="breadth_history.js"></script>
-						    <script src="index_ohlcv.js"></script>
-						    <script src="vendor/lightweight-charts.standalone.production.js"></script>
-						    <script src="scripts/content_formatter.js"></script>
+							    <script src="market_breadth_snapshot.js"></script>
+							    <script src="breadth_history.js"></script>
+							    <script src="index_ohlcv.js"></script>
+							    <script src="index_drivers_20d.js"></script>
+							    <script src="index_foreign_flow_20d.js"></script>
+							    <script src="vendor/lightweight-charts.standalone.production.js"></script>
+							    <script src="scripts/content_formatter.js"></script>
 
     <style>
         * {
@@ -22,7 +24,7 @@
             box-sizing: border-box;
         }
 
-        @media (prefers-reduced-motion: reduce) {
+	        @media (prefers-reduced-motion: reduce) {
             html:focus-within { scroll-behavior: auto; }
             *, *::before, *::after {
                 animation-duration: 0.001ms !important;
@@ -201,6 +203,152 @@
 	            --motion-slow: 260ms;
 	            --motion-ease: cubic-bezier(0.2, 0.8, 0.2, 1);
 	            --motion-ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+	        }
+
+	        /* Index drivers (top kéo/chìm + concentration) */
+	        .drivers-box {
+	            margin-top: 12px;
+	            padding: 14px 14px;
+	            border-radius: 14px;
+	            background: var(--bg-hover);
+	            border: 1px solid var(--border-color);
+	        }
+	        .drivers-box .drivers-head {
+	            display: flex;
+	            align-items: center;
+	            justify-content: space-between;
+	            gap: 12px;
+	            margin-bottom: 10px;
+	        }
+	        .drivers-box .drivers-title {
+	            font-weight: 900;
+	            letter-spacing: 0.2px;
+	        }
+	        .drivers-box .drivers-meta {
+	            color: var(--text-secondary);
+	            font-weight: 800;
+	            font-size: 0.86rem;
+	            text-align: right;
+	        }
+	        .drivers-grid {
+	            display: grid;
+	            grid-template-columns: 1fr 1fr;
+	            gap: 12px;
+	        }
+	        .drivers-col {
+	            padding: 10px 10px;
+	            border-radius: 12px;
+	            background: rgba(255, 255, 255, 0.04);
+	            border: 1px solid var(--border-color);
+	        }
+	        .drivers-col .k {
+	            font-weight: 900;
+	            font-size: 0.92rem;
+	            margin-bottom: 8px;
+	        }
+	        .drivers-list {
+	            margin: 0;
+	            padding-left: 18px;
+	            color: var(--text-primary);
+	            font-weight: 800;
+	            font-size: 0.92rem;
+	        }
+	        .drivers-list li {
+	            margin: 4px 0;
+	        }
+	        .drivers-chip {
+	            display: inline-block;
+	            padding: 4px 10px;
+	            border-radius: 999px;
+	            background: rgba(255, 255, 255, 0.06);
+	            border: 1px solid var(--border-color);
+	            color: var(--text-secondary);
+	            font-weight: 900;
+	            font-size: 0.82rem;
+	        }
+	        .drivers-up {
+	            color: var(--success);
+	        }
+	        .drivers-down {
+	            color: var(--danger);
+	        }
+	        @media (max-width: 820px) {
+	            .drivers-grid {
+	                grid-template-columns: 1fr;
+	            }
+	        }
+
+	        /* Foreign investor flow (VCI) */
+	        .foreign-box {
+	            margin-top: 12px;
+	            padding: 14px 14px;
+	            border-radius: 14px;
+	            background: var(--bg-hover);
+	            border: 1px solid var(--border-color);
+	        }
+	        .foreign-box .foreign-head {
+	            display: flex;
+	            align-items: center;
+	            justify-content: space-between;
+	            gap: 12px;
+	            margin-bottom: 10px;
+	        }
+	        .foreign-box .foreign-title {
+	            font-weight: 900;
+	            letter-spacing: 0.2px;
+	        }
+	        .foreign-box .foreign-meta {
+	            color: var(--text-secondary);
+	            font-weight: 800;
+	            font-size: 0.86rem;
+	            text-align: right;
+	        }
+	        .foreign-grid {
+	            display: grid;
+	            grid-template-columns: 1fr 1fr;
+	            gap: 12px;
+	        }
+	        .foreign-col {
+	            padding: 10px 10px;
+	            border-radius: 12px;
+	            background: rgba(255, 255, 255, 0.04);
+	            border: 1px solid var(--border-color);
+	        }
+	        .foreign-col .k {
+	            font-weight: 900;
+	            font-size: 0.92rem;
+	            margin-bottom: 8px;
+	        }
+	        .foreign-list {
+	            margin: 0;
+	            padding-left: 18px;
+	            color: var(--text-primary);
+	            font-weight: 800;
+	            font-size: 0.92rem;
+	        }
+	        .foreign-list li {
+	            margin: 4px 0;
+	        }
+	        .foreign-chip {
+	            display: inline-block;
+	            padding: 4px 10px;
+	            border-radius: 999px;
+	            background: rgba(255, 255, 255, 0.06);
+	            border: 1px solid var(--border-color);
+	            color: var(--text-secondary);
+	            font-weight: 900;
+	            font-size: 0.82rem;
+	        }
+	        .foreign-net-buy {
+	            color: var(--success);
+	        }
+	        .foreign-net-sell {
+	            color: var(--danger);
+	        }
+	        @media (max-width: 820px) {
+	            .foreign-grid {
+	                grid-template-columns: 1fr;
+	            }
 	        }
 
 	        body {
@@ -4081,13 +4229,25 @@
 	        function getSectionsForIndex(indexKey) {
 	            const indexData = data[indexKey];
 	            const base = filterSectionsForCurrentPlan(processSections(indexData));
-	            if (!indexKey || indexKey === 'overview' || indexKey === 'vnindex') return base;
+	            let out = base;
+	            if (getIndexForeignFlowRootPayload()) {
+	                out = out.concat([
+	                    {
+	                        title: '🌍 GIAO DỊCH NƯỚC NGOÀI',
+	                        icon: '🌍',
+	                        content: '',
+	                        alert: false,
+	                        __uiType: 'foreign_flow',
+	                    },
+	                ]);
+	            }
+	            if (!indexKey || indexKey === 'overview' || indexKey === 'vnindex') return out;
 
 	            const payload = getIndexHeatmapPayload(indexKey);
-	            if (!payload) return base;
-	            if (isMobileViewport()) return base;
+	            if (!payload) return out;
+	            if (isMobileViewport()) return out;
 
-	            return base.concat([
+	            return out.concat([
 	                {
 	                    title: '🔥 Heatmap cổ phiếu TĂNG GIÁ',
 	                    icon: '🔥',
@@ -5072,21 +5232,236 @@
 			            return payload;
 			        }
 
-			        function getBreadthHistoryPayload() {
-			            const payload =
-			                (typeof window !== 'undefined' && window.UI_GLM_BREADTH_HISTORY)
-			                    ? window.UI_GLM_BREADTH_HISTORY
-			                    : null;
-			            if (!payload || typeof payload !== 'object') return null;
-			            if (!Array.isArray(payload.series) || payload.series.length < 30) return null;
-			            if (!payload.summary || typeof payload.summary !== 'object') return null;
-			            return payload;
-			        }
+				        function getBreadthHistoryPayload() {
+				            const payload =
+				                (typeof window !== 'undefined' && window.UI_GLM_BREADTH_HISTORY)
+				                    ? window.UI_GLM_BREADTH_HISTORY
+				                    : null;
+				            if (!payload || typeof payload !== 'object') return null;
+				            if (!Array.isArray(payload.series) || payload.series.length < 30) return null;
+				            if (!payload.summary || typeof payload.summary !== 'object') return null;
+				            return payload;
+				        }
 
-			        function renderBreadthHistoryPanelHtml(panelId, indexKey) {
-			            const payload = getBreadthHistoryPayload();
-			            if (!payload) {
-			                return `<div class="info-box"><p>Chưa có dữ liệu breadth history (thiếu file export).</p></div>`;
+				        function getIndexDriversPayload(indexKey) {
+				            const payload =
+				                (typeof window !== 'undefined' && window.UI_GLM_INDEX_DRIVERS_20D)
+				                    ? window.UI_GLM_INDEX_DRIVERS_20D
+				                    : null;
+				            if (!payload || typeof payload !== 'object') return null;
+				            const indices = payload.indices;
+				            if (!indices || typeof indices !== 'object') return null;
+				            const item = indices[indexKey];
+				            if (!item || typeof item !== 'object') return null;
+				            return item;
+				        }
+
+				        function getIndexForeignFlowRootPayload() {
+				            const payload =
+				                (typeof window !== 'undefined' && window.UI_GLM_INDEX_FOREIGN_FLOW_20D)
+				                    ? window.UI_GLM_INDEX_FOREIGN_FLOW_20D
+				                    : null;
+				            if (!payload || typeof payload !== 'object') return null;
+				            if (!payload.indices || typeof payload.indices !== 'object') return null;
+				            return payload;
+				        }
+
+				        function getIndexForeignFlowPayload(indexKey) {
+				            const root = getIndexForeignFlowRootPayload();
+				            if (!root) return null;
+				            const indices = root.indices;
+				            const item = indices ? indices[indexKey] : null;
+				            if (!item || typeof item !== 'object') return null;
+				            return item;
+				        }
+
+				        function indexKeyToUiIndexName(indexKey) {
+				            const k = String(indexKey || '').trim().toLowerCase();
+				            if (!k) return '';
+				            if (k === 'vnindex') return 'VNINDEX';
+				            if (k === 'vnmidcap') return 'VNMIDCAP';
+				            if (k === 'overview') return 'TỔNG HỢP';
+				            const hm = indexKeyToHeatmapIndexName(k);
+				            return hm || k.toUpperCase();
+				        }
+
+				        function renderIndexForeignFlowSectionHtml(indexKey) {
+				            const root = getIndexForeignFlowRootPayload();
+				            if (!root) {
+				                return `<div class="info-box"><p>Chưa có dữ liệu “Nước ngoài” (VCI).</p></div>`;
+				            }
+
+				            const fmtB = (v) => {
+				                if (v == null || !Number.isFinite(Number(v))) return 'N/A';
+				                return `${(Number(v) / 1e9).toLocaleString(undefined, { maximumFractionDigits: 1 })} tỷ`;
+				            };
+				            const fmtM = (v) => {
+				                if (v == null || !Number.isFinite(Number(v))) return 'N/A';
+				                return `${(Number(v) / 1e6).toLocaleString(undefined, { maximumFractionDigits: 2 })} tr`;
+				            };
+
+				            const asof = root.asof || '';
+				            const k = String(indexKey || '').trim().toLowerCase();
+
+				            if (k === 'overview') {
+				                const keys = [
+				                    'vnindex','vn30','vn100','vnmidcap','vnsml',
+				                    'vndiamond','vnfinselect','vnfin','vnreal','vnmat','vnit','vnheal','vnene','vncons','vncond',
+				                ];
+				                const rows = keys.map(key => {
+				                    const it = getIndexForeignFlowPayload(key);
+				                    const cur = it && it.current ? it.current : null;
+				                    return { key, name: indexKeyToUiIndexName(key), cur };
+				                }).filter(r => r.cur);
+
+				                if (!rows.length) {
+				                    return `<div class="info-box"><p>Chưa đủ dữ liệu để tổng hợp “Nước ngoài” theo index.</p></div>`;
+				                }
+
+				                const tr = rows.map(r => {
+				                    const net = r.cur.fr_net_value_total;
+				                    const cls = (net != null && Number(net) >= 0) ? 'foreign-net-buy' : 'foreign-net-sell';
+				                    return `
+				                        <tr>
+				                            <td style="font-weight:950;">${escapeHtml(r.name)}</td>
+				                            <td style="text-align:right;">${escapeHtml(fmtB(r.cur.fr_buy_value_total))}</td>
+				                            <td style="text-align:right;">${escapeHtml(fmtB(r.cur.fr_sell_value_total))}</td>
+				                            <td style="text-align:right; font-weight:950;" class="${cls}">${escapeHtml(fmtB(net))}</td>
+				                        </tr>
+				                    `;
+				                }).join('');
+
+				                return `
+				                    <div class="foreign-box">
+				                        <div class="foreign-head">
+				                            <div class="foreign-title">🌍 Nước ngoài theo index (tổng hợp)</div>
+				                            <div class="foreign-meta">As-of: ${escapeHtml(String(asof || ''))}</div>
+				                        </div>
+				                        <div style="overflow:auto;">
+				                            <table class="summary-table" style="min-width:720px;">
+				                                <thead>
+				                                    <tr>
+				                                        <th>Index</th>
+				                                        <th style="text-align:right;">Mua (giá trị)</th>
+				                                        <th style="text-align:right;">Bán (giá trị)</th>
+				                                        <th style="text-align:right;">Ròng (giá trị)</th>
+				                                    </tr>
+				                                </thead>
+				                                <tbody>${tr}</tbody>
+				                            </table>
+				                        </div>
+				                        <div style="margin-top:10px; color:var(--text-secondary); font-weight:800;">
+				                            Ghi chú: số liệu là tổng “total” (khớp + thỏa thuận) trên các mã thuộc từng index.
+				                        </div>
+				                    </div>
+				                `;
+				            }
+
+				            const item = getIndexForeignFlowPayload(k);
+				            if (!item || !item.current) {
+				                return `<div class="info-box"><p>Không có dữ liệu “Nước ngoài” cho index này.</p></div>`;
+				            }
+
+				            const cur = item.current;
+				            const net = cur.fr_net_value_total;
+				            const netCls = (net != null && Number(net) >= 0) ? 'foreign-net-buy' : 'foreign-net-sell';
+				            const topBuy = Array.isArray(item.top_net_buy) ? item.top_net_buy : [];
+				            const topSell = Array.isArray(item.top_net_sell) ? item.top_net_sell : [];
+
+				            const row = (r, cls) => {
+				                const sym = escapeHtml(String(r.symbol || ''));
+				                const netv = fmtB(r.fr_net_value_total);
+				                const b = fmtB(r.fr_buy_value_total);
+				                const s = fmtB(r.fr_sell_value_total);
+				                const q = fmtM(r.fr_net_volume_total);
+				                return `<li><span class="${cls}">${sym}</span>: <span class="${cls}">${escapeHtml(netv)}</span><span style="color:var(--text-secondary); font-weight:800;"> | KL ròng ${escapeHtml(q)} | mua ${escapeHtml(b)} | bán ${escapeHtml(s)}</span></li>`;
+				            };
+
+				            return `
+				                <div class="foreign-box">
+				                    <div class="foreign-head">
+				                        <div class="foreign-title">🌍 Giao dịch Nước ngoài</div>
+				                        <div class="foreign-meta">As-of: ${escapeHtml(String(cur.date || item.asof || ''))}</div>
+				                    </div>
+				                    <div style="display:flex; gap:10px; flex-wrap:wrap; margin-bottom:10px;">
+				                        <span class="foreign-chip">Mua: ${escapeHtml(fmtB(cur.fr_buy_value_total))}</span>
+				                        <span class="foreign-chip">Bán: ${escapeHtml(fmtB(cur.fr_sell_value_total))}</span>
+				                        <span class="foreign-chip">Ròng: <span class="${netCls}">${escapeHtml(fmtB(net))}</span></span>
+				                    </div>
+				                    <div class="foreign-grid">
+				                        <div class="foreign-col">
+				                            <div class="k">Top ${escapeHtml(String(item.top_n || 10))} mua ròng (theo giá trị)</div>
+				                            <ol class="foreign-list">
+				                                ${(topBuy.length ? topBuy : []).slice(0, 10).map(r => row(r, 'foreign-net-buy')).join('') || '<li>—</li>'}
+				                            </ol>
+				                        </div>
+				                        <div class="foreign-col">
+				                            <div class="k">Top ${escapeHtml(String(item.top_n || 10))} bán ròng (theo giá trị)</div>
+				                            <ol class="foreign-list">
+				                                ${(topSell.length ? topSell : []).slice(0, 10).map(r => row(r, 'foreign-net-sell')).join('') || '<li>—</li>'}
+				                            </ol>
+				                        </div>
+				                    </div>
+				                </div>
+				            `;
+				        }
+
+				        function renderIndexDriversBoxHtml(indexKey) {
+				            const item = getIndexDriversPayload(indexKey);
+				            if (!item || !item.current || typeof item.current !== 'object') {
+				                return '';
+				            }
+
+				            const cur = item.current;
+				            const asof = cur.date || item.asof || '';
+				            const conc = cur.concentration_top10_pct;
+				            const topUp = Array.isArray(cur.top_up) ? cur.top_up : [];
+				            const topDown = Array.isArray(cur.top_down) ? cur.top_down : [];
+
+				            const fmtPct = (v) => (v == null || !Number.isFinite(Number(v))) ? 'N/A' : `${Number(v) >= 0 ? '+' : ''}${Number(v).toFixed(3)}%`;
+				            const row = (r, cls) => {
+				                const sym = escapeHtml(String(r.symbol || ''));
+				                const contrib = fmtPct(r.contribution_pct);
+				                const ret = (r.return_pct == null) ? '' : ` | r=${fmtPct(r.return_pct)}`;
+				                const w = (r.weight_pct == null) ? '' : ` | w=${Number(r.weight_pct).toFixed(2)}%`;
+				                return `<li><span class="${cls}">${sym}</span>: <span class="${cls}">${contrib}</span><span style="color:var(--text-secondary); font-weight:800;">${ret}${w}</span></li>`;
+				            };
+
+				            const concTxt = (conc == null) ? 'N/A' : `${Number(conc).toFixed(2)}%`;
+				            const concHint = (conc == null) ? '' : (Number(conc) >= 70 ? ' (rất tập trung)' : (Number(conc) >= 55 ? ' (khá tập trung)' : ''));
+
+				            return `
+				                <div class="drivers-box">
+				                    <div class="drivers-head">
+				                        <div class="drivers-title">⚖️ Drivers (tác động lên chỉ số)</div>
+				                        <div class="drivers-meta">As-of: ${escapeHtml(String(asof || ''))}</div>
+				                    </div>
+				                    <div style="display:flex; gap:10px; flex-wrap:wrap; margin-bottom:10px;">
+				                        <span class="drivers-chip">Concentration top10: ${escapeHtml(concTxt)}${escapeHtml(concHint)}</span>
+				                        <span class="drivers-chip">Xếp hạng theo contribution (không theo % trần/sàn)</span>
+				                    </div>
+				                    <div class="drivers-grid">
+				                        <div class="drivers-col">
+				                            <div class="k">📈 Top kéo lên</div>
+				                            <ol class="drivers-list">
+				                                ${(topUp.length ? topUp : []).slice(0, 10).map(r => row(r, 'drivers-up')).join('') || '<li>—</li>'}
+				                            </ol>
+				                        </div>
+				                        <div class="drivers-col">
+				                            <div class="k">📉 Top kéo xuống</div>
+				                            <ol class="drivers-list">
+				                                ${(topDown.length ? topDown : []).slice(0, 10).map(r => row(r, 'drivers-down')).join('') || '<li>—</li>'}
+				                            </ol>
+				                        </div>
+				                    </div>
+				                </div>
+				            `;
+				        }
+
+				        function renderBreadthHistoryPanelHtml(panelId, indexKey) {
+				            const payload = getBreadthHistoryPayload();
+				            if (!payload) {
+				                return `<div class="info-box"><p>Chưa có dữ liệu breadth history (thiếu file export).</p></div>`;
 			            }
 			            const asof = payload.asof || '';
 			            const s = payload.summary || {};
@@ -5617,14 +5992,16 @@
 					            const upMid = cssVar('--chart-up-mid', 'rgba(16,185,129,0.70)');
 					            const downMid = cssVar('--chart-down-mid', 'rgba(239,68,68,0.70)');
 
-			            const fmt2 = (v) => (v == null ? 'N/A' : Number(v).toFixed(2));
-			            const fmt0 = (v) => (v == null ? 'N/A' : Number(v).toLocaleString());
+				            const fmt2 = (v) => (v == null ? 'N/A' : Number(v).toFixed(2));
+				            const fmt0 = (v) => (v == null ? 'N/A' : Number(v).toLocaleString());
 
-			            return `
-			                <div class="breadth-panel" id="${panelId}" data-index-key="${escapeHtml(indexKey)}">
-			                    <div class="breadth-toolbar">
-			                        <div class="title">Snapshot breadth (1 ngày)</div>
-			                        <div class="note">Nhấn để xem chi tiết</div>
+				            const driversHtml = renderIndexDriversBoxHtml(indexKey);
+
+				            return `
+				                <div class="breadth-panel" id="${panelId}" data-index-key="${escapeHtml(indexKey)}">
+				                    <div class="breadth-toolbar">
+				                        <div class="title">Snapshot breadth (1 ngày)</div>
+				                        <div class="note">Nhấn để xem chi tiết</div>
 			                    </div>
 			                    <div class="breadth-grid">
 			                        <div class="breadth-card" role="button" tabindex="0"
@@ -5671,12 +6048,13 @@
 				                                <span class="zero"></span>
 				                                <span class="fill" style="${mcclellan == null ? 'display:none;' : (mcclellan >= 0 ? `left:50%; width:${((oscPos - 0.5) * 200).toFixed(1)}%; background: ${upMid};` : `left:${(oscPos * 100).toFixed(1)}%; width:${((0.5 - oscPos) * 200).toFixed(1)}%; background: ${downMid};`)}"></span>
 				                            </div>
-			                            <div class="hint">Snapshot value quanh 0</div>
-			                        </div>
-			                    </div>
-			                </div>
-			            `;
-			        }
+				                            <div class="hint">Snapshot value quanh 0</div>
+				                        </div>
+				                    </div>
+				                    ${driversHtml || ''}
+				                </div>
+				            `;
+				        }
 
 			        function openBreadthDetailFromEl(el) {
 			            try {
@@ -6136,6 +6514,7 @@
 	            } catch (_) {}
 
 				            const isUiHeatmapSection = section.__uiType === 'heatmap_gainers' || section.__uiType === 'heatmap_losers';
+				            const isUiForeignFlowSection = section.__uiType === 'foreign_flow';
 				            const normalizedSectionTitle = normalizeTitle(section.title);
 				            const isKeyLevelsSection = normalizedSectionTitle === 'MỨC GIÁ QUAN TRỌNG';
 				            const isTargetLevelsSection = normalizedSectionTitle === 'GIÁ MỤC TIÊU';
@@ -6169,7 +6548,16 @@
             const isWhatIf = section.title.toLowerCase().includes('what-if') ||
                             section.title.toLowerCase().includes('kịch bản');
 
-	            if (isUiHeatmapSection) {
+	            if (isUiForeignFlowSection) {
+	                const html = renderIndexForeignFlowSectionHtml(currentIndex);
+	                contentDiv.innerHTML = `
+	                    <div class="section-card">
+	                        <div class="section-body">
+	                            ${html}
+	                        </div>
+	                    </div>
+	                `;
+	            } else if (isUiHeatmapSection) {
 	                const heatmapHtml = renderIndexHeatmapSection(
 	                    currentIndex,
 	                    section.__uiType === 'heatmap_gainers' ? 'gainers' : 'losers'
