@@ -40,6 +40,10 @@ META_DATA_FILE="$DATA_DIR/ui_glm_meta.js"
 META_JSON_FILE="$DATA_DIR/ui_glm_meta.json"
 LOG_FILE="$PROJECT_ROOT/automation.log"
 
+# Pro V3 dashboard (optional web copy)
+PRO_DASHBOARD_LOCAL="$DATA_DIR/DASHBOARD_V3_PRO.local.html"
+PRO_DASHBOARD_WEB="$DATA_DIR/DASHBOARD_V3_PRO.html"
+
 # Git config
 GIT_EMAIL="automation@dashboard.local"
 GIT_NAME="Dashboard Automation"
@@ -237,8 +241,12 @@ step1_detect_new_file() {
     fi
 
     if is_already_parsed "$latest_docx"; then
-        log "ℹ️  Latest file already processed: $(basename "$latest_docx")"
-        return 1
+        if [[ "${UI_GLM_FORCE_DEPLOY:-}" == "1" ]]; then
+            log "⚠️  UI_GLM_FORCE_DEPLOY=1: reprocessing latest file: $(basename "$latest_docx")"
+        else
+            log "ℹ️  Latest file already processed: $(basename "$latest_docx")"
+            return 1
+        fi
     fi
 
     LATEST_DOCX="$latest_docx"
@@ -434,6 +442,27 @@ EOF
 }
 
 # ============================================================================
+# STEP 6.2: SYNC PRO V3 DASHBOARD (OPTIONAL)
+# ============================================================================
+
+step6_2_sync_pro_v3() {
+    log "🔄 Step 6.2: Syncing Pro V3 dashboard..."
+
+    if [[ ! -f "$PRO_DASHBOARD_LOCAL" ]]; then
+        log "ℹ️  Pro V3 local dashboard not found: $PRO_DASHBOARD_LOCAL (skip)"
+        return 0
+    fi
+
+    if cp "$PRO_DASHBOARD_LOCAL" "$PRO_DASHBOARD_WEB"; then
+        log "✅ Synced: $PRO_DASHBOARD_WEB"
+        return 0
+    fi
+
+    log "⚠️  Failed to sync Pro V3 dashboard (continue). See $LOG_FILE"
+    return 0
+}
+
+# ============================================================================
 # STEP 6.5: EXPORT INDEX OHLCV (FROM MARKET DB)
 # ============================================================================
 
@@ -463,6 +492,87 @@ step6_5_export_index_ohlcv() {
 }
 
 # ============================================================================
+# STEP 6.6: EXPORT INDEX DRIVERS (20D) (FROM MARKET CACHE + MONTHLY DB)
+# ============================================================================
+
+step6_6_export_index_drivers() {
+    log "🔄 Step 6.6: Exporting index drivers (20D)..."
+
+    local exporter="$SCRIPT_DIR/export_index_drivers_20d.py"
+    local all_stocks_pkl="$WORKSPACE_ROOT/market_cache/all_stocks_historical.pkl"
+    local monthly_db="$WORKSPACE_ROOT/market_cache/hose_monthly/latest.sqlite"
+    local out_path="$DATA_DIR/index_drivers_20d.js"
+
+    if [[ ! -f "$exporter" ]]; then
+        log "⚠️  Exporter missing: $exporter (skip)"
+        return 0
+    fi
+    if [[ ! -f "$all_stocks_pkl" ]]; then
+        log "⚠️  Missing cache: $all_stocks_pkl (skip)"
+        return 0
+    fi
+    if [[ ! -f "$monthly_db" ]]; then
+        log "⚠️  Missing monthly DB: $monthly_db (skip)"
+        return 0
+    fi
+
+    # Prefer workspace venv if available (market deps like pandas live there).
+    local py="python3"
+    if [[ -x "$WORKSPACE_ROOT/.venv/bin/python" ]]; then
+        py="$WORKSPACE_ROOT/.venv/bin/python"
+    fi
+
+    if UI_GLM_ALL_STOCKS_PKL="$all_stocks_pkl" UI_GLM_MONTHLY_DB="$monthly_db" UI_GLM_INDEX_DRIVERS_OUT_JS="$out_path" \
+        "$py" "$exporter" >>"$LOG_FILE" 2>&1; then
+        log "✅ Exported: $out_path"
+        return 0
+    fi
+
+    log "⚠️  Export index drivers failed (continue). See $LOG_FILE"
+    return 0
+}
+
+# ============================================================================
+# STEP 6.7: EXPORT INDEX FOREIGN FLOW (20D) (FROM VCI DAILY FACTS + MONTHLY DB)
+# ============================================================================
+
+step6_7_export_index_foreign_flow() {
+    log "🔄 Step 6.7: Exporting index foreign flow (20D)..."
+
+    local exporter="$SCRIPT_DIR/export_index_foreign_flow_20d.py"
+    local vci_db="$WORKSPACE_ROOT/market_cache/vci_trading_daily/latest.sqlite"
+    local monthly_db="$WORKSPACE_ROOT/market_cache/hose_monthly/latest.sqlite"
+    local out_path="$DATA_DIR/index_foreign_flow_20d.js"
+
+    if [[ ! -f "$exporter" ]]; then
+        log "⚠️  Exporter missing: $exporter (skip)"
+        return 0
+    fi
+    if [[ ! -f "$vci_db" ]]; then
+        log "⚠️  Missing VCI DB: $vci_db (skip)"
+        return 0
+    fi
+    if [[ ! -f "$monthly_db" ]]; then
+        log "⚠️  Missing monthly DB: $monthly_db (skip)"
+        return 0
+    fi
+
+    local py="python3"
+    if [[ -x "$WORKSPACE_ROOT/.venv/bin/python" ]]; then
+        py="$WORKSPACE_ROOT/.venv/bin/python"
+    fi
+
+    if UI_GLM_VCI_DAILY_DB="$vci_db" UI_GLM_MONTHLY_DB="$monthly_db" UI_GLM_INDEX_FOREIGN_FLOW_OUT_JS="$out_path" \
+        "$py" "$exporter" >>"$LOG_FILE" 2>&1; then
+        log "✅ Exported: $out_path"
+        return 0
+    fi
+
+    log "⚠️  Export index foreign flow failed (continue). See $LOG_FILE"
+    return 0
+}
+
+# ============================================================================
 # STEP 7: GIT OPERATIONS
 # ============================================================================
 
@@ -481,14 +591,14 @@ step7_git_commit() {
     git config user.email "$GIT_EMAIL" 2>/dev/null || true
     git config user.name "$GIT_NAME" 2>/dev/null || true
 
-    # Check for changes (data + meta + dashboard + OHLCV export)
-    if git diff --quiet -- "$MAIN_DATA_FILE" "$META_DATA_FILE" "$META_JSON_FILE" "$DATA_DIR/DASHBOARD_V3.html" "$DATA_DIR/index_ohlcv.js"; then
+    # Check for changes (data + meta + dashboards + exports)
+    if git diff --quiet -- "$MAIN_DATA_FILE" "$META_DATA_FILE" "$META_JSON_FILE" "$DATA_DIR/DASHBOARD_V3.html" "$PRO_DASHBOARD_WEB" "$DATA_DIR/index_ohlcv.js" "$DATA_DIR/index_drivers_20d.js" "$DATA_DIR/index_foreign_flow_20d.js"; then
         log "ℹ️  No changes to commit"
         return 0
     fi
 
     # Add files (full_data + meta; dashboard html may change occasionally)
-    git add "$MAIN_DATA_FILE" "$META_DATA_FILE" "$META_JSON_FILE" "$DATA_DIR/DASHBOARD_V3.html" "$DATA_DIR/index_ohlcv.js" 2>/dev/null || true
+    git add "$MAIN_DATA_FILE" "$META_DATA_FILE" "$META_JSON_FILE" "$DATA_DIR/DASHBOARD_V3.html" "$PRO_DASHBOARD_WEB" "$DATA_DIR/index_ohlcv.js" "$DATA_DIR/index_drivers_20d.js" "$DATA_DIR/index_foreign_flow_20d.js" 2>/dev/null || true
 
     # Commit
     local file_date
@@ -563,8 +673,17 @@ main() {
     # Step 6: Update main
     step6_update_main "$LATEST_JS"
 
+    # Step 6.2: Sync Pro V3 dashboard (optional)
+    step6_2_sync_pro_v3
+
     # Step 6.5: Export index OHLCV (market DB)
     step6_5_export_index_ohlcv
+
+    # Step 6.6: Export index drivers (market cache + monthly DB)
+    step6_6_export_index_drivers
+
+    # Step 6.7: Export index foreign flow (VCI daily facts + monthly DB)
+    step6_7_export_index_foreign_flow
 
     # Step 7: Git commit
     step7_git_commit
