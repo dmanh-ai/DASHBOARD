@@ -3590,9 +3590,78 @@
 		            .keylevels-panel, .targetlevels-panel { max-width: 100%; }
 		            .keylevels-chart { height: 300px; }
 		        }
+
+		        /* ===== Maintenance mode (public V3) ===== */
+		        .maintenance-mode body {
+		            overflow: hidden;
+		        }
+		        .maintenance-banner {
+		            position: fixed;
+		            inset: 0;
+		            z-index: 999999;
+		            display: flex;
+		            align-items: center;
+		            justify-content: center;
+		            padding: 20px;
+		            background: var(--overlay-scrim);
+		            backdrop-filter: blur(10px);
+		        }
+		        .maintenance-card {
+		            width: min(720px, 100%);
+		            border-radius: 18px;
+		            padding: 20px 18px;
+		            background: var(--bg-card);
+		            border: 1px solid var(--border-color);
+		            box-shadow: var(--shadow-lg);
+		            color: var(--text-primary);
+		        }
+		        .maintenance-title {
+		            font-size: 1.15rem;
+		            font-weight: 800;
+		            letter-spacing: 0.2px;
+		            margin-bottom: 8px;
+		        }
+		        .maintenance-subtitle {
+		            color: var(--text-secondary);
+		            line-height: 1.55;
+		        }
+		        .maintenance-meta {
+		            margin-top: 14px;
+		            padding-top: 12px;
+		            border-top: 1px dashed var(--border-color);
+		            color: var(--text-secondary);
+		            font-size: 0.95rem;
+		        }
+		        .maintenance-mode .dashboard,
+		        .maintenance-mode .theme-toggle,
+		        .maintenance-mode #uiModal,
+		        .maintenance-mode #donateModal {
+		            display: none !important;
+		        }
     </style>
 </head>
 <body data-theme="light">
+    <div id="maintenanceBanner" class="maintenance-banner" role="alert" aria-live="polite">
+        <div class="maintenance-card">
+            <div class="maintenance-title">🛠️ Thông báo bảo trì</div>
+            <div class="maintenance-subtitle">
+                Dashboard V3 (public) đang <strong>tạm đóng để bảo trì</strong>.<br>
+                Chúng tôi sẽ tiến hành <strong>các bài test</strong> và nâng cấp luồng dữ liệu (drivers / foreign flow / orderflow)
+                trên phiên bản <strong>V3 Pro (local)</strong> trước khi mở lại.
+            </div>
+            <div class="maintenance-meta">
+                <div><strong>Thời gian ghi nhận:</strong> <span id="maintenanceTimestamp">--</span></div>
+                <div style="margin-top:6px;">Vui lòng quay lại sau.</div>
+            </div>
+        </div>
+    </div>
+    <script>
+        (function () {
+            document.documentElement.classList.add('maintenance-mode');
+            var el = document.getElementById('maintenanceTimestamp');
+            if (el) el.textContent = new Date().toLocaleString('vi-VN');
+        })();
+    </script>
     <!-- Theme Toggle Button -->
     <button class="theme-toggle" id="themeToggle" aria-label="Toggle theme">
         🌙
@@ -3666,6 +3735,9 @@
     <button type="button" id="mobileMenuFab" class="mobile-menu-fab" aria-label="Quay lại menu">☰ Menu</button>
 
     <script>
+	        if (document.documentElement.classList.contains('maintenance-mode')) {
+	            throw new Error('UI GLM maintenance mode (public V3 is temporarily closed)');
+	        }
 	        // Theme Toggle Logic
 	        const themeToggle = document.getElementById('themeToggle');
 	        const body = document.body;
