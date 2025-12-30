@@ -40,10 +40,6 @@ META_DATA_FILE="$DATA_DIR/ui_glm_meta.js"
 META_JSON_FILE="$DATA_DIR/ui_glm_meta.json"
 LOG_FILE="$PROJECT_ROOT/automation.log"
 
-# Pro V3 dashboard (optional web copy)
-PRO_DASHBOARD_LOCAL="$DATA_DIR/DASHBOARD_V3_PRO.local.html"
-PRO_DASHBOARD_WEB="$DATA_DIR/DASHBOARD_V3_PRO.html"
-
 # Git config
 GIT_EMAIL="automation@dashboard.local"
 GIT_NAME="Dashboard Automation"
@@ -241,12 +237,8 @@ step1_detect_new_file() {
     fi
 
     if is_already_parsed "$latest_docx"; then
-        if [[ "${UI_GLM_FORCE_DEPLOY:-}" == "1" ]]; then
-            log "⚠️  UI_GLM_FORCE_DEPLOY=1: reprocessing latest file: $(basename "$latest_docx")"
-        else
-            log "ℹ️  Latest file already processed: $(basename "$latest_docx")"
-            return 1
-        fi
+        log "ℹ️  Latest file already processed: $(basename "$latest_docx")"
+        return 1
     fi
 
     LATEST_DOCX="$latest_docx"
@@ -442,27 +434,6 @@ EOF
 }
 
 # ============================================================================
-# STEP 6.2: SYNC PRO V3 DASHBOARD (OPTIONAL)
-# ============================================================================
-
-step6_2_sync_pro_v3() {
-    log "🔄 Step 6.2: Syncing Pro V3 dashboard..."
-
-    if [[ ! -f "$PRO_DASHBOARD_LOCAL" ]]; then
-        log "ℹ️  Pro V3 local dashboard not found: $PRO_DASHBOARD_LOCAL (skip)"
-        return 0
-    fi
-
-    if cp "$PRO_DASHBOARD_LOCAL" "$PRO_DASHBOARD_WEB"; then
-        log "✅ Synced: $PRO_DASHBOARD_WEB"
-        return 0
-    fi
-
-    log "⚠️  Failed to sync Pro V3 dashboard (continue). See $LOG_FILE"
-    return 0
-}
-
-# ============================================================================
 # STEP 6.5: EXPORT INDEX OHLCV (FROM MARKET DB)
 # ============================================================================
 
@@ -591,14 +562,14 @@ step7_git_commit() {
     git config user.email "$GIT_EMAIL" 2>/dev/null || true
     git config user.name "$GIT_NAME" 2>/dev/null || true
 
-    # Check for changes (data + meta + dashboards + exports)
-    if git diff --quiet -- "$MAIN_DATA_FILE" "$META_DATA_FILE" "$META_JSON_FILE" "$DATA_DIR/DASHBOARD_V3.html" "$PRO_DASHBOARD_WEB" "$DATA_DIR/index_ohlcv.js" "$DATA_DIR/index_drivers_20d.js" "$DATA_DIR/index_foreign_flow_20d.js"; then
+    # Check for changes (data + meta + dashboard + exports)
+    if git diff --quiet -- "$MAIN_DATA_FILE" "$META_DATA_FILE" "$META_JSON_FILE" "$DATA_DIR/DASHBOARD_V3.html" "$DATA_DIR/index_ohlcv.js" "$DATA_DIR/index_drivers_20d.js" "$DATA_DIR/index_foreign_flow_20d.js"; then
         log "ℹ️  No changes to commit"
         return 0
     fi
 
     # Add files (full_data + meta; dashboard html may change occasionally)
-    git add "$MAIN_DATA_FILE" "$META_DATA_FILE" "$META_JSON_FILE" "$DATA_DIR/DASHBOARD_V3.html" "$PRO_DASHBOARD_WEB" "$DATA_DIR/index_ohlcv.js" "$DATA_DIR/index_drivers_20d.js" "$DATA_DIR/index_foreign_flow_20d.js" 2>/dev/null || true
+    git add "$MAIN_DATA_FILE" "$META_DATA_FILE" "$META_JSON_FILE" "$DATA_DIR/DASHBOARD_V3.html" "$DATA_DIR/index_ohlcv.js" "$DATA_DIR/index_drivers_20d.js" "$DATA_DIR/index_foreign_flow_20d.js" 2>/dev/null || true
 
     # Commit
     local file_date
@@ -672,9 +643,6 @@ main() {
 
     # Step 6: Update main
     step6_update_main "$LATEST_JS"
-
-    # Step 6.2: Sync Pro V3 dashboard (optional)
-    step6_2_sync_pro_v3
 
     # Step 6.5: Export index OHLCV (market DB)
     step6_5_export_index_ohlcv
