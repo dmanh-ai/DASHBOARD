@@ -137,36 +137,70 @@ def main() -> None:
     # Determine as-of date aligned with report (optional).
     asof = os.environ.get("UI_GLM_ASOF") or _infer_asof_from_index_heatmaps(heatmap_js_path)
 
-    # Build sorted series and map integer index -> date.
-    keys = sorted(k for k in breadth_history.keys() if isinstance(k, int))
+    # Build sorted series.
+    # Backward-compatible formats:
+    # - legacy: breadth_history keys are int row indexes, map via AAA.data['time']
+    # - new: breadth_history keys are date-like (str/Timestamp)
+    raw_keys = list(breadth_history.keys())
+    has_int_keys = any(isinstance(k, int) for k in raw_keys)
+
     series: List[Dict[str, Any]] = []
-    for k in keys:
-        if k < 0 or k >= len(time_index):
-            continue
-        d = time_index[k]
-        if not d:
-            continue
-        if asof and d > asof:
-            continue
-        v = breadth_history.get(k) or {}
-        if not isinstance(v, dict):
-            continue
-        rec = {
-            "d": d,
-            "adv": int(v.get("advancing", 0) or 0),
-            "dec": int(v.get("declining", 0) or 0),
-            "unch": int(v.get("unchanged", 0) or 0),
-            "total": int(v.get("total_stocks", 0) or 0),
-            "pct_ma5": float(v.get("pct_above_ma5", 0.0) or 0.0),
-            "pct_ma10": float(v.get("pct_above_ma10", 0.0) or 0.0),
-            "pct_ma20": float(v.get("pct_above_ma20", 0.0) or 0.0),
-            "pct_ma50": float(v.get("pct_above_ma50", 0.0) or 0.0),
-            "pct_ma100": float(v.get("pct_above_ma100", 0.0) or 0.0),
-            "pct_ma200": float(v.get("pct_above_ma200", 0.0) or 0.0),
-            "adv_pct": float(v.get("advance_percent", 0.0) or 0.0),
-            "dec_pct": float(v.get("decline_percent", 0.0) or 0.0),
-        }
-        series.append(rec)
+    if has_int_keys:
+        keys = sorted(k for k in raw_keys if isinstance(k, int))
+        for k in keys:
+            if k < 0 or k >= len(time_index):
+                continue
+            d = time_index[k]
+            if not d:
+                continue
+            if asof and d > asof:
+                continue
+            v = breadth_history.get(k) or {}
+            if not isinstance(v, dict):
+                continue
+            rec = {
+                "d": d,
+                "adv": int(v.get("advancing", 0) or 0),
+                "dec": int(v.get("declining", 0) or 0),
+                "unch": int(v.get("unchanged", 0) or 0),
+                "total": int(v.get("total_stocks", 0) or 0),
+                "pct_ma5": float(v.get("pct_above_ma5", 0.0) or 0.0),
+                "pct_ma10": float(v.get("pct_above_ma10", 0.0) or 0.0),
+                "pct_ma20": float(v.get("pct_above_ma20", 0.0) or 0.0),
+                "pct_ma50": float(v.get("pct_above_ma50", 0.0) or 0.0),
+                "pct_ma100": float(v.get("pct_above_ma100", 0.0) or 0.0),
+                "pct_ma200": float(v.get("pct_above_ma200", 0.0) or 0.0),
+                "adv_pct": float(v.get("advance_percent", 0.0) or 0.0),
+                "dec_pct": float(v.get("decline_percent", 0.0) or 0.0),
+            }
+            series.append(rec)
+    else:
+        for k in raw_keys:
+            d = _to_iso_date(k) or _to_iso_date(str(k)[:10])
+            if not d:
+                continue
+            if asof and d > asof:
+                continue
+            v = breadth_history.get(k) or {}
+            if not isinstance(v, dict):
+                continue
+            rec = {
+                "d": d,
+                "adv": int(v.get("advancing", 0) or 0),
+                "dec": int(v.get("declining", 0) or 0),
+                "unch": int(v.get("unchanged", 0) or 0),
+                "total": int(v.get("total_stocks", 0) or 0),
+                "pct_ma5": float(v.get("pct_above_ma5", 0.0) or 0.0),
+                "pct_ma10": float(v.get("pct_above_ma10", 0.0) or 0.0),
+                "pct_ma20": float(v.get("pct_above_ma20", 0.0) or 0.0),
+                "pct_ma50": float(v.get("pct_above_ma50", 0.0) or 0.0),
+                "pct_ma100": float(v.get("pct_above_ma100", 0.0) or 0.0),
+                "pct_ma200": float(v.get("pct_above_ma200", 0.0) or 0.0),
+                "adv_pct": float(v.get("advance_percent", 0.0) or 0.0),
+                "dec_pct": float(v.get("decline_percent", 0.0) or 0.0),
+            }
+            series.append(rec)
+        series.sort(key=lambda r: r["d"])
 
     if len(series) < 30:
         raise SystemExit(f"Not enough breadth history records: {len(series)}")
@@ -218,7 +252,7 @@ def main() -> None:
             },
         },
         "notes": {
-            "index_mapping": "breadth_history keys map to AAA.data row index (time).",
+            "index_mapping": "legacy keys map to AAA.data row index (time); new keys are date-like (no mapping needed).",
             "mcclellan": "Computed from net A-D: EMA19 - EMA39.",
         },
     }
@@ -235,4 +269,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-

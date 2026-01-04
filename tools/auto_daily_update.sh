@@ -44,6 +44,12 @@ LOG_FILE="$PROJECT_ROOT/automation.log"
 GIT_EMAIL="automation@dashboard.local"
 GIT_NAME="Dashboard Automation"
 
+# Safety switches (default keeps current behavior)
+# - UI_GLM_NO_GIT=1: skip commit + push (local-only update)
+# - UI_GLM_NO_PUSH=1: skip push (still allow local commit)
+UI_GLM_NO_GIT="${UI_GLM_NO_GIT:-0}"
+UI_GLM_NO_PUSH="${UI_GLM_NO_PUSH:-0}"
+
 # ============================================================================
 # LOGGING FUNCTIONS
 # ============================================================================
@@ -236,8 +242,12 @@ step1_detect_new_file() {
         return 1
     fi
 
-    if is_already_parsed "$latest_docx"; then
+    # Allow re-parsing the same file when parser/UI logic changes.
+    # Usage: UI_GLM_FORCE_REPARSE=1 ./tools/auto_daily_update.sh
+    local force_reparse="${UI_GLM_FORCE_REPARSE:-0}"
+    if [[ "$force_reparse" != "1" ]] && is_already_parsed "$latest_docx"; then
         log "ℹ️  Latest file already processed: $(basename "$latest_docx")"
+        log "   Set UI_GLM_FORCE_REPARSE=1 to re-parse anyway."
         return 1
     fi
 
@@ -550,6 +560,11 @@ step6_7_export_index_foreign_flow() {
 step7_git_commit() {
     log "🔄 Step 7: Git operations..."
 
+    if [[ "$UI_GLM_NO_GIT" == "1" ]]; then
+        log "⏭️  UI_GLM_NO_GIT=1 → skipping git commit"
+        return 0
+    fi
+
     cd "$PROJECT_ROOT"
 
     # Check if git repo
@@ -595,6 +610,11 @@ Co-Authored-By: Claude <noreply@anthropic.com>"
 
 step8_git_push() {
     log "🔄 Step 8: Pushing to remote..."
+
+    if [[ "$UI_GLM_NO_GIT" == "1" || "$UI_GLM_NO_PUSH" == "1" ]]; then
+        log "⏭️  UI_GLM_NO_GIT=1 or UI_GLM_NO_PUSH=1 → skipping git push"
+        return 0
+    fi
 
     cd "$PROJECT_ROOT"
 
