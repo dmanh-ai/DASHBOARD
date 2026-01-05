@@ -3599,12 +3599,15 @@
 		            position: fixed;
 		            inset: 0;
 		            z-index: 999999;
-		            display: flex;
+		            display: none;
 		            align-items: center;
 		            justify-content: center;
 		            padding: 20px;
 		            background: var(--overlay-scrim);
 		            backdrop-filter: blur(10px);
+		        }
+		        .maintenance-mode .maintenance-banner {
+		            display: flex;
 		        }
 		        .maintenance-card {
 		            width: min(720px, 100%);
@@ -3656,9 +3659,14 @@
     </div>
     <script>
         (function () {
-            document.documentElement.classList.add('maintenance-mode');
-            var el = document.getElementById('maintenanceTimestamp');
-            if (el) el.textContent = new Date().toLocaleString('vi-VN');
+            try {
+                var params = new URLSearchParams(window.location.search || '');
+                var enabled = (params.get('maintenance') || '').toLowerCase();
+                if (enabled !== '1' && enabled !== 'true' && enabled !== 'yes') return;
+                document.documentElement.classList.add('maintenance-mode');
+                var el = document.getElementById('maintenanceTimestamp');
+                if (el) el.textContent = new Date().toLocaleString('vi-VN');
+            } catch (_) {}
         })();
     </script>
     <!-- Theme Toggle Button -->
