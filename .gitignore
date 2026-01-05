@@ -57,6 +57,9 @@ Desktop.ini
 *.swo
 *~
 
+# Git worktrees (used for publishing to `public` branch)
+.worktrees/
+
 # ==================== DEPENDENCIES ====================
 # Node modules
 node_modules/
