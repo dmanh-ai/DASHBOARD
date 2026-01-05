@@ -21,9 +21,10 @@ automation.log
 logs/
 
 # ==================== GENERATED FILES (VARY) ====================
-# Keep main data file, ignore test outputs
+# Keep public main data file, ignore local/pro dataset & test outputs
 full_data_*.js
-!full_data.js
+full_data.js
+!full_data_public.js
 !full_data_complete.js
 
 # Parser test outputs

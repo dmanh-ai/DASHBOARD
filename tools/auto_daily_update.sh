@@ -36,6 +36,7 @@ MARKET_REPORT_GLOB="${MARKET_REPORT_GLOB:-BaoCao_*.docx}"
 
 # Files
 MAIN_DATA_FILE="$DATA_DIR/full_data.js"
+PUBLIC_DATA_FILE="$DATA_DIR/full_data_public.js"
 META_DATA_FILE="$DATA_DIR/ui_glm_meta.js"
 META_JSON_FILE="$DATA_DIR/ui_glm_meta.json"
 LOG_FILE="$PROJECT_ROOT/automation.log"
@@ -437,6 +438,18 @@ EOF
 EOF
         log "🧷 Wrote meta: $META_JSON_FILE"
 
+        # Build public dataset (Lite) so GitHub Pages doesn't expose the full/pro report.
+        local public_builder="$SCRIPT_DIR/build_public_data.js"
+        if command -v node >/dev/null 2>&1 && [[ -f "$public_builder" ]]; then
+            if node "$public_builder" "$MAIN_DATA_FILE" "$PUBLIC_DATA_FILE" >>"$LOG_FILE" 2>&1; then
+                log "🧷 Wrote public data: $PUBLIC_DATA_FILE"
+            else
+                log "⚠️  Failed to build public data (continue). See $LOG_FILE"
+            fi
+        else
+            log "⚠️  node/build_public_data.js missing; public data not generated"
+        fi
+
         return 0
     else
         error "Failed to update $MAIN_DATA_FILE"
@@ -577,14 +590,14 @@ step7_git_commit() {
     git config user.email "$GIT_EMAIL" 2>/dev/null || true
     git config user.name "$GIT_NAME" 2>/dev/null || true
 
-    # Check for changes (data + meta + dashboard + exports)
-    if git diff --quiet -- "$MAIN_DATA_FILE" "$META_DATA_FILE" "$META_JSON_FILE" "$DATA_DIR/DASHBOARD_V3.html" "$DATA_DIR/index_ohlcv.js" "$DATA_DIR/index_drivers_20d.js" "$DATA_DIR/index_foreign_flow_20d.js"; then
+    # Check for changes (public data + meta + dashboard + exports)
+    if git diff --quiet -- "$PUBLIC_DATA_FILE" "$META_DATA_FILE" "$META_JSON_FILE" "$DATA_DIR/DASHBOARD_V3.html" "$DATA_DIR/index_ohlcv.js" "$DATA_DIR/index_drivers_20d.js" "$DATA_DIR/index_foreign_flow_20d.js"; then
         log "ℹ️  No changes to commit"
         return 0
     fi
 
-    # Add files (full_data + meta; dashboard html may change occasionally)
-    git add "$MAIN_DATA_FILE" "$META_DATA_FILE" "$META_JSON_FILE" "$DATA_DIR/DASHBOARD_V3.html" "$DATA_DIR/index_ohlcv.js" "$DATA_DIR/index_drivers_20d.js" "$DATA_DIR/index_foreign_flow_20d.js" 2>/dev/null || true
+    # Add files (public data + meta; dashboard html may change occasionally)
+    git add "$PUBLIC_DATA_FILE" "$META_DATA_FILE" "$META_JSON_FILE" "$DATA_DIR/DASHBOARD_V3.html" "$DATA_DIR/index_ohlcv.js" "$DATA_DIR/index_drivers_20d.js" "$DATA_DIR/index_foreign_flow_20d.js" 2>/dev/null || true
 
     # Commit
     local file_date

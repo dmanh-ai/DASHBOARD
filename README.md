@@ -5,7 +5,7 @@ Báo cáo thị trường chứng khoán Việt Nam với giao diện chuyên ng
 ## 🌐 Mở Dashboard
 
 - **Local**: Mở `index.html` (sẽ tự động redirect đến `DASHBOARD.html`)
-- **GitHub Pages**: https://thanhtan-165.github.io/
+- **GitHub Pages**: https://thanhtran-165.github.io/
 
 ## 📊 Dashboard Features
 
@@ -35,7 +35,8 @@ marketoverview.github.io/
 ├── index.html                  ← Entry point (redirect to DASHBOARD.html)
 ├── DASHBOARD.html              ← Main dashboard (Financial Light Theme)
 ├── test_all_16.html            ← Test verification page
-├── full_data.js                ← Data file (16 objects, 218 sections)
+├── full_data_public.js         ← Public/Lite data (subset)
+├── full_data.js                ← Local/Pro data (not for public deploy)
 │
 ├── tools/                      ← Parser tools
 │   ├── auto_parse.py           ← Main parser script
@@ -64,6 +65,7 @@ Khi có file Word mới:
 ```bash
 # 1. Parse file Word mới
 python3 tools/auto_parse.py reports/txt/baocao_new.txt full_data.js
+node tools/build_public_data.js full_data.js full_data_public.js
 
 # 2. Verify syntax
 node --check full_data.js
@@ -73,7 +75,7 @@ python3 -m http.server 8080
 # Mở http://localhost:8080
 
 # 4. Commit & push (auto deploy sau 1-3 phút)
-git add full_data.js
+git add full_data_public.js
 git commit -m "Update: $(date +%Y-%m-%d)"
 git push origin main
 ```
@@ -140,4 +142,4 @@ python3 tools/benchmark.py reports/txt/baocao_full.txt
 
 **Dashboard đã online với Financial Light Theme chuyên nghiệp!**
 
-### URL: https://thanhtan-165.github.io/
+### URL: https://thanhtran-165.github.io/
