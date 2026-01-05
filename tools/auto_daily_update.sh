@@ -41,6 +41,11 @@ META_DATA_FILE="$DATA_DIR/ui_glm_meta.js"
 META_JSON_FILE="$DATA_DIR/ui_glm_meta.json"
 LOG_FILE="$PROJECT_ROOT/automation.log"
 
+# GitHub Pages publishing (recommended: Pages serves from `public` branch)
+PAGES_BRANCH="${UI_GLM_PAGES_BRANCH:-public}"
+PAGES_WORKTREE_DIR="${UI_GLM_PAGES_WORKTREE_DIR:-$PROJECT_ROOT/.worktrees/pages_${PAGES_BRANCH}}"
+UI_GLM_PUBLISH_PAGES="${UI_GLM_PUBLISH_PAGES:-1}"
+
 # Git config
 GIT_EMAIL="automation@dashboard.local"
 GIT_NAME="Dashboard Automation"
@@ -212,6 +217,148 @@ mark_as_parsed() {
     hash="$(file_hash "$docx_file")"
     echo "$hash" > "$STATE_FILE"
     log "📝 Marked as parsed: $(basename "$docx_file")"
+}
+
+# ============================================================================
+# PAGES PUBLISHING (public branch)
+# ============================================================================
+
+ensure_pages_worktree() {
+    if [[ "$UI_GLM_PUBLISH_PAGES" != "1" ]]; then
+        return 0
+    fi
+    if [[ "$UI_GLM_NO_GIT" == "1" ]]; then
+        return 0
+    fi
+
+    mkdir -p "$(dirname "$PAGES_WORKTREE_DIR")"
+
+    cd "$PROJECT_ROOT"
+    if ! git rev-parse --git-dir > /dev/null 2>&1; then
+        log "⚠️  Not a git repository, skipping Pages publish"
+        return 0
+    fi
+
+    if [[ -d "$PAGES_WORKTREE_DIR" ]]; then
+        return 0
+    fi
+
+    git fetch origin "$PAGES_BRANCH" >/dev/null 2>&1 || true
+    if git show-ref --verify --quiet "refs/heads/$PAGES_BRANCH"; then
+        git worktree add "$PAGES_WORKTREE_DIR" "$PAGES_BRANCH" >>"$LOG_FILE" 2>&1
+    else
+        git worktree add -b "$PAGES_BRANCH" "$PAGES_WORKTREE_DIR" "origin/$PAGES_BRANCH" >>"$LOG_FILE" 2>&1 \
+            || git worktree add "$PAGES_WORKTREE_DIR" "$PAGES_BRANCH" >>"$LOG_FILE" 2>&1
+    fi
+}
+
+sync_pages_assets() {
+    if [[ "$UI_GLM_PUBLISH_PAGES" != "1" ]]; then
+        return 0
+    fi
+    if [[ "$UI_GLM_NO_GIT" == "1" ]]; then
+        return 0
+    fi
+
+    if [[ ! -d "$PAGES_WORKTREE_DIR" ]]; then
+        log "⚠️  Pages worktree missing: $PAGES_WORKTREE_DIR"
+        return 1
+    fi
+
+    mkdir -p "$PAGES_WORKTREE_DIR/vendor" "$PAGES_WORKTREE_DIR/scripts" "$PAGES_WORKTREE_DIR/images/donate"
+
+    # Root files needed by public dashboard
+    local root_files=(
+        "index.html"
+        "DASHBOARD_V3.html"
+        "full_data_public.js"
+        "ui_glm_meta.json"
+        "vnindex_heatmap_data.js"
+        "index_heatmap_data.js"
+        "vnindex_company_meta.js"
+        "vnindex_price_20d.js"
+        "market_breadth_snapshot.js"
+        "breadth_history.js"
+        "index_ohlcv.js"
+        "index_drivers_20d.js"
+        "index_foreign_flow_20d.js"
+    )
+
+    local f
+    for f in "${root_files[@]}"; do
+        if [[ -f "$PROJECT_ROOT/$f" ]]; then
+            cp -f "$PROJECT_ROOT/$f" "$PAGES_WORKTREE_DIR/$f"
+        else
+            log "⚠️  Missing public asset: $f"
+        fi
+    done
+
+    if [[ -d "$PROJECT_ROOT/vendor" ]]; then
+        rsync -a --delete "$PROJECT_ROOT/vendor/" "$PAGES_WORKTREE_DIR/vendor/" >/dev/null 2>&1 || true
+    fi
+    if [[ -d "$PROJECT_ROOT/scripts" ]]; then
+        rsync -a --delete "$PROJECT_ROOT/scripts/" "$PAGES_WORKTREE_DIR/scripts/" >/dev/null 2>&1 || true
+    fi
+    if [[ -f "$PROJECT_ROOT/images/donate/momo_qr.jpg" ]]; then
+        cp -f "$PROJECT_ROOT/images/donate/momo_qr.jpg" "$PAGES_WORKTREE_DIR/images/donate/momo_qr.jpg"
+    fi
+
+    return 0
+}
+
+step7_publish_pages() {
+    if [[ "$UI_GLM_PUBLISH_PAGES" != "1" ]]; then
+        log "⏭️  UI_GLM_PUBLISH_PAGES!=1 → skipping Pages publish"
+        return 0
+    fi
+    if [[ "$UI_GLM_NO_GIT" == "1" ]]; then
+        log "⏭️  UI_GLM_NO_GIT=1 → skipping Pages publish"
+        return 0
+    fi
+
+    log "🔄 Step 7: Publish to GitHub Pages branch (${PAGES_BRANCH})..."
+
+    ensure_pages_worktree
+    sync_pages_assets || true
+
+    cd "$PAGES_WORKTREE_DIR"
+
+    git config user.email "$GIT_EMAIL" 2>/dev/null || true
+    git config user.name "$GIT_NAME" 2>/dev/null || true
+
+    if git diff --quiet; then
+        log "ℹ️  No Pages changes to commit"
+        return 0
+    fi
+
+    git add -A 2>/dev/null || true
+
+    local file_date
+    file_date="$(get_file_date "$LATEST_DOCX")"
+    local commit_msg="🤖 Public: Update lite data for ${file_date}
+
+📊 Source: $(basename "$LATEST_DOCX")
+📅 Generated: $(date '+%Y-%m-%d %H:%M:%S')
+✅ Published: full_data_public.js"
+
+    if git commit -m "$commit_msg" >/dev/null 2>&1; then
+        log "✅ Pages commit successful"
+    else
+        log "⚠️  Pages commit skipped (nothing to commit?)"
+        return 0
+    fi
+
+    if git remote get-url origin > /dev/null 2>&1; then
+        if git push origin "$PAGES_BRANCH" >>"$LOG_FILE" 2>&1; then
+            log "✅ Pushed to origin/${PAGES_BRANCH} (GitHub Pages)"
+            return 0
+        fi
+        log "⚠️  Pages push failed (check permissions/branch protection)"
+        return 1
+    fi
+
+    log "⚠️  No git remote, skipping Pages push"
+    return 0
 }
 
 # ============================================================================
@@ -686,11 +833,14 @@ main() {
     # Step 6.7: Export index foreign flow (VCI daily facts + monthly DB)
     step6_7_export_index_foreign_flow
 
-    # Step 7: Git commit
-    step7_git_commit
+    # Step 7: Publish to GitHub Pages (public branch)
+    step7_publish_pages || true
 
-    # Step 8: Git push (optional, may fail)
-    step8_git_push || true
+    # Legacy behavior (if you still serve Pages from main):
+    if [[ "$UI_GLM_PUBLISH_PAGES" != "1" ]]; then
+        step7_git_commit
+        step8_git_push || true
+    fi
 
     # Mark as parsed
     mark_as_parsed "$LATEST_DOCX"
