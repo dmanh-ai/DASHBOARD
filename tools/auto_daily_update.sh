@@ -714,6 +714,125 @@ step6_7_export_index_foreign_flow() {
 }
 
 # ============================================================================
+# STEP 6.8: EXPORT HEATMAPS (INDEX + "VNINDEX"/HOSE)
+# ============================================================================
+
+step6_8_export_heatmaps() {
+    log "🔄 Step 6.8: Exporting heatmaps (indices + VNINDEX/HOSE)..."
+
+    local exporter="$SCRIPT_DIR/export_index_heatmaps.py"
+    local all_stocks_pkl="$WORKSPACE_ROOT/market_cache/all_stocks_historical.pkl"
+    local monthly_db="$WORKSPACE_ROOT/market_cache/hose_monthly/latest.sqlite"
+    local meta_json="$DATA_DIR/ui_glm_meta.json"
+
+    if [[ ! -f "$exporter" ]]; then
+        log "⚠️  Exporter missing: $exporter (skip)"
+        return 0
+    fi
+    if [[ ! -f "$all_stocks_pkl" ]]; then
+        log "⚠️  Missing cache: $all_stocks_pkl (skip)"
+        return 0
+    fi
+    if [[ ! -f "$monthly_db" ]]; then
+        log "⚠️  Missing monthly DB: $monthly_db (skip)"
+        return 0
+    fi
+
+    local py="python3"
+    if [[ -x "$WORKSPACE_ROOT/.venv/bin/python" ]]; then
+        py="$WORKSPACE_ROOT/.venv/bin/python"
+    fi
+
+    if UI_GLM_ALL_STOCKS_PKL="$all_stocks_pkl" UI_GLM_MONTHLY_DB="$monthly_db" UI_GLM_META_JSON="$meta_json" \
+        "$py" "$exporter" >>"$LOG_FILE" 2>&1; then
+        log "✅ Exported: $DATA_DIR/vnindex_heatmap_data.js"
+        log "✅ Exported: $DATA_DIR/index_heatmap_data.js"
+        return 0
+    fi
+
+    log "⚠️  Export heatmaps failed (continue). See $LOG_FILE"
+    return 0
+}
+
+# ============================================================================
+# STEP 6.9: EXPORT MARKET BREADTH SNAPSHOT (1D)
+# ============================================================================
+
+step6_9_export_market_breadth_snapshot() {
+    log "🔄 Step 6.9: Exporting market breadth snapshot (1D)..."
+
+    local exporter="$SCRIPT_DIR/export_market_breadth_snapshot.py"
+    local all_stocks_pkl="$WORKSPACE_ROOT/market_cache/all_stocks_historical.pkl"
+    local ad_history_pkl="$WORKSPACE_ROOT/market_cache/VNINDEX_ad_history.pkl"
+    local heatmap_js="$DATA_DIR/index_heatmap_data.js"
+    local out_path="$DATA_DIR/market_breadth_snapshot.js"
+
+    if [[ ! -f "$exporter" ]]; then
+        log "⚠️  Exporter missing: $exporter (skip)"
+        return 0
+    fi
+    if [[ ! -f "$all_stocks_pkl" ]]; then
+        log "⚠️  Missing cache: $all_stocks_pkl (skip)"
+        return 0
+    fi
+
+    local py="python3"
+    if [[ -x "$WORKSPACE_ROOT/.venv/bin/python" ]]; then
+        py="$WORKSPACE_ROOT/.venv/bin/python"
+    fi
+
+    if UI_GLM_ALL_STOCKS_PKL="$all_stocks_pkl" UI_GLM_AD_HISTORY_PKL="$ad_history_pkl" UI_GLM_INDEX_HEATMAP_JS="$heatmap_js" UI_GLM_BREADTH_OUT_JS="$out_path" \
+        "$py" "$exporter" >>"$LOG_FILE" 2>&1; then
+        log "✅ Exported: $out_path"
+        return 0
+    fi
+
+    log "⚠️  Export market breadth snapshot failed (continue). See $LOG_FILE"
+    return 0
+}
+
+# ============================================================================
+# STEP 6.10: EXPORT BREADTH HISTORY (multi-day)
+# ============================================================================
+
+step6_10_export_breadth_history() {
+    log "🔄 Step 6.10: Exporting breadth history..."
+
+    local exporter="$SCRIPT_DIR/export_breadth_history.py"
+    local hist_pkl="$WORKSPACE_ROOT/market_cache/historical_breadth.pkl"
+    local all_stocks_pkl="$WORKSPACE_ROOT/market_cache/all_stocks_historical.pkl"
+    local heatmap_js="$DATA_DIR/index_heatmap_data.js"
+    local out_path="$DATA_DIR/breadth_history.js"
+
+    if [[ ! -f "$exporter" ]]; then
+        log "⚠️  Exporter missing: $exporter (skip)"
+        return 0
+    fi
+    if [[ ! -f "$hist_pkl" ]]; then
+        log "⚠️  Missing cache: $hist_pkl (skip)"
+        return 0
+    fi
+    if [[ ! -f "$all_stocks_pkl" ]]; then
+        log "⚠️  Missing cache: $all_stocks_pkl (skip)"
+        return 0
+    fi
+
+    local py="python3"
+    if [[ -x "$WORKSPACE_ROOT/.venv/bin/python" ]]; then
+        py="$WORKSPACE_ROOT/.venv/bin/python"
+    fi
+
+    if UI_GLM_HIST_BREADTH_PKL="$hist_pkl" UI_GLM_ALL_STOCKS_PKL="$all_stocks_pkl" UI_GLM_INDEX_HEATMAP_JS="$heatmap_js" UI_GLM_BREADTH_HISTORY_OUT_JS="$out_path" \
+        "$py" "$exporter" >>"$LOG_FILE" 2>&1; then
+        log "✅ Exported: $out_path"
+        return 0
+    fi
+
+    log "⚠️  Export breadth history failed (continue). See $LOG_FILE"
+    return 0
+}
+
+# ============================================================================
 # STEP 7: GIT OPERATIONS
 # ============================================================================
 
@@ -832,6 +951,15 @@ main() {
 
     # Step 6.7: Export index foreign flow (VCI daily facts + monthly DB)
     step6_7_export_index_foreign_flow
+
+    # Step 6.8: Export heatmaps (indices + VNINDEX/HOSE)
+    step6_8_export_heatmaps
+
+    # Step 6.9: Export market breadth snapshot (1D)
+    step6_9_export_market_breadth_snapshot
+
+    # Step 6.10: Export breadth history (multi-day)
+    step6_10_export_breadth_history
 
     # Step 7: Publish to GitHub Pages (public branch)
     step7_publish_pages || true

@@ -13,7 +13,6 @@
 							    <script src="breadth_history.js"></script>
 							    <script src="index_ohlcv.js"></script>
 							    <script src="index_drivers_20d.js"></script>
-							    <script src="index_foreign_flow_20d.js"></script>
 							    <script src="vendor/lightweight-charts.standalone.production.js"></script>
 							    <script src="scripts/content_formatter.js"></script>
 
@@ -4327,17 +4326,6 @@
 	            const indexData = data[indexKey];
 	            const base = filterSectionsForCurrentPlan(processSections(indexData));
 	            let out = base;
-	            if (getIndexForeignFlowRootPayload()) {
-	                out = out.concat([
-	                    {
-	                        title: '🌍 GIAO DỊCH NƯỚC NGOÀI',
-	                        icon: '🌍',
-	                        content: '',
-	                        alert: false,
-	                        __uiType: 'foreign_flow',
-	                    },
-	                ]);
-	            }
 	            if (!indexKey || indexKey === 'overview' || indexKey === 'vnindex') return out;
 
 	            const payload = getIndexHeatmapPayload(indexKey);
@@ -6611,7 +6599,6 @@
 	            } catch (_) {}
 
 				            const isUiHeatmapSection = section.__uiType === 'heatmap_gainers' || section.__uiType === 'heatmap_losers';
-				            const isUiForeignFlowSection = section.__uiType === 'foreign_flow';
 				            const normalizedSectionTitle = normalizeTitle(section.title);
 				            const isKeyLevelsSection = normalizedSectionTitle === 'MỨC GIÁ QUAN TRỌNG';
 				            const isTargetLevelsSection = normalizedSectionTitle === 'GIÁ MỤC TIÊU';
@@ -6645,16 +6632,7 @@
             const isWhatIf = section.title.toLowerCase().includes('what-if') ||
                             section.title.toLowerCase().includes('kịch bản');
 
-	            if (isUiForeignFlowSection) {
-	                const html = renderIndexForeignFlowSectionHtml(currentIndex);
-	                contentDiv.innerHTML = `
-	                    <div class="section-card">
-	                        <div class="section-body">
-	                            ${html}
-	                        </div>
-	                    </div>
-	                `;
-	            } else if (isUiHeatmapSection) {
+	            if (isUiHeatmapSection) {
 	                const heatmapHtml = renderIndexHeatmapSection(
 	                    currentIndex,
 	                    section.__uiType === 'heatmap_gainers' ? 'gainers' : 'losers'
