@@ -54,7 +54,7 @@ def fetch_csv(filename, max_retries=3):
         try:
             req = Request(url, headers={"User-Agent": "DASHBOARD-Pipeline/1.0"})
             with urlopen(req, timeout=30) as resp:
-                text = resp.read().decode("utf-8")
+                text = resp.read().decode("utf-8-sig")
             reader = csv.DictReader(io.StringIO(text))
             rows = list(reader)
             log.info(f"  OK: {filename} → {len(rows)} rows")
