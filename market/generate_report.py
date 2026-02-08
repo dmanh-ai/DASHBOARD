@@ -8,6 +8,7 @@ import os
 import sys
 import logging
 import time
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime
 from pathlib import Path
 
@@ -364,16 +365,33 @@ def main():
         log.error("No index OHLCV data found. Run collect_data.py first!")
         sys.exit(1)
 
-    # Generate overview
-    overview_text = generate_overview(data)
-
-    # Generate each index
+    # Generate all parts concurrently (overview + 15 indices)
     index_texts = {}
-    for key in PART_ORDER[1:]:
-        text = generate_index(key, data)
-        if text:
-            index_texts[key] = text
-        time.sleep(1)  # Rate limit giữa các API calls
+    overview_text = ""
+
+    def _gen_overview():
+        return ("overview", generate_overview(data))
+
+    def _gen_index(k):
+        return (k, generate_index(k, data))
+
+    max_workers = min(5, len(PART_ORDER))
+    log.info(f"Generating report with {max_workers} concurrent workers...")
+
+    with ThreadPoolExecutor(max_workers=max_workers) as executor:
+        futures = []
+        futures.append(executor.submit(_gen_overview))
+        for key in PART_ORDER[1:]:
+            futures.append(executor.submit(_gen_index, key))
+
+        for future in as_completed(futures):
+            key, text = future.result()
+            if key == "overview":
+                overview_text = text or ""
+                log.info("  OVERVIEW done")
+            elif text:
+                index_texts[key] = text
+                log.info(f"  {INDICES[key][1]} done")
 
     # Assemble report
     full_report = assemble_report(overview_text, index_texts)
