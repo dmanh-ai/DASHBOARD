@@ -291,32 +291,6 @@ def compute_breadth_from_indices(index_data):
 
 
 # ============================================================================
-# 4. TẠO EMPTY PLACEHOLDERS CHO CÁC FILE KHÁC
-# ============================================================================
-
-def create_placeholders():
-    """Tạo placeholder JSON cho data chưa có (heatmaps, foreign flow, etc.)."""
-    log.info("=" * 60)
-    log.info("STEP 4: Tạo placeholders...")
-
-    asof = datetime.now().strftime("%Y-%m-%d")
-
-    # Constituents placeholder
-    save_json({}, "constituents.json")
-
-    # All stocks placeholder
-    save_json({"asof": asof, "stocks": {}}, "all_stocks.json")
-
-    # Foreign flow placeholder
-    save_json({"asof": asof, "stocks": {}}, "foreign_flow.json")
-
-    # Heatmaps placeholder
-    save_json({"asof": asof, "indices": {}}, "heatmaps.json")
-
-    log.info("  Placeholders created")
-
-
-# ============================================================================
 # MAIN
 # ============================================================================
 
@@ -337,9 +311,6 @@ def main():
 
     # Step 3: Simple breadth
     compute_breadth_from_indices(index_data)
-
-    # Step 4: Placeholders cho data chưa có
-    create_placeholders()
 
     log.info("=" * 60)
     log.info(f"DATA COLLECTION COMPLETED! Indices: {list(index_data.keys())}")

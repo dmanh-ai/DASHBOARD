@@ -1,7 +1,6 @@
 """
-Tạo JS data files cho dashboard charts/heatmaps.
-Thay thế các export scripts cũ (cần sqlite/pickle) bằng version
-đọc trực tiếp từ JSON cache.
+Tạo JS data files cho dashboard charts.
+Chỉ generate các file có data thật từ index OHLCV + breadth.
 """
 
 import json
@@ -14,7 +13,6 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(me
 log = logging.getLogger(__name__)
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from config import INDICES
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 CACHE_DIR = PROJECT_ROOT / "market_cache"
@@ -45,7 +43,7 @@ def write_js(filename, var_name, data):
 # ============================================================================
 
 def generate_index_ohlcv():
-    """Tạo index_ohlcv.js"""
+    """Tạo index_ohlcv.js - data OHLCV cho chart."""
     data = load_json("index_ohlcv.json")
     if not data:
         log.warning("No index_ohlcv.json, skipping")
@@ -68,156 +66,7 @@ def generate_index_ohlcv():
 
 
 # ============================================================================
-# 2. INDEX DRIVERS 20D
-# ============================================================================
-
-def generate_index_drivers():
-    """Tạo index_drivers_20d.js từ all_stocks + constituents."""
-    all_stocks = load_json("all_stocks.json")
-    constituents = load_json("constituents.json")
-
-    if not all_stocks or not constituents:
-        log.warning("Missing data for drivers, skipping")
-        return
-
-    stocks = all_stocks.get("stocks", {})
-    output = {
-        "asof": all_stocks.get("asof", ""),
-        "generated_at": datetime.now().isoformat(),
-        "indices": {},
-    }
-
-    for key, const_data in constituents.items():
-        symbols = const_data.get("symbols", [])
-        display_name = const_data.get("name", key.upper())
-
-        # Tính contribution cho mỗi CP (simplified: equal weight)
-        weight = 100.0 / len(symbols) if symbols else 0
-        contributions = []
-
-        for sym in symbols:
-            if sym not in stocks:
-                continue
-            latest = stocks[sym].get("latest", {})
-            ret = latest.get("change_pct", 0)
-            contrib = weight * ret / 100
-            contributions.append({
-                "symbol": sym,
-                "contribution_pct": round(contrib, 4),
-                "weight_pct": round(weight, 2),
-                "return_pct": ret,
-            })
-
-        contributions.sort(key=lambda x: x["contribution_pct"], reverse=True)
-        top_n = 10 if key in ("vnindex", "vn100") else 5
-
-        top_up = [c for c in contributions if c["contribution_pct"] > 0][:top_n]
-        top_down = [c for c in contributions if c["contribution_pct"] < 0]
-        top_down.sort(key=lambda x: x["contribution_pct"])
-        top_down = top_down[:top_n]
-
-        output["indices"][key] = {
-            "name": display_name,
-            "asof": all_stocks.get("asof", ""),
-            "top_n": top_n,
-            "current": {
-                "date": all_stocks.get("asof", ""),
-                "top_up": top_up,
-                "top_down": top_down,
-            },
-        }
-
-    write_js("index_drivers_20d.js", "UI_GLM_INDEX_DRIVERS_20D", output)
-
-
-# ============================================================================
-# 3. FOREIGN FLOW 20D
-# ============================================================================
-
-def generate_foreign_flow():
-    """Tạo index_foreign_flow_20d.js"""
-    foreign = load_json("foreign_flow.json")
-    constituents = load_json("constituents.json")
-
-    if not foreign or not constituents:
-        log.warning("Missing data for foreign flow, skipping")
-        return
-
-    flow_stocks = foreign.get("stocks", {})
-    output = {
-        "asof": foreign.get("asof", ""),
-        "generated_at": datetime.now().isoformat(),
-        "days": 20,
-        "indices": {},
-    }
-
-    for key, const_data in constituents.items():
-        symbols = const_data.get("symbols", [])
-        display_name = const_data.get("name", key.upper())
-
-        # Aggregate net flow cho index
-        total_net = 0
-        stock_flows = []
-        for sym in symbols:
-            if sym not in flow_stocks or not flow_stocks[sym]:
-                continue
-            latest = flow_stocks[sym][-1] if flow_stocks[sym] else {}
-            net = 0
-            for col_key, val in latest.items():
-                if "net" in col_key and isinstance(val, (int, float)):
-                    net += val
-            total_net += net
-            stock_flows.append({"symbol": sym, "net": round(net, 0)})
-
-        stock_flows.sort(key=lambda x: x["net"], reverse=True)
-
-        output["indices"][key] = {
-            "name": display_name,
-            "asof": foreign.get("asof", ""),
-            "days": 20,
-            "current": {
-                "date": foreign.get("asof", ""),
-                "fr_net_value_total": round(total_net, 0),
-            },
-            "top_net_buy": stock_flows[:10],
-            "top_net_sell": stock_flows[-10:][::-1] if len(stock_flows) > 10 else [],
-        }
-
-    write_js("index_foreign_flow_20d.js", "UI_GLM_INDEX_FOREIGN_FLOW_20D", output)
-
-
-# ============================================================================
-# 4. HEATMAPS
-# ============================================================================
-
-def generate_heatmaps():
-    """Tạo vnindex_heatmap_data.js và index_heatmap_data.js"""
-    heatmaps = load_json("heatmaps.json")
-    if not heatmaps:
-        log.warning("No heatmaps.json, skipping")
-        return
-
-    asof = heatmaps.get("asof", "")
-    indices = heatmaps.get("indices", {})
-
-    # VNINDEX heatmap (riêng)
-    vnindex_data = indices.get("vnindex", {})
-    write_js("vnindex_heatmap_data.js", "UI_GLM_VNINDEX_HEATMAP", {
-        "date": asof,
-        "gainers": vnindex_data.get("gainers", []),
-        "losers": vnindex_data.get("losers", []),
-    })
-
-    # All indices heatmap
-    all_heatmaps = {"asof": asof, "indices": {}}
-    for key, data in indices.items():
-        all_heatmaps["indices"][INDICES.get(key, (key, key.upper()))[1]] = data
-
-    write_js("index_heatmap_data.js", "UI_GLM_INDEX_HEATMAPS", all_heatmaps)
-
-
-# ============================================================================
-# 5. MARKET BREADTH SNAPSHOT
+# 2. MARKET BREADTH SNAPSHOT
 # ============================================================================
 
 def generate_breadth_snapshot():
@@ -231,75 +80,7 @@ def generate_breadth_snapshot():
 
 
 # ============================================================================
-# 6. BREADTH HISTORY
-# ============================================================================
-
-def generate_breadth_history():
-    """Tạo breadth_history.js (simplified - single day for now)."""
-    breadth = load_json("breadth_snapshot.json")
-    if not breadth:
-        log.warning("No breadth data, skipping")
-        return
-
-    # Simplified: chỉ có 1 ngày hiện tại
-    # Để có history đầy đủ, cần tích lũy data qua nhiều ngày
-    series_point = {
-        "d": breadth.get("asof", ""),
-        "adv": breadth.get("advancing", 0),
-        "dec": breadth.get("declining", 0),
-        "unch": breadth.get("unchanged", 0),
-        "total": breadth.get("total_stocks", 0),
-        "net_ad": breadth.get("net_ad", 0),
-        "ad_line": breadth.get("net_ad", 0),
-        "mcc": breadth.get("mcclellan", 0),
-    }
-
-    output = {
-        "asof": breadth.get("asof", ""),
-        "days": 1,
-        "series": [series_point],
-        "summary": {
-            "pct_ma20": None,
-            "percentile_ma20": None,
-            "vs_1w": None,
-            "vs_1m": None,
-        },
-    }
-
-    write_js("breadth_history.js", "UI_GLM_BREADTH_HISTORY", output)
-
-
-# ============================================================================
-# 7. COMPANY META (for heatmap tooltips)
-# ============================================================================
-
-def generate_company_meta():
-    """Tạo vnindex_company_meta.js"""
-    constituents = load_json("constituents.json")
-    all_stocks = load_json("all_stocks.json")
-
-    if not constituents:
-        log.warning("No constituents, skipping company meta")
-        return
-
-    vnindex_symbols = constituents.get("vnindex", {}).get("symbols", [])
-    stocks = all_stocks.get("stocks", {})
-
-    meta = {}
-    for sym in vnindex_symbols:
-        stock = stocks.get(sym, {})
-        latest = stock.get("latest", {})
-        meta[sym] = {
-            "name": sym,  # Tên đầy đủ cần từ API listing
-            "price": latest.get("close", 0),
-            "change_pct": latest.get("change_pct", 0),
-        }
-
-    write_js("vnindex_company_meta.js", "UI_GLM_VNINDEX_COMPANY_META", meta)
-
-
-# ============================================================================
-# 8. VNINDEX PRICE 20D
+# 3. VNINDEX PRICE 20D
 # ============================================================================
 
 def generate_vnindex_price_20d():
@@ -330,12 +111,7 @@ def main():
     log.info("=" * 60)
 
     generate_index_ohlcv()
-    generate_index_drivers()
-    generate_foreign_flow()
-    generate_heatmaps()
     generate_breadth_snapshot()
-    generate_breadth_history()
-    generate_company_meta()
     generate_vnindex_price_20d()
 
     log.info("=" * 60)
