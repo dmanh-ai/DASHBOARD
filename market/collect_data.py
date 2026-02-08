@@ -109,6 +109,20 @@ def collect_index_data():
         if not rows:
             continue
 
+        # Auto-detect price scale: nếu close cuối < 10 → data bị scale 1/1000
+        last_close_raw = None
+        for r in reversed(rows):
+            try:
+                v = float(r.get("close", "0"))
+                if v > 0:
+                    last_close_raw = v
+                    break
+            except (ValueError, TypeError):
+                pass
+        scale = PRICE_SCALE if (last_close_raw and last_close_raw < 10) else 1.0
+        if scale != 1.0:
+            log.info(f"  {csv_file}: auto-detected price scale ×{scale}")
+
         bars = []
         indicators_latest = {}
 
@@ -119,10 +133,10 @@ def collect_index_data():
 
             bar = {
                 "d": date_str,
-                "o": parse_float(row.get("open"), PRICE_SCALE),
-                "h": parse_float(row.get("high"), PRICE_SCALE),
-                "l": parse_float(row.get("low"), PRICE_SCALE),
-                "c": parse_float(row.get("close"), PRICE_SCALE),
+                "o": parse_float(row.get("open"), scale),
+                "h": parse_float(row.get("high"), scale),
+                "l": parse_float(row.get("low"), scale),
+                "c": parse_float(row.get("close"), scale),
                 "v": parse_int(row.get("volume")),
             }
 
@@ -134,15 +148,15 @@ def collect_index_data():
 
             # Lưu indicators từ row cuối cùng (latest)
             indicators_latest = {
-                "sma_20": parse_float(row.get("sma_20"), PRICE_SCALE),
-                "sma_50": parse_float(row.get("sma_50"), PRICE_SCALE),
-                "sma_200": parse_float(row.get("sma_200"), PRICE_SCALE),
+                "sma_20": parse_float(row.get("sma_20"), scale),
+                "sma_50": parse_float(row.get("sma_50"), scale),
+                "sma_200": parse_float(row.get("sma_200"), scale),
                 "rsi_14": parse_float(row.get("rsi_14")),  # RSI không scale
-                "macd": parse_float(row.get("macd"), PRICE_SCALE),
-                "macd_signal": parse_float(row.get("macd_signal"), PRICE_SCALE),
-                "macd_hist": parse_float(row.get("macd_hist"), PRICE_SCALE),
-                "bb_upper": parse_float(row.get("bb_upper"), PRICE_SCALE),
-                "bb_lower": parse_float(row.get("bb_lower"), PRICE_SCALE),
+                "macd": parse_float(row.get("macd"), scale),
+                "macd_signal": parse_float(row.get("macd_signal"), scale),
+                "macd_hist": parse_float(row.get("macd_hist"), scale),
+                "bb_upper": parse_float(row.get("bb_upper"), scale),
+                "bb_lower": parse_float(row.get("bb_lower"), scale),
                 "daily_return": parse_float(row.get("daily_return")),  # % không scale
                 "volatility_20d": parse_float(row.get("volatility_20d")),
             }
