@@ -47,8 +47,8 @@ PAGES_WORKTREE_DIR="${UI_GLM_PAGES_WORKTREE_DIR:-$PROJECT_ROOT/.worktrees/pages_
 UI_GLM_PUBLISH_PAGES="${UI_GLM_PUBLISH_PAGES:-1}"
 
 # Git config
-GIT_EMAIL="automation@dashboard.local"
-GIT_NAME="Dashboard Automation"
+GIT_EMAIL="ducmanh.isg@gmail.com"
+GIT_NAME="Dmanh"
 
 # Safety switches (default keeps current behavior)
 # - UI_GLM_NO_GIT=1: skip commit + push (local-only update)

@@ -1,7 +1,7 @@
 # 🚀 HƯỚNG DẪN DEPLOY DASHBOARD LÊN GITHUB PAGES
 
 ## ✅ Đã hoàn thành:
-- [x] Tạo GitHub repository: https://github.com/Thanhtran-165/marketoverview.github.io
+- [x] Tạo GitHub repository: https://github.com/Dmanh-ai/DASHBOARD
 - [x] Tạo SSH key cho authentication
 - [x] Chuẩn bị tất cả code để deploy
 
@@ -11,7 +11,7 @@
 
 **Public Key của bạn:**
 ```
-ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAILhHIggA24oxeX+b7bDxCb16KBI2ll1uZv0jyQMYvTUd thanhtran165@github.com
+[PASTE_YOUR_SSH_PUBLIC_KEY_HERE]
 ```
 
 **Các bước:**
@@ -41,7 +41,7 @@ ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAILhHIggA24oxeX+b7bDxCb16KBI2ll1uZv0jyQMYvTUd
 Sau khi push thành công, làm thêm bước này:
 
 1. **Vào Settings Pages:**
-   - Link: https://github.com/Thanhtran-165/marketoverview.github.io/settings/pages
+   - Link: https://github.com/Dmanh-ai/DASHBOARD/settings/pages
 
 2. **Cấu hình:**
    - **Source:** Deploy from a branch
@@ -52,13 +52,13 @@ Sau khi push thành công, làm thêm bước này:
 3. **Chờ deploy:** 1-3 phút
 
 4. **Truy cập dashboard:**
-   - 🌐 https://thanhtan-165.github.io/
+   - 🌐 https://dmanh-ai.github.io/DASHBOARD/
 
 ---
 
 ## 🎯 Dashboard của bạn sẽ có:
 
-✅ **URL:** https://thanhtan-165.github.io/  
+✅ **URL:** https://dmanh-ai.github.io/DASHBOARD/  
 ✅ **16 data objects:** 1 Overview + 15 Indices  
 ✅ **218 sections:** Phân tích đầy đủ  
 ✅ **Responsive:** Hoạt động trên mọi thiết bị  
@@ -98,7 +98,7 @@ git push origin main
 → Kiểm tra internet connection.
 
 ### GitHub Pages không hiển thị
-1. Kiểm tra: https://github.com/Thanhtran-165/marketoverview.github.io/settings/pages
+1. Kiểm tra: https://github.com/Dmanh-ai/DASHBOARD/settings/pages
 2. Đảm bảo branch là `main`, folder là `/ (root)`
 3. Chờ thêm 2-3 phút
 4. Xem tab **Actions** để biết lỗi gì
@@ -124,7 +124,7 @@ Nếu gặp lỗi:
 
 ## 🔗 Links quan trọng:
 
-- **Repository:** https://github.com/Thanhtran-165/marketoverview.github.io
-- **Settings Pages:** https://github.com/Thanhtran-165/marketoverview.github.io/settings/pages
+- **Repository:** https://github.com/Dmanh-ai/DASHBOARD
+- **Settings Pages:** https://github.com/Dmanh-ai/DASHBOARD/settings/pages
 - **SSH Keys:** https://github.com/settings/keys
-- **Dashboard (sau khi deploy):** https://thanhtan-165.github.io/
+- **Dashboard (sau khi deploy):** https://dmanh-ai.github.io/DASHBOARD/
