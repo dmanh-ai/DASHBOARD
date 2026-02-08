@@ -6,8 +6,9 @@ Cấu hình chỉ số và mapping cho pipeline tự động.
 # INDEX DEFINITIONS
 # ============================================================================
 
-# Map: key trong FULL_DATA → (code vnstock, tên hiển thị)
-# Lưu ý: VNMIDCAP → code vnstock là "VNMID"
+# Map: key trong FULL_DATA → (code CSV file, tên hiển thị)
+# Hiện tại có data từ repo dmanh-ai/vnstock: VNINDEX, VN30
+# Thêm CSV files mới vào repo vnstock để mở rộng
 INDICES = {
     "vnindex":     ("VNINDEX",     "VNINDEX"),
     "vn30":        ("VN30",        "VN30"),
@@ -25,6 +26,23 @@ INDICES = {
     "vnfinselect": ("VNFINSELECT", "VNFINSELECT"),
     "vndiamond":   ("VNDIAMOND",   "VNDIAMOND"),
 }
+
+# CSV files có sẵn trên repo dmanh-ai/vnstock (data/indices/)
+# Dashboard key → CSV filename (None = chưa có, sẽ skip)
+AVAILABLE_CSV = {
+    "vnindex": "VNINDEX.csv",
+    "vn30":    "VN30.csv",
+    # Thêm các chỉ số mới khi có CSV:
+    # "vn100":    "VN100.csv",
+    # "vnfin":    "VNFIN.csv",
+    # ... etc
+}
+
+# Giá trong CSV bị scale 1/1000
+PRICE_SCALE = 1000.0
+
+# GitHub raw URL cho data
+GITHUB_DATA_URL = "https://raw.githubusercontent.com/dmanh-ai/vnstock/main/data/indices"
 
 # Thứ tự phần trong báo cáo Word
 PART_ORDER = [
