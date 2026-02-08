@@ -3881,12 +3881,8 @@
 
 	        const UI_GLM_PUBLIC_BUILD = true;
 
-	        const UI_GLM_LITE_ALLOWED_INDICES = new Set(['overview', 'vnindex', 'vn30', 'vn100', 'vnmidcap']);
-	        const UI_GLM_LITE_HIDDEN_SECTIONS = new Set([
-	            'MÔ HÌNH GIÁ - MÔ HÌNH NẾN',
-	            'MARKET BREADTH & TÂM LÝ THỊ TRƯỜNG',
-            'LỊCH SỬ & XU HƯỚNG BREADTH',
-        ].map(s => s.trim().toUpperCase()));
+	        const UI_GLM_LITE_ALLOWED_INDICES = new Set(['overview', 'vnindex', 'vn30', 'vn100', 'vnmidcap', 'vnsml', 'vnreal', 'vnit', 'vnheal', 'vnfin', 'vnene', 'vncons', 'vnmat', 'vncond', 'vnfinselect', 'vndiamond']);
+	        const UI_GLM_LITE_HIDDEN_SECTIONS = new Set([].map(s => s.trim().toUpperCase()));
 
 	        function getPlanPreference() {
 	            return UI_GLM_PLAN.LITE;

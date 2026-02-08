@@ -72,14 +72,15 @@ function main() {
   const hiddenFromEnv = parseCsvEnv("UI_GLM_PUBLIC_HIDDEN_SECTIONS");
 
   const allowedIndices = new Set(
-    allowedFromEnv || ["overview", "vnindex", "vn30", "vn100", "vnmidcap"]
+    allowedFromEnv || [
+      "overview", "vnindex", "vn30", "vn100", "vnmidcap",
+      "vnsml", "vnreal", "vnit", "vnheal", "vnfin",
+      "vnene", "vncons", "vnmat", "vncond",
+      "vnfinselect", "vndiamond"
+    ]
   );
   const hiddenSections = new Set(
-    (hiddenFromEnv || [
-      "MÔ HÌNH GIÁ - MÔ HÌNH NẾN",
-      "MARKET BREADTH & TÂM LÝ THỊ TRƯỜNG",
-      "LỊCH SỬ & XU HƯỚNG BREADTH",
-    ]).map(upperTrim)
+    (hiddenFromEnv || []).map(upperTrim)
   );
 
   const fullData = loadFullData(fullDataPath);
