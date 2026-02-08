@@ -7,8 +7,7 @@ Cấu hình chỉ số và mapping cho pipeline tự động.
 # ============================================================================
 
 # Map: key trong FULL_DATA → (code CSV file, tên hiển thị)
-# Hiện tại có data từ repo dmanh-ai/vnstock: VNINDEX, VN30
-# Thêm CSV files mới vào repo vnstock để mở rộng
+# 15 chỉ số có data từ repo dmanh-ai/vnstock
 INDICES = {
     "vnindex":     ("VNINDEX",     "VNINDEX"),
     "vn30":        ("VN30",        "VN30"),
@@ -28,14 +27,23 @@ INDICES = {
 }
 
 # CSV files có sẵn trên repo dmanh-ai/vnstock (data/indices/)
-# Dashboard key → CSV filename (None = chưa có, sẽ skip)
+# Dashboard key → CSV filename
 AVAILABLE_CSV = {
-    "vnindex": "VNINDEX.csv",
-    "vn30":    "VN30.csv",
-    # Thêm các chỉ số mới khi có CSV:
-    # "vn100":    "VN100.csv",
-    # "vnfin":    "VNFIN.csv",
-    # ... etc
+    "vnindex":     "VNINDEX.csv",
+    "vn30":        "VN30.csv",
+    "vn100":       "VN100.csv",
+    "vnmidcap":    "VNMID.csv",
+    "vnsml":       "VNSML.csv",
+    "vnreal":      "VNREAL.csv",
+    "vnit":        "VNIT.csv",
+    "vnheal":      "VNHEAL.csv",
+    "vnfin":       "VNFIN.csv",
+    "vnene":       "VNENE.csv",
+    "vncons":      "VNCONS.csv",
+    "vnmat":       "VNMAT.csv",
+    "vncond":      "VNCOND.csv",
+    "vnfinselect": "VNFINSELECT.csv",
+    "vndiamond":   "VNDIAMOND.csv",
 }
 
 # Giá trong CSV bị scale 1/1000
