@@ -5,7 +5,7 @@ Báo cáo thị trường chứng khoán Việt Nam với giao diện chuyên ng
 ## 🌐 Mở Dashboard
 
 - **Local**: Mở `index.html` (sẽ tự động redirect đến `DASHBOARD.html`)
-- **GitHub Pages**: https://thanhtran-165.github.io/
+- **GitHub Pages**: https://dmanh-ai.github.io/
 
 ## 📊 Dashboard Features
 
@@ -31,7 +31,7 @@ Báo cáo thị trường chứng khoán Việt Nam với giao diện chuyên ng
 ## 📁 File Structure
 
 ```
-marketoverview.github.io/
+DASHBOARD/
 ├── index.html                  ← Entry point (redirect to DASHBOARD.html)
 ├── DASHBOARD.html              ← Main dashboard (Financial Light Theme)
 ├── test_all_16.html            ← Test verification page
@@ -142,4 +142,4 @@ python3 tools/benchmark.py reports/txt/baocao_full.txt
 
 **Dashboard đã online với Financial Light Theme chuyên nghiệp!**
 
-### URL: https://thanhtran-165.github.io/
+### URL: https://dmanh-ai.github.io/

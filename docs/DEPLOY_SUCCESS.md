@@ -2,7 +2,7 @@
 
 ## ✅ Dashboard đã Online!
 
-**URL:** https://thanhtan-165.github.io
+**URL:** https://dmanh-ai.github.io/DASHBOARD
 
 ---
 
@@ -40,19 +40,19 @@
 
 ### 1. Website Chính:
 ```
-https://thanhtan-165.github.io
+https://dmanh-ai.github.io/DASHBOARD
 ```
 
 ### 2. Direct Link (Elegant Christmas):
 ```
-https://thanhtan-165.github.io/ELEGANT_CHRISTMAS.html
+https://dmanh-ai.github.io/DASHBOARD/ELEGANT_CHRISTMAS.html
 ```
 
 ### 3. Các Versions Khác:
 ```
-https://thanhtan-165.github.io/COMPLETE.html           (Classic - alias/redirect)
-https://thanhtan-165.github.io/COMPLETE_PRO.html       (PRO - alias/redirect)
-https://thanhtan-165.github.io/COMPLETE_ANIMATED.html  (Animated - alias/redirect)
+https://dmanh-ai.github.io/DASHBOARD/COMPLETE.html           (Classic - alias/redirect)
+https://dmanh-ai.github.io/DASHBOARD/COMPLETE_PRO.html       (PRO - alias/redirect)
+https://dmanh-ai.github.io/DASHBOARD/COMPLETE_ANIMATED.html  (Animated - alias/redirect)
 ```
 
 ---
@@ -62,7 +62,7 @@ https://thanhtan-165.github.io/COMPLETE_ANIMATED.html  (Animated - alias/redirec
 GitHub Pages sẽ tự động deploy trong vòng **1-3 phút**.
 
 ### Kiểm Tra Deployment Status:
-1. Vào: https://github.com/Thanhtran-165/marketoverview.github.io/actions
+1. Vào: https://github.com/Dmanh-ai/DASHBOARD/actions
 2. Xem workflow "pages-build-deployment"
 3. Chờ đến khi có ✅ Green checkmark
 
@@ -152,7 +152,7 @@ window.location.href = 'TEN_VERSION_BAN_THICH.html';
 ## 🎁 Files Trên GitHub:
 
 ```
-marketoverview.github.io/
+DASHBOARD/
 ├── index.html                  ← Redirect (ELEGANT_CHRISTMAS)
 ├── ELEGANT_CHRISTMAS.html      ← 🎄 MAIN VERSION
 ├── full_data.js                ← Data (16 objects)
@@ -166,7 +166,7 @@ marketoverview.github.io/
 🎉 **Deploy thành công!**
 
 Dashboard Giáng sinh của bạn đã online với:
-- URL: https://thanhtan-165.github.io
+- URL: https://dmanh-ai.github.io/DASHBOARD
 - Theme: Elegant Christmas
 - Performance: Tốt
 - Responsive: Hoàn toàn

@@ -1,0 +1,76 @@
+"""
+Cấu hình chỉ số và mapping cho pipeline tự động.
+"""
+
+# ============================================================================
+# INDEX DEFINITIONS
+# ============================================================================
+
+# Map: key trong FULL_DATA → (code vnstock, tên hiển thị)
+# Lưu ý: VNMIDCAP → code vnstock là "VNMID"
+INDICES = {
+    "vnindex":     ("VNINDEX",     "VNINDEX"),
+    "vn30":        ("VN30",        "VN30"),
+    "vn100":       ("VN100",       "VN100"),
+    "vnmidcap":    ("VNMID",       "VNMIDCAP"),
+    "vnsml":       ("VNSML",       "VNSML"),
+    "vnreal":      ("VNREAL",      "VNREAL"),
+    "vnit":        ("VNIT",        "VNIT"),
+    "vnheal":      ("VNHEAL",      "VNHEAL"),
+    "vnfin":       ("VNFIN",       "VNFIN"),
+    "vnene":       ("VNENE",       "VNENE"),
+    "vncons":      ("VNCONS",      "VNCONS"),
+    "vnmat":       ("VNMAT",       "VNMAT"),
+    "vncond":      ("VNCOND",      "VNCOND"),
+    "vnfinselect": ("VNFINSELECT", "VNFINSELECT"),
+    "vndiamond":   ("VNDIAMOND",   "VNDIAMOND"),
+}
+
+# Thứ tự phần trong báo cáo Word
+PART_ORDER = [
+    "overview",
+    "vnindex", "vn30", "vn100", "vnmidcap",
+    "vnreal", "vnit", "vnheal", "vnfin",
+    "vnene", "vncons", "vnmat", "vncond",
+    "vnsml", "vnfinselect", "vndiamond",
+]
+
+# 14 section titles cho mỗi chỉ số (phải khớp regex trong smart_parser.py)
+INDEX_SECTIONS = [
+    "XU HƯỚNG GIÁ",
+    "XU HƯỚNG KHỐI LƯỢNG",
+    "KẾT HỢP XU HƯỚNG GIÁ VÀ KHỐI LƯỢNG",
+    "CUNG-CẦU",
+    "MỨC GIÁ QUAN TRỌNG",
+    "BIẾN ĐỘNG GIÁ",
+    "MÔ HÌNH GIÁ - MÔ HÌNH NẾN",
+    "MARKET BREADTH & TÂM LÝ THỊ TRƯỜNG",
+    "LỊCH SỬ & XU HƯỚNG BREADTH",
+    "RỦI RO",
+    "KHUYẾN NGHỊ VỊ THẾ",
+    "GIÁ MỤC TIÊU",
+    "KỊCH BẢN WHAT-IF",
+    "THÔNG TIN CHUNG",
+]
+
+# 7 section titles cho overview
+OVERVIEW_SECTIONS = [
+    "TỔNG QUAN THỊ TRƯỜNG",
+    "PHÂN TÍCH MỐI QUAN HỆ",
+    "DÒNG TIỀN & XU HƯỚNG",
+    "HỘI TỤ KỸ THUẬT",
+    "XẾP HẠNG",
+    "PHÂN TÍCH NGÀNH",
+    "NHẬN ĐỊNH",
+]
+
+# Số ngày lịch sử cần lấy
+HISTORY_DAYS = 250
+# Số ngày cho foreign flow
+FOREIGN_FLOW_DAYS = 20
+# Số CP top gainers/losers cho heatmap
+HEATMAP_TOP_K = 30
+
+# Claude model
+CLAUDE_MODEL = "claude-sonnet-4-5-20250929"
+CLAUDE_MAX_TOKENS = 8192

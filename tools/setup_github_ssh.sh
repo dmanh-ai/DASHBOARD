@@ -26,7 +26,7 @@ if [ -f ~/.ssh/id_ed25519.pub ]; then
 else
     echo "❌ Chưa có SSH key. Đang tạo..."
     echo ""
-    ssh-keygen -t ed25519 -C "thanhtran165@github.com" -f ~/.ssh/id_ed25519 -N ""
+    ssh-keygen -t ed25519 -C "ducmanh.isg@gmail.com" -f ~/.ssh/id_ed25519 -N ""
 
     echo ""
     echo "✅ Đã tạo SSH key!"
@@ -48,13 +48,13 @@ else
     echo "   ssh -T git@github.com"
     echo ""
     echo "📝 Nếu test thành công, sẽ hiện:"
-    echo "   'Hi Thanhtran-165! You've successfully authenticated...'"
+    echo "   'Hi Dmanh-ai! You've successfully authenticated...'"
     echo ""
 fi
 
 echo ""
 echo "🔄 Sau khi SSH key đã hoạt động, chạy lệnh này để đổi sang SSH:"
-echo "   git remote set-url origin git@github.com:Thanhtran-165/marketoverview.github.io.git"
+echo "   git remote set-url origin git@github.com:Dmanh-ai/DASHBOARD.git"
 echo ""
 echo "   Sau đó push:"
 echo "   git push -u origin main"
