@@ -44,11 +44,7 @@ def load_all_data():
     """Load tất cả data đã thu thập."""
     return {
         "index_ohlcv": load_json("index_ohlcv.json"),
-        "constituents": load_json("constituents.json"),
-        "all_stocks": load_json("all_stocks.json"),
-        "foreign_flow": load_json("foreign_flow.json"),
         "breadth": load_json("breadth_snapshot.json"),
-        "heatmaps": load_json("heatmaps.json"),
     }
 
 
@@ -114,11 +110,22 @@ def prepare_overview_summary(data):
 # CLAUDE API PROMPTS
 # ============================================================================
 
-SYSTEM_PROMPT = """Bạn là chuyên gia phân tích kỹ thuật chứng khoán Việt Nam.
-Viết phân tích bằng tiếng Việt, chuyên nghiệp, súc tích.
-Mỗi section 3-8 câu. Dùng bullet points khi liệt kê.
-Không dùng markdown formatting (**, ##). Viết plain text thuần.
-Chỉ viết NỘI DUNG phân tích, KHÔNG viết lại tiêu đề section."""
+SYSTEM_PROMPT = """Bạn là chuyên gia phân tích kỹ thuật chứng khoán Việt Nam hàng đầu.
+Viết phân tích bằng tiếng Việt, chuyên nghiệp, chi tiết với dẫn chứng số liệu cụ thể.
+
+QUY TẮC FORMAT BẮT BUỘC cho mỗi section phân tích chỉ số:
+- Bắt đầu bằng "Kết luận ngắn:" (1 câu tóm tắt rõ ràng)
+- Tiếp theo "Dẫn chứng & Ý nghĩa:" (đánh số 1, 2, 3... mỗi điểm có tiêu đề và giải thích chi tiết với số liệu cụ thể)
+- Tiếp theo "Hành động gợi ý:" (khuyến nghị cụ thể với mức giá)
+- Kết thúc bằng "Điều kiện khiến kết luận sai:" (kịch bản invalidation)
+
+QUY TẮC VIẾT:
+- Dùng số liệu CỤ THỂ từ data (giá, MA, RSI, volume...)
+- KHÔNG dùng markdown formatting (**, ##, -, •). Viết plain text.
+- KHÔNG viết lại tiêu đề section.
+- Dùng dấu phẩy phân cách hàng nghìn: 1,856 (không phải 1.856)
+- Dùng T-0 (hôm nay), T-1, T-2... cho các phiên trước
+- Gọi MA là "đường xu hướng X phiên" khi giải thích"""
 
 
 def build_overview_prompt(summary):
@@ -127,40 +134,35 @@ def build_overview_prompt(summary):
 
 DỮ LIỆU:
 - Breadth: Tăng {summary['breadth'].get('advancing', 0)}, Giảm {summary['breadth'].get('declining', 0)}, Đứng {summary['breadth'].get('unchanged', 0)}
-- Volume ratio (tăng/giảm): {summary['breadth'].get('volume_ratio', 0)}
-- TRIN: {summary['breadth'].get('trin', 'N/A')}
 
 CÁC CHỈ SỐ:
 {json.dumps(summary['indices_summary'], ensure_ascii=False, indent=2)}
 
-Viết ĐÚNG 7 phần theo thứ tự, mỗi phần bắt đầu bằng số thứ tự:
+Viết ĐÚNG 7 phần theo thứ tự, mỗi phần bắt đầu bằng số thứ tự.
+Mỗi phần phải có cấu trúc:
+- Kết luận ngắn: (1 câu)
+- Dẫn chứng & Ý nghĩa: (đánh số 1, 2, 3 với số liệu cụ thể từ data)
+- Hành động gợi ý: (khuyến nghị cụ thể)
+- Điều kiện khiến kết luận sai: (kịch bản invalidation)
 
 1. TỔNG QUAN THỊ TRƯỜNG
-[Nhận định chung về phiên giao dịch, biến động chính]
 
 2. PHÂN TÍCH MỐI QUAN HỆ
-[Mối tương quan giữa các chỉ số, sector rotation]
 
 3. DÒNG TIỀN & XU HƯỚNG
-[Phân tích dòng tiền, volume, xu hướng ngắn hạn]
 
 4. HỘI TỤ KỸ THUẬT
-[Tín hiệu kỹ thuật đáng chú ý, divergence]
 
 5. XẾP HẠNG
-[Xếp hạng chỉ số theo momentum, strength]
 
 6. PHÂN TÍCH NGÀNH
-[Nhận định các ngành nổi bật, sector dẫn dắt]
 
-7. NHẬN ĐỊNH
-[Kết luận và nhận định cho phiên tiếp theo]"""
+7. NHẬN ĐỊNH"""
 
 
 def build_index_prompt(summary):
     """Prompt cho phân tích 1 chỉ số."""
     ind = summary["indicators"]
-    # Lấy indicator values, ưu tiên tên từ CSV, fallback tên compute
     ma5 = ind.get("ma5")
     ma10 = ind.get("ma10")
     ma20 = ind.get("sma_20") or ind.get("ma20")
@@ -194,52 +196,57 @@ DỮ LIỆU:
 - Volatility 20D={volatility}, Daily Return={daily_ret}%
 - Vị trí: {'Trên' if above_20 else 'Dưới'} MA20, {'Trên' if above_50 else 'Dưới'} MA50
 
-GIÁ 20 PHIÊN:
+GIÁ 20 PHIÊN GẦN NHẤT:
 {json.dumps(summary['recent_20_bars'], ensure_ascii=False)}
 
-Viết ĐÚNG 14 phần, mỗi phần bắt đầu bằng tiêu đề IN HOA:
+Viết ĐÚNG 14 phần, mỗi phần bắt đầu bằng tiêu đề IN HOA trên dòng riêng.
+MỖI PHẦN BẮT BUỘC theo cấu trúc sau:
+
+Kết luận ngắn: [1 câu tóm tắt nhận định chính]
+
+Dẫn chứng & Ý nghĩa:
+1. [Tiêu đề dẫn chứng]: [Giải thích chi tiết với số liệu cụ thể từ data, ví dụ giá, MA, RSI...]
+2. [Tiêu đề dẫn chứng]: [Giải thích chi tiết]
+3. [Tiêu đề dẫn chứng]: [Giải thích chi tiết]
+
+Hành động gợi ý: [Khuyến nghị cụ thể với mức giá rõ ràng]
+
+Điều kiện khiến kết luận sai: [Kịch bản invalidation cụ thể với mức giá]
+
+RIÊNG phần XU HƯỚNG GIÁ, mục "Dẫn chứng & Ý nghĩa" phải chia thành:
+- Ngắn hạn (1-5 phiên): [phân tích MA5, MA10, momentum ngắn]
+- Trung hạn (10-20 phiên): [phân tích MA20, momentum trung]
+- Dài hạn (>50 phiên): [phân tích MA50, MA200]
+
+14 PHẦN CẦN VIẾT:
 
 XU HƯỚNG GIÁ
-[Phân tích xu hướng giá dựa trên MA, EMA, vị trí giá]
 
 XU HƯỚNG KHỐI LƯỢNG
-[Phân tích khối lượng, OBV, so với MA volume]
 
 KẾT HỢP XU HƯỚNG GIÁ VÀ KHỐI LƯỢNG
-[Nhận định kết hợp price-volume, xác nhận xu hướng]
 
 CUNG-CẦU
-[Phân tích cung cầu, áp lực mua bán, foreign flow]
 
 MỨC GIÁ QUAN TRỌNG
-[Xác định hỗ trợ/kháng cự từ MA, Bollinger, mức giá tâm lý]
 
 BIẾN ĐỘNG GIÁ
-[Đánh giá biến động qua Bollinger Bands, ATR, range]
 
 MÔ HÌNH GIÁ - MÔ HÌNH NẾN
-[Nhận diện mô hình nến, pattern nếu có]
 
 MARKET BREADTH & TÂM LÝ THỊ TRƯỜNG
-[Phân tích breadth, tâm lý, số CP tăng/giảm trong chỉ số]
 
 LỊCH SỬ & XU HƯỚNG BREADTH
-[So sánh breadth hiện tại với lịch sử, xu hướng]
 
 RỦI RO
-[Đánh giá rủi ro từ RSI, ADX, vị trí giá, volatility]
 
 KHUYẾN NGHỊ VỊ THẾ
-[Khuyến nghị Long/Short/Hold, tỷ trọng]
 
 GIÁ MỤC TIÊU
-[Xác định target price dựa trên kháng cự/hỗ trợ]
 
 KỊCH BẢN WHAT-IF
-[2-3 kịch bản: tích cực, tiêu cực, trung tính]
 
-THÔNG TIN CHUNG
-[Tổng quan ngắn gọn về chỉ số, thành phần, đặc điểm]"""
+THÔNG TIN CHUNG"""
 
 
 # ============================================================================
