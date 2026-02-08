@@ -19,7 +19,6 @@ from config import (
     INDICES, PART_ORDER, INDEX_SECTIONS, OVERVIEW_SECTIONS,
     CLAUDE_MODEL, CLAUDE_MAX_TOKENS,
 )
-from indicators import compute_all_indicators
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 CACHE_DIR = PROJECT_ROOT / "market_cache"
@@ -57,58 +56,32 @@ def load_all_data():
 # ============================================================================
 
 def prepare_index_summary(key, data):
-    """Chuẩn bị tóm tắt data cho 1 chỉ số để gửi Claude."""
-    index_ohlcv = data["index_ohlcv"].get("indices", {}).get(key, {})
-    bars = index_ohlcv.get("bars", [])
+    """Chuẩn bị tóm tắt data cho 1 chỉ số để gửi Claude.
+    Dùng indicators đã tính sẵn từ CSV (collect_data.py lưu trong index_ohlcv.json).
+    """
+    index_data = data["index_ohlcv"].get("indices", {}).get(key, {})
+    bars = index_data.get("bars", [])
 
     if not bars:
         return None
 
-    # Tính indicators
-    indicators = compute_all_indicators(bars)
-
-    # Lấy 20 bars gần nhất cho context
+    # Indicators đã được enrich sẵn bởi collect_data.py
+    indicators = index_data.get("indicators", {})
+    latest_info = index_data.get("latest", {})
     recent_bars = bars[-20:]
-
-    # Heatmap
-    heatmaps = data["heatmaps"].get("indices", {}).get(key, {})
-
-    # Constituents
-    const = data["constituents"].get(key, {})
-
-    # Foreign flow summary
-    foreign = {}
-    const_symbols = const.get("symbols", [])
-    flow_data = data["foreign_flow"].get("stocks", {})
-    total_net = 0
-    for sym in const_symbols[:50]:  # Top 50
-        if sym in flow_data and flow_data[sym]:
-            latest_flow = flow_data[sym][-1] if flow_data[sym] else {}
-            for col_key, val in latest_flow.items():
-                if "net" in col_key and isinstance(val, (int, float)):
-                    total_net += val
-    foreign["net_total_approx"] = round(total_net, 0)
 
     return {
         "index_name": INDICES[key][1],
         "latest": {
-            "date": indicators["latest_date"],
-            "close": indicators["latest_close"],
-            "change": indicators["change"],
-            "change_pct": indicators["change_pct"],
+            "date": latest_info.get("date", bars[-1]["d"]),
+            "close": latest_info.get("close", bars[-1]["c"]),
+            "change": latest_info.get("change", 0),
+            "change_pct": latest_info.get("change_pct", 0),
         },
         "indicators": indicators,
         "recent_20_bars": [
             {"d": b["d"], "c": b["c"], "v": b["v"]} for b in recent_bars
         ],
-        "heatmap": {
-            "top_gainers": heatmaps.get("gainers", [])[:5],
-            "top_losers": heatmaps.get("losers", [])[:5],
-            "count_pos": heatmaps.get("count_pos", 0),
-            "count_neg": heatmaps.get("count_neg", 0),
-        },
-        "foreign_net": foreign,
-        "constituents_count": const.get("count", 0),
     }
 
 
@@ -118,12 +91,13 @@ def prepare_overview_summary(data):
     for key in PART_ORDER[1:]:  # Skip "overview"
         s = prepare_index_summary(key, data)
         if s:
+            ind = s["indicators"]
             summaries[key] = {
                 "name": s["index_name"],
                 "close": s["latest"]["close"],
                 "change_pct": s["latest"]["change_pct"],
-                "rsi14": s["indicators"]["rsi14"],
-                "above_ma20": s["indicators"]["above_ma20"],
+                "rsi14": ind.get("rsi_14") or ind.get("rsi14"),
+                "above_ma20": ind.get("above_ma20"),
             }
 
     breadth = data["breadth"]
@@ -185,27 +159,42 @@ Viết ĐÚNG 7 phần theo thứ tự, mỗi phần bắt đầu bằng số th
 def build_index_prompt(summary):
     """Prompt cho phân tích 1 chỉ số."""
     ind = summary["indicators"]
+    # Lấy indicator values, ưu tiên tên từ CSV, fallback tên compute
+    ma5 = ind.get("ma5")
+    ma10 = ind.get("ma10")
+    ma20 = ind.get("sma_20") or ind.get("ma20")
+    ma50 = ind.get("sma_50") or ind.get("ma50")
+    ma200 = ind.get("sma_200") or ind.get("ma200")
+    rsi = ind.get("rsi_14") or ind.get("rsi14")
+    macd_l = ind.get("macd") or ind.get("macd_line")
+    macd_s = ind.get("macd_signal")
+    macd_h = ind.get("macd_hist") or ind.get("macd_histogram")
+    bb_u = ind.get("bb_upper")
+    bb_m = ind.get("bb_middle")
+    bb_l = ind.get("bb_lower")
+    adx_val = ind.get("adx14")
+    obv_val = ind.get("obv")
+    vol_ma = ind.get("volume_ma20")
+    above_20 = ind.get("above_ma20")
+    above_50 = ind.get("above_ma50")
+    volatility = ind.get("volatility_20d")
+    daily_ret = ind.get("daily_return")
+
     return f"""Phân tích kỹ thuật chỉ số {summary['index_name']} ngày {summary['latest']['date']}.
 
 DỮ LIỆU:
 - Giá đóng cửa: {summary['latest']['close']} ({summary['latest']['change_pct']:+.2f}%)
-- MA5={ind['ma5']}, MA10={ind['ma10']}, MA20={ind['ma20']}, MA50={ind['ma50']}, MA200={ind['ma200']}
-- RSI(14)={ind['rsi14']}
-- MACD: Line={ind['macd_line']}, Signal={ind['macd_signal']}, Hist={ind['macd_histogram']}
-- Bollinger: Upper={ind['bb_upper']}, Middle={ind['bb_middle']}, Lower={ind['bb_lower']}
-- ADX(14)={ind['adx14']}
-- OBV={ind['obv']}, Volume MA20={ind['volume_ma20']}
-- Vị trí: {'Trên' if ind['above_ma20'] else 'Dưới'} MA20, {'Trên' if ind['above_ma50'] else 'Dưới'} MA50
+- MA5={ma5}, MA10={ma10}, MA20={ma20}, MA50={ma50}, MA200={ma200}
+- RSI(14)={rsi}
+- MACD: Line={macd_l}, Signal={macd_s}, Hist={macd_h}
+- Bollinger: Upper={bb_u}, Middle={bb_m}, Lower={bb_l}
+- ADX(14)={adx_val}
+- OBV={obv_val}, Volume MA20={vol_ma}
+- Volatility 20D={volatility}, Daily Return={daily_ret}%
+- Vị trí: {'Trên' if above_20 else 'Dưới'} MA20, {'Trên' if above_50 else 'Dưới'} MA50
 
 GIÁ 20 PHIÊN:
 {json.dumps(summary['recent_20_bars'], ensure_ascii=False)}
-
-HEATMAP:
-- Top tăng: {json.dumps(summary['heatmap']['top_gainers'], ensure_ascii=False)}
-- Top giảm: {json.dumps(summary['heatmap']['top_losers'], ensure_ascii=False)}
-- Số CP tăng/giảm: {summary['heatmap']['count_pos']}/{summary['heatmap']['count_neg']}
-- Foreign net (approx): {summary['foreign_net']}
-- Số CP thành phần: {summary['constituents_count']}
 
 Viết ĐÚNG 14 phần, mỗi phần bắt đầu bằng tiêu đề IN HOA:
 
