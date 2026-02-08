@@ -278,14 +278,18 @@ def _build_union_header_pattern() -> re.Pattern:
     # Build union pattern với named groups
     # FIX: Đảo thứ tự - industry_code PHẢI có dấu - hoặc :
     # bare_code KHÔNG được có dấu - hoặc :
+    # FIX: Added \s*$ anchors to chiso_code, phan_tich_code, bare_code
+    # to prevent false positives from Claude-generated numbered lists
+    # like "1. Chỉ số VNREAL giảm 5%" matching as index headers.
+    # Real headers are on their own lines: "1. Chỉ số VNREAL\n"
     pattern = rf"""
         ^
         (?:
           PHẦN\s+[IVXLC]+\s*:\s*[^\n]*?\b(?P<part_code>{CODE_ALT})\b
-          |\s*\d+\.\s*Chỉ\s*số\s+(?P<chiso_code>{CODE_ALT})\b
-          |\s*PHÂN\s*TÍCH\s*CHỈ\s*SỐ\s+(?P<phan_tich_code>{CODE_ALT})\b
+          |\s*\d+\.\s*Chỉ\s*số\s+(?P<chiso_code>{CODE_ALT})\b\s*$
+          |\s*PHÂN\s*TÍCH\s*CHỈ\s*SỐ\s+(?P<phan_tich_code>{CODE_ALT})\b\s*$
           |\s*\d+\.\s*(?P<industry_code>{CODE_ALT})\b\s+(?:-|—|:)
-          |\s*\d+\.\s*(?P<bare_code>{CODE_ALT})\b\s*(?![-|—|:])
+          |\s*\d+\.\s*(?P<bare_code>{CODE_ALT})\b\s*$
         )
     """
 
@@ -347,11 +351,17 @@ def _find_all_index_boundaries_1pass(content: str) -> dict[str, tuple[int, int]]
     matches.sort(key=lambda m: m['start'])
 
     # For each code, select the match with HIGHEST priority
-    # (i.e., prefer "PHẦN II: VNINDEX" over "2. VNINDEX")
+    # When priorities tie, prefer the LATER match (real headers come
+    # after overview content where false positives may appear)
     best_matches = {}
     for match in matches:
         code = match['code']
-        if code not in best_matches or match['priority'] > best_matches[code]['priority']:
+        if code not in best_matches:
+            best_matches[code] = match
+        elif match['priority'] > best_matches[code]['priority']:
+            best_matches[code] = match
+        elif match['priority'] == best_matches[code]['priority']:
+            # Same priority: prefer later occurrence (more likely to be real header)
             best_matches[code] = match
 
     # Calculate boundaries: end = start của match tiếp theo, hoặc hết file
@@ -504,14 +514,18 @@ def _parse_overview_internal(content: str) -> ParsedIndex:
     first_index_match = re.search(r'^\s*PHẦN\s+II\b.*$', content, re.IGNORECASE | re.MULTILINE)
     overview_content = content[:first_index_match.start()] if first_index_match else content
 
+    # FIX: Flexible prefix to handle Claude format variations:
+    # - Optional numbering (1. or 1) or none)
+    # - Optional markdown chars (#, *, **)
+    _OV_PREFIX = r'(?:[#*]*\s*)?(?:\d+[.)]\s*)?'
     overview_sections = [
-        ('📊', 'TỔNG QUAN THỊ TRƯỜNG', r'^\s*\d+\.\s*TỔNG\s*QUAN\s*THỊ\s*TRƯỜNG\b.*$'),
-        ('🔗', 'PHÂN TÍCH MỐI QUAN HỆ', r'^\s*\d+\.\s*PHÂN\s*TÍCH\s*MỐI\s*QUAN\s*HỆ\b.*$'),
-        ('💰', 'DÒNG TIỀN & XU HƯỚNG', r'^\s*\d+\.\s*DÒNG\s*TIỀN\s*&\s*XU\s*HƯỚNG\b.*$'),
-        ('🧩', 'HỘI TỤ KỸ THUẬT', r'^\s*\d+\.\s*HỘI\s*TỤ\s*KỸ\s*THUẬT\b.*$'),
-        ('🏆', 'XẾP HẠNG', r'^\s*\d+\.\s*XẾP\s*HẠNG\b.*$'),
-        ('🏭', 'PHÂN TÍCH NGÀNH', r'^\s*\d+\.\s*PHÂN\s*TÍCH\s*NGÀNH\b.*$'),
-        ('📝', 'NHẬN ĐỊNH', r'^\s*\d+\.\s*NHẬN\s*ĐỊNH\b.*$'),
+        ('📊', 'TỔNG QUAN THỊ TRƯỜNG', rf'^\s*{_OV_PREFIX}TỔNG\s*QUAN\s*THỊ\s*TRƯỜNG\b.*$'),
+        ('🔗', 'PHÂN TÍCH MỐI QUAN HỆ', rf'^\s*{_OV_PREFIX}PHÂN\s*TÍCH\s*MỐI\s*QUAN\s*HỆ\b.*$'),
+        ('💰', 'DÒNG TIỀN & XU HƯỚNG', rf'^\s*{_OV_PREFIX}DÒNG\s*TIỀN\s*(?:&|VÀ)\s*XU\s*HƯỚNG\b.*$'),
+        ('🧩', 'HỘI TỤ KỸ THUẬT', rf'^\s*{_OV_PREFIX}HỘI\s*TỤ\s*KỸ\s*THUẬT\b.*$'),
+        ('🏆', 'XẾP HẠNG', rf'^\s*{_OV_PREFIX}XẾP\s*HẠNG\b.*$'),
+        ('🏭', 'PHÂN TÍCH NGÀNH', rf'^\s*{_OV_PREFIX}PHÂN\s*TÍCH\s*NGÀNH\b.*$'),
+        ('📝', 'NHẬN ĐỊNH', rf'^\s*{_OV_PREFIX}NHẬN\s*ĐỊNH\b.*$'),
     ]
 
     sections = []
@@ -696,14 +710,18 @@ def parse_overview_from_content(content):
     first_index_match = re.search(r'^\s*PHẦN\s+II\b.*$', content, re.IGNORECASE | re.MULTILINE)
     overview_content = content[:first_index_match.start()] if first_index_match else content
 
+    # FIX: Flexible prefix to handle Claude format variations:
+    # - Optional numbering (1. or 1) or none)
+    # - Optional markdown chars (#, *, **)
+    _OV_PREFIX = r'(?:[#*]*\s*)?(?:\d+[.)]\s*)?'
     overview_sections = [
-        ('📊', 'TỔNG QUAN THỊ TRƯỜNG', r'^\s*\d+\.\s*TỔNG\s*QUAN\s*THỊ\s*TRƯỜNG\b.*$'),
-        ('🔗', 'PHÂN TÍCH MỐI QUAN HỆ', r'^\s*\d+\.\s*PHÂN\s*TÍCH\s*MỐI\s*QUAN\s*HỆ\b.*$'),
-        ('💰', 'DÒNG TIỀN & XU HƯỚNG', r'^\s*\d+\.\s*DÒNG\s*TIỀN\s*&\s*XU\s*HƯỚNG\b.*$'),
-        ('🧩', 'HỘI TỤ KỸ THUẬT', r'^\s*\d+\.\s*HỘI\s*TỤ\s*KỸ\s*THUẬT\b.*$'),
-        ('🏆', 'XẾP HẠNG', r'^\s*\d+\.\s*XẾP\s*HẠNG\b.*$'),
-        ('🏭', 'PHÂN TÍCH NGÀNH', r'^\s*\d+\.\s*PHÂN\s*TÍCH\s*NGÀNH\b.*$'),
-        ('📝', 'NHẬN ĐỊNH', r'^\s*\d+\.\s*NHẬN\s*ĐỊNH\b.*$'),
+        ('📊', 'TỔNG QUAN THỊ TRƯỜNG', rf'^\s*{_OV_PREFIX}TỔNG\s*QUAN\s*THỊ\s*TRƯỜNG\b.*$'),
+        ('🔗', 'PHÂN TÍCH MỐI QUAN HỆ', rf'^\s*{_OV_PREFIX}PHÂN\s*TÍCH\s*MỐI\s*QUAN\s*HỆ\b.*$'),
+        ('💰', 'DÒNG TIỀN & XU HƯỚNG', rf'^\s*{_OV_PREFIX}DÒNG\s*TIỀN\s*(?:&|VÀ)\s*XU\s*HƯỚNG\b.*$'),
+        ('🧩', 'HỘI TỤ KỸ THUẬT', rf'^\s*{_OV_PREFIX}HỘI\s*TỤ\s*KỸ\s*THUẬT\b.*$'),
+        ('🏆', 'XẾP HẠNG', rf'^\s*{_OV_PREFIX}XẾP\s*HẠNG\b.*$'),
+        ('🏭', 'PHÂN TÍCH NGÀNH', rf'^\s*{_OV_PREFIX}PHÂN\s*TÍCH\s*NGÀNH\b.*$'),
+        ('📝', 'NHẬN ĐỊNH', rf'^\s*{_OV_PREFIX}NHẬN\s*ĐỊNH\b.*$'),
     ]
 
     sections = []
