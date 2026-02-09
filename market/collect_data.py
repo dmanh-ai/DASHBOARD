@@ -358,6 +358,7 @@ def collect_stock_snapshot():
         "gainers": [],
         "losers": [],
         "breadth": {},
+        "index_impact": {},
         "source": "TCBS",
     }
 
@@ -381,6 +382,15 @@ def collect_stock_snapshot():
             result["losers"] = [p for p in parsed if p]
     log.info(f"  Losers: {len(result['losers'])} stocks")
 
+    # --- Fetch index impact (stock contributions to VNINDEX) ---
+    impact = _collect_index_impact()
+    if impact:
+        result["index_impact"] = impact
+        log.info(f"  Index impact: {len(impact.get('positive', []))} positive, "
+                 f"{len(impact.get('negative', []))} negative contributors")
+    else:
+        log.warning("  Could not fetch index impact data")
+
     # --- Fetch all HOSE stocks for real breadth ---
     breadth = _collect_real_breadth()
     if breadth:
@@ -392,6 +402,51 @@ def collect_stock_snapshot():
         log.warning("  Could not fetch real breadth data, will use index-level fallback")
 
     save_json(result, "stock_snapshot.json")
+    return result
+
+
+def _collect_index_impact():
+    """Fetch top stock contributors to VNINDEX from TCBS API."""
+    result = {"positive": [], "negative": []}
+
+    # Fetch top positive contributors
+    data = _fetch_json(f"{TCBS_BASE}/stock-insight/v1/stock/top-stock-trade",
+                       params={"count": 10, "type": "influence-up"})
+    if data:
+        items = data.get("data", data) if isinstance(data, dict) else data
+        if isinstance(items, list):
+            for item in items[:10]:
+                if not isinstance(item, dict):
+                    continue
+                ticker = item.get("ticker") or item.get("symbol") or ""
+                if not ticker:
+                    continue
+                result["positive"].append({
+                    "symbol": str(ticker).upper(),
+                    "change_pct": round(_safe_num(item.get("percentChange") or item.get("changePct")), 2),
+                    "impact": round(_safe_num(item.get("influence") or item.get("impact") or item.get("indexInfluence")), 3),
+                })
+
+    # Fetch top negative contributors
+    data = _fetch_json(f"{TCBS_BASE}/stock-insight/v1/stock/top-stock-trade",
+                       params={"count": 10, "type": "influence-down"})
+    if data:
+        items = data.get("data", data) if isinstance(data, dict) else data
+        if isinstance(items, list):
+            for item in items[:10]:
+                if not isinstance(item, dict):
+                    continue
+                ticker = item.get("ticker") or item.get("symbol") or ""
+                if not ticker:
+                    continue
+                result["negative"].append({
+                    "symbol": str(ticker).upper(),
+                    "change_pct": round(_safe_num(item.get("percentChange") or item.get("changePct")), 2),
+                    "impact": round(_safe_num(item.get("influence") or item.get("impact") or item.get("indexInfluence")), 3),
+                })
+
+    if not result["positive"] and not result["negative"]:
+        return None
     return result
 
 

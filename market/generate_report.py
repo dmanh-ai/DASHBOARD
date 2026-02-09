@@ -110,10 +110,17 @@ def prepare_overview_summary(data):
 
     breadth = data["breadth"]
 
+    # Stock impact data (which stocks drive VNINDEX)
+    stock_snapshot = data.get("stock_snapshot", {})
+    index_impact = stock_snapshot.get("index_impact", {})
+
     return {
         "date": data["index_ohlcv"].get("asof", ""),
         "indices_summary": summaries,
         "breadth": breadth,
+        "index_impact": index_impact,
+        "top_gainers": stock_snapshot.get("gainers", [])[:10],
+        "top_losers": stock_snapshot.get("losers", [])[:10],
     }
 
 
@@ -158,22 +165,64 @@ def build_overview_prompt(summary):
         breadth_lines.append(f"- McClellan Oscillator: {mcclellan:.2f} ({mcc_type})" if isinstance(mcclellan, float) else f"- McClellan: {mcclellan}")
     breadth_text = "\n".join(breadth_lines)
 
+    # Build index impact description (stock contributions to VNINDEX)
+    impact = summary.get('index_impact', {})
+    impact_text = ""
+    pos_list = impact.get('positive', [])
+    neg_list = impact.get('negative', [])
+    if pos_list or neg_list:
+        lines = ["CỔ PHIẾU TÁC ĐỘNG ĐẾN VNINDEX:"]
+        if neg_list:
+            neg_items = [f"  {s['symbol']} ({s['change_pct']:+.2f}%, đóng góp {s['impact']:+.3f})" for s in neg_list[:5]]
+            lines.append("- Kéo xuống: " + ", ".join(neg_items))
+        if pos_list:
+            pos_items = [f"  {s['symbol']} ({s['change_pct']:+.2f}%, đóng góp {s['impact']:+.3f})" for s in pos_list[:5]]
+            lines.append("- Nâng đỡ: " + ", ".join(pos_items))
+        impact_text = "\n".join(lines)
+
+    # Build top movers description
+    top_gainers = summary.get('top_gainers', [])
+    top_losers = summary.get('top_losers', [])
+    movers_text = ""
+    if top_gainers or top_losers:
+        lines = ["TOP CỔ PHIẾU BIẾN ĐỘNG:"]
+        if top_gainers:
+            g_items = [f"{s['symbol']} ({s['change_pct']:+.2f}%)" for s in top_gainers[:5]]
+            lines.append(f"- Tăng mạnh nhất: {', '.join(g_items)}")
+        if top_losers:
+            l_items = [f"{s['symbol']} ({s['change_pct']:+.2f}%)" for s in top_losers[:5]]
+            lines.append(f"- Giảm mạnh nhất: {', '.join(l_items)}")
+        movers_text = "\n".join(lines)
+
+    extra_data = ""
+    if impact_text:
+        extra_data += f"\n{impact_text}\n"
+    if movers_text:
+        extra_data += f"\n{movers_text}\n"
+
     return f"""Dựa trên dữ liệu thị trường ngày {summary['date']}, viết phân tích tổng quan.
 
 DỮ LIỆU:
 {breadth_text}
-
+{extra_data}
 CÁC CHỈ SỐ:
 {json.dumps(summary['indices_summary'], ensure_ascii=False, indent=2)}
 
 Viết ĐÚNG 7 phần theo thứ tự, mỗi phần bắt đầu bằng số thứ tự.
 Mỗi phần viết 3-5 câu phân tích trực tiếp, DẪN CHỨNG SỐ LIỆU cụ thể từ data.
 KHÔNG dùng format "Kết luận ngắn:" cho overview. Viết dạng đoạn văn tự nhiên.
-Ở phần 1 TỔNG QUAN THỊ TRƯỜNG, kết thúc bằng "Hành động:" với khuyến nghị cụ thể.
+
+HƯỚNG DẪN CHO TỪNG PHẦN:
 
 1. TỔNG QUAN THỊ TRƯỜNG
+Phân tích bức tranh chung: breadth, volume, xu hướng chính. Kết thúc bằng "Hành động:" với khuyến nghị cụ thể.
 
 2. PHÂN TÍCH MỐI QUAN HỆ
+Phân tích mối quan hệ giữa các nhóm vốn hóa (largecap/midcap/smallcap) qua VN100, VN30, VNMIDCAP, VNSML.
+NẾU CÓ dữ liệu cổ phiếu tác động, đề cập cụ thể tên mã cổ phiếu kéo xuống/nâng đỡ VNINDEX với % thay đổi và điểm đóng góp.
+Ví dụ: "VCB (-4.83%, đóng góp -0.211), HPG (-2.72%, đóng góp -0.102)..."
+Kết thúc bằng "Ý nghĩa:" đánh giá ý nghĩa của mối quan hệ này.
+Sau đó viết 1 dòng cảnh báo bắt đầu bằng "Điều kiện khiến kết luận sai:" mô tả khi nào nhận định sẽ thay đổi.
 
 3. DÒNG TIỀN & XU HƯỚNG
 
