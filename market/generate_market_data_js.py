@@ -66,71 +66,17 @@ def generate_index_ohlcv():
 
 
 # ============================================================================
-# 2. MARKET BREADTH SNAPSHOT (enhanced with stock-level data if available)
+# 2. MARKET BREADTH SNAPSHOT (from index-level data)
 # ============================================================================
 
 def generate_breadth_snapshot():
-    """Tạo market_breadth_snapshot.js - prefer stock-level breadth, fallback to index-level."""
-    # Try stock-level breadth first (from TCBS API)
-    stock_snapshot = load_json("stock_snapshot.json")
-    stock_breadth = stock_snapshot.get("breadth", {}) if stock_snapshot else {}
-
-    if stock_breadth and stock_breadth.get("total_stocks", 0) > 50:
-        # Use real stock-level breadth
-        breadth = {
-            "asof": stock_breadth.get("asof", stock_snapshot.get("asof", "")),
-            "universe": "HOSE",
-            "advancing": stock_breadth.get("advancing", 0),
-            "declining": stock_breadth.get("declining", 0),
-            "unchanged": stock_breadth.get("unchanged", 0),
-            "total_stocks": stock_breadth.get("total_stocks", 0),
-            "advance_volume": stock_breadth.get("advance_volume", 0),
-            "decline_volume": stock_breadth.get("decline_volume", 0),
-            "total_volume": stock_breadth.get("total_volume", 0),
-            "trin": stock_breadth.get("trin"),
-            "volume_ratio": stock_breadth.get("volume_ratio"),
-            "mcclellan": stock_breadth.get("mcclellan"),
-            "mcclellan_type": stock_breadth.get("mcclellan_type", "Net A-D"),
-            "source": stock_breadth.get("source", "TCBS"),
-        }
-        log.info("  Using stock-level breadth data")
-    else:
-        # Fallback to index-level breadth
-        breadth = load_json("breadth_snapshot.json")
-        if not breadth:
-            log.warning("No breadth data available, skipping")
-            return
-        log.info("  Using index-level breadth fallback")
+    """Tạo market_breadth_snapshot.js từ breadth_snapshot.json."""
+    breadth = load_json("breadth_snapshot.json")
+    if not breadth:
+        log.warning("No breadth data available, skipping")
+        return
 
     write_js("market_breadth_snapshot.js", "UI_GLM_MARKET_BREADTH_SNAPSHOT", breadth)
-
-
-# ============================================================================
-# 2b. VNINDEX HEATMAP (stock gainers/losers)
-# ============================================================================
-
-def generate_vnindex_heatmap():
-    """Tạo vnindex_heatmap_data.js from stock snapshot data."""
-    stock_snapshot = load_json("stock_snapshot.json")
-    if not stock_snapshot:
-        log.warning("No stock_snapshot.json, skipping heatmap")
-        return
-
-    gainers = stock_snapshot.get("gainers", [])
-    losers = stock_snapshot.get("losers", [])
-
-    if not gainers and not losers:
-        log.warning("No gainers/losers data, skipping heatmap")
-        return
-
-    output = {
-        "date": stock_snapshot.get("asof", ""),
-        "gainers": gainers,
-        "losers": losers,
-        "source": stock_snapshot.get("source", "TCBS"),
-    }
-
-    write_js("vnindex_heatmap_data.js", "UI_GLM_VNINDEX_HEATMAP", output)
 
 
 # ============================================================================
@@ -167,7 +113,6 @@ def main():
     generate_index_ohlcv()
     generate_breadth_snapshot()
     generate_vnindex_price_20d()
-    generate_vnindex_heatmap()
 
     log.info("=" * 60)
     log.info("ALL JS FILES GENERATED!")

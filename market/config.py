@@ -92,13 +92,6 @@ OVERVIEW_SECTIONS = [
     "NHẬN ĐỊNH",
 ]
 
-# Số ngày lịch sử cần lấy
-HISTORY_DAYS = 250
-# Số ngày cho foreign flow
-FOREIGN_FLOW_DAYS = 20
-# Số CP top gainers/losers cho heatmap
-HEATMAP_TOP_K = 30
-
 # Claude model
 CLAUDE_MODEL = "claude-sonnet-4-5-20250929"
 CLAUDE_MAX_TOKENS = 8192
