@@ -413,6 +413,18 @@ GHI CHÚ THUẬT NGỮ cho XU HƯỚNG GIÁ:
 - Gọi Momentum là "Momentum X phiên"
 - KHÔNG viết tắt RSI, ADX, MA trong phần XU HƯỚNG GIÁ
 
+RIÊNG phần XU HƯỚNG KHỐI LƯỢNG, viết ĐÚNG format sau (KHÔNG dùng "Dẫn chứng & Ý nghĩa", KHÔNG dùng "Hành động gợi ý"):
+
+Kết luận ngắn: [1 câu tổng kết xu hướng khối lượng và ý nghĩa, ví dụ "Khối lượng có xu hướng tăng trong các phiên giảm điểm mạnh gần đây, cho thấy áp lực bán mạnh. Khối lượng nền trung và dài hạn vẫn ở mức cao."]
+
+Dẫn chứng từ dữ liệu:
+- Ngắn hạn: Khối lượng phiên hiện tại (T-0: ~ [volume] CP) so với VMA10 (~ [volume_ma10] CP). Nêu cụ thể các phiên có khối lượng đột biến (T-7, T-4, T-2...) với mức khối lượng.
+- Trung & Dài hạn: VMA20 (~ [volume_ma20] CP) so với VMA50 (~ [volume_ma50] CP), nhận xét khối lượng giao dịch 20 phiên gần đây so với mức trung bình 50 phiên, đồng hành hay đi ngược với xu hướng giá.
+
+Ý nghĩa: Hành động: [1 câu nhận xét ý nghĩa của khối lượng: phân phối/tích lũy/bán tháo, củng cố hay mâu thuẫn xu hướng giá]
+
+Điều kiện khiến kết luận sai: [kịch bản invalidation, ví dụ "Khối lượng sụt giảm mạnh trong khi giá vẫn tiếp tục lao dốc, có thể báo hiệu lực bán đã cạn kiệt."]
+
 14 PHẦN CẦN VIẾT:
 
 XU HƯỚNG GIÁ
