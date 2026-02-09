@@ -100,10 +100,19 @@ def prepare_overview_summary(data):
         s = prepare_index_summary(key, data)
         if s:
             ind = s["indicators"]
+            # Compute 20-day performance from recent bars
+            bars_20 = s.get("recent_20_bars", [])
+            perf_20d = None
+            if len(bars_20) >= 2:
+                first_c = bars_20[0].get("c", 0)
+                last_c = bars_20[-1].get("c", 0)
+                if first_c and first_c > 0:
+                    perf_20d = round((last_c / first_c - 1) * 100, 2)
             summaries[key] = {
                 "name": s["index_name"],
                 "close": s["latest"]["close"],
                 "change_pct": s["latest"]["change_pct"],
+                "perf_20d": perf_20d,
                 "rsi14": ind.get("rsi_14") or ind.get("rsi14"),
                 "above_ma20": ind.get("above_ma20"),
             }
@@ -274,12 +283,15 @@ Tập trung vào VNINDEX và VN30, phân tích CHI TIẾT các chỉ báo kỹ t
 - Sau box Ý nghĩa, thêm 1 câu tổng kết xu hướng giao dịch nên theo (sideway/short/long).
 
 5. XẾP HẠNG
-Xếp hạng 14 chỉ số theo 3 nhóm dựa trên RSI14 và MA20:
-- Nhóm momentum tích cực: RSI cao + trên MA20 (nêu tên chỉ số, RSI cụ thể, trạng thái MA20)
-- Nhóm trung lập: RSI vùng 40-60, có thể đã mất MA20 (nêu tên, RSI)
-- Nhóm yếu nhất: RSI thấp <40, dưới MA20 (nêu tên, RSI, nhận xét quá bán)
-Sau đó xếp hạng theo biên độ % giảm/tăng phiên: chỉ số nào yếu nhất và kháng cự tốt nhất.
-Viết dạng đoạn văn tự nhiên, KHÔNG dùng box đặc biệt.
+Xếp hạng dựa trên HIỆU SUẤT 20 NGÀY (perf_20d) và mức độ chịu đựng trong phiên.
+Mở đầu bằng 1 câu tổng quan: nhóm nào mạnh nhất, nhóm nào yếu nhất xét 20 ngày.
+Sau đó viết DANH SÁCH ĐÁNH SỐ (1, 2, 3, 4...) xếp hạng từ mạnh đến yếu, mỗi mục gồm:
+- Số thứ tự. TÊN CHỈ SỐ (Tên ngành tiếng Việt): mô tả hiệu suất 20 ngày (%), % thay đổi phiên, RSI, nhận xét.
+Ví dụ:
+"1. VNENE (Năng lượng) Dẫn đầu với mức tăng 20 ngày +17.35%, bất chấp thị trường giảm mạnh."
+"2. VNHEAL (Chăm sóc sức khỏe) Hiệu suất 20 ngày +7.1%, RSI 78.5 cảnh báo quá mua dài hạn."
+Chọn 4-6 chỉ số đáng chú ý nhất (mạnh nhất + yếu nhất), KHÔNG cần liệt kê hết 14.
+KHÔNG dùng box đặc biệt.
 
 6. PHÂN TÍCH NGÀNH
 Phân tích từng ngành/sector qua các chỉ số ngành (VNHEAL, VNENE, VNCOND, VNMAT, VNFIN, VNREAL, VNIT, VNCONS):
