@@ -272,6 +272,12 @@ Kết hợp với MA20: tổng hợp bao nhiêu chỉ số dưới MA20, tạo t
 Viết dạng đoạn văn tự nhiên, KHÔNG dùng box đặc biệt.
 
 5. XẾP HẠNG
+Xếp hạng 14 chỉ số theo 3 nhóm dựa trên RSI14 và MA20:
+- Nhóm momentum tích cực: RSI cao + trên MA20 (nêu tên chỉ số, RSI cụ thể, trạng thái MA20)
+- Nhóm trung lập: RSI vùng 40-60, có thể đã mất MA20 (nêu tên, RSI)
+- Nhóm yếu nhất: RSI thấp <40, dưới MA20 (nêu tên, RSI, nhận xét quá bán)
+Sau đó xếp hạng theo biên độ % giảm/tăng phiên: chỉ số nào yếu nhất và kháng cự tốt nhất.
+Viết dạng đoạn văn tự nhiên, KHÔNG dùng box đặc biệt.
 
 6. PHÂN TÍCH NGÀNH
 
