@@ -280,6 +280,11 @@ Sau đó xếp hạng theo biên độ % giảm/tăng phiên: chỉ số nào y�
 Viết dạng đoạn văn tự nhiên, KHÔNG dùng box đặc biệt.
 
 6. PHÂN TÍCH NGÀNH
+Phân tích từng ngành/sector qua các chỉ số ngành (VNHEAL, VNENE, VNCOND, VNMAT, VNFIN, VNREAL, VNIT, VNCONS):
+- Mỗi ngành 1 câu: nêu tên ngành (tên tiếng Việt) + mã chỉ số, % thay đổi, RSI, vị thế MA20, và ý nghĩa dòng tiền.
+Ví dụ: "Ngành Y tế (VNHEAL) nổi bật là điểm sáng duy nhất với RSI 67.78 và vẫn duy trì xu hướng tăng trên MA20, cho thấy dòng tiền đang tìm nơi trú ẩn an toàn."
+- Phân biệt rõ ngành phòng thủ (Y tế, Năng lượng) vs ngành chu kỳ (Hàng tiêu dùng, Vật liệu, Tài chính).
+Viết dạng đoạn văn tự nhiên, mỗi ngành 1 đoạn ngắn, KHÔNG dùng box đặc biệt.
 
 7. NHẬN ĐỊNH"""
 
