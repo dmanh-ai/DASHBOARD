@@ -265,11 +265,13 @@ Phân tích dòng tiền và xu hướng dựa trên DỮ LIỆU CỤ THỂ:
 Viết dạng đoạn văn tự nhiên, KHÔNG dùng box đặc biệt. Có thể dùng 1 bullet point cho điểm nhấn.
 
 4. HỘI TỤ KỸ THUẬT
-So sánh RSI14 giữa các chỉ số, nêu giá trị RSI CỤ THỂ cho từng chỉ số quan trọng (VN30, VN100, VNINDEX, VNMIDCAP...).
-Chỉ ra chỉ số nào ở vùng quá bán (RSI <30), tiệm cận quá bán (30-40), hoặc quá mua (>70).
-Phân tích sự PHÂN KỲ nếu có: chỉ số nào RSI cao (mạnh) trong khi đa số yếu, tạo sự tách biệt.
-Kết hợp với MA20: tổng hợp bao nhiêu chỉ số dưới MA20, tạo tín hiệu kỹ thuật đồng bộ hay phân kỳ.
-Viết dạng đoạn văn tự nhiên, KHÔNG dùng box đặc biệt.
+Tập trung vào VNINDEX và VN30, phân tích CHI TIẾT các chỉ báo kỹ thuật:
+- Đánh giá trạng thái quá bán/quá mua: nêu RSI CỤ THỂ của VNINDEX và VN30 (ví dụ: "RSI VNINDEX ở mức 18.2, VN30 chỉ 16.4 - vùng quá bán sâu")
+- Xu hướng giảm/tăng: so sánh giá VNINDEX với đường xu hướng 20 phiên (MA20) và 50 phiên (MA50), nêu MỨC GIÁ CỤ THỂ (ví dụ: "dưới MA20 tại 1,846 và MA50 tại 1,783")
+- Độ mạnh xu hướng (ADX): nêu giá trị ADX và đánh giá mạnh/yếu/trung bình
+- Các mức giá quan trọng: hỗ trợ chính kế tiếp, kháng cự gần, vùng POC nếu có
+- Kết thúc bằng "Ý nghĩa:" với khuyến nghị giao dịch cụ thể (có mức giá cắt lỗ)
+- Sau box Ý nghĩa, thêm 1 câu tổng kết xu hướng giao dịch nên theo (sideway/short/long).
 
 5. XẾP HẠNG
 Xếp hạng 14 chỉ số theo 3 nhóm dựa trên RSI14 và MA20:
