@@ -52,7 +52,8 @@ PRICE_SCALE = 1000.0
 # GitHub raw URL cho data
 GITHUB_DATA_URL = "https://raw.githubusercontent.com/dmanh-ai/vnstock/main/data/indices"
 
-# Thứ tự phần trong báo cáo Word
+# Thứ tự phần trong báo cáo
+# PART_ORDER: tất cả chỉ số (dùng cho overview - cần data tất cả để xếp hạng/phân tích ngành)
 PART_ORDER = [
     "overview",
     "vnindex", "vn30", "vn100", "vnmidcap",
@@ -61,7 +62,10 @@ PART_ORDER = [
     "vnsml", "vnfinselect", "vndiamond",
 ]
 
-# 14 section titles cho mỗi chỉ số (phải khớp regex trong smart_parser.py)
+# REPORT_INDICES: chỉ số được viết phân tích AI chi tiết (12 sections mỗi chỉ số)
+REPORT_INDICES = ["vnindex", "vn30", "vn100", "vnmidcap"]
+
+# 12 section titles cho mỗi chỉ số (phải khớp regex trong smart_parser.py)
 INDEX_SECTIONS = [
     "XU HƯỚNG GIÁ",
     "XU HƯỚNG KHỐI LƯỢNG",
@@ -69,9 +73,7 @@ INDEX_SECTIONS = [
     "CUNG-CẦU",
     "MỨC GIÁ QUAN TRỌNG",
     "BIẾN ĐỘNG GIÁ",
-    "MÔ HÌNH GIÁ - MÔ HÌNH NẾN",
     "MARKET BREADTH & TÂM LÝ THỊ TRƯỜNG",
-    "LỊCH SỬ & XU HƯỚNG BREADTH",
     "RỦI RO",
     "KHUYẾN NGHỊ VỊ THẾ",
     "GIÁ MỤC TIÊU",

@@ -15,7 +15,7 @@ on:
 
 env:
   ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-  UI_GLM_MIN_SUCCESS_ITEMS: "8"
+  UI_GLM_MIN_SUCCESS_ITEMS: "3"
 
 jobs:
   update-dashboard:
