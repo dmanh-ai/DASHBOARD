@@ -166,6 +166,7 @@ jobs:
             index_ohlcv.js \
             market_breadth_snapshot.js \
             vnindex_price_20d.js \
+            vnindex_heatmap_data.js \
             2>/dev/null || true
 
           # Check if there are changes
