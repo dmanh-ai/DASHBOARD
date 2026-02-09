@@ -41,9 +41,20 @@ def load_json(filename):
 
 def load_all_data():
     """Load tất cả data đã thu thập."""
+    # Load stock snapshot for real breadth data
+    stock_snapshot = load_json("stock_snapshot.json")
+    stock_breadth = stock_snapshot.get("breadth", {}) if stock_snapshot else {}
+
+    # Prefer stock-level breadth if available, fallback to index-level
+    if stock_breadth and stock_breadth.get("total_stocks", 0) > 50:
+        breadth = stock_breadth
+    else:
+        breadth = load_json("breadth_snapshot.json")
+
     return {
         "index_ohlcv": load_json("index_ohlcv.json"),
-        "breadth": load_json("breadth_snapshot.json"),
+        "breadth": breadth,
+        "stock_snapshot": stock_snapshot or {},
     }
 
 
@@ -129,10 +140,27 @@ QUY TẮC VIẾT:
 
 def build_overview_prompt(summary):
     """Prompt cho phần Overview."""
+    b = summary['breadth']
+    adv = b.get('advancing', 0)
+    dec = b.get('declining', 0)
+    unch = b.get('unchanged', 0)
+    total = b.get('total_stocks', adv + dec + unch)
+    trin = b.get('trin')
+    mcclellan = b.get('mcclellan')
+
+    # Build breadth description
+    breadth_lines = [f"- Breadth: Tăng {adv}, Giảm {dec}, Đứng {unch} (tổng {total} cổ phiếu)"]
+    if trin is not None:
+        breadth_lines.append(f"- TRIN (Arms Index): {trin:.2f}" if isinstance(trin, float) else f"- TRIN: {trin}")
+    if mcclellan is not None:
+        mcc_type = b.get('mcclellan_type', 'Net A-D')
+        breadth_lines.append(f"- McClellan Oscillator: {mcclellan:.2f} ({mcc_type})" if isinstance(mcclellan, float) else f"- McClellan: {mcclellan}")
+    breadth_text = "\n".join(breadth_lines)
+
     return f"""Dựa trên dữ liệu thị trường ngày {summary['date']}, viết phân tích tổng quan.
 
 DỮ LIỆU:
-- Breadth: Tăng {summary['breadth'].get('advancing', 0)}, Giảm {summary['breadth'].get('declining', 0)}, Đứng {summary['breadth'].get('unchanged', 0)}
+{breadth_text}
 
 CÁC CHỈ SỐ:
 {json.dumps(summary['indices_summary'], ensure_ascii=False, indent=2)}
@@ -140,6 +168,7 @@ CÁC CHỈ SỐ:
 Viết ĐÚNG 7 phần theo thứ tự, mỗi phần bắt đầu bằng số thứ tự.
 Mỗi phần viết 3-5 câu phân tích trực tiếp, DẪN CHỨNG SỐ LIỆU cụ thể từ data.
 KHÔNG dùng format "Kết luận ngắn:" cho overview. Viết dạng đoạn văn tự nhiên.
+Ở phần 1 TỔNG QUAN THỊ TRƯỜNG, kết thúc bằng "Hành động:" với khuyến nghị cụ thể.
 
 1. TỔNG QUAN THỊ TRƯỜNG
 

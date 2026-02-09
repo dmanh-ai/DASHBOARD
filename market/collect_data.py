@@ -8,9 +8,11 @@ Output: JSON files trong market_cache/
 import csv
 import io
 import json
+import math
 import os
 import sys
 import logging
+import time
 from datetime import datetime
 from pathlib import Path
 from urllib.request import urlopen, Request
@@ -291,6 +293,187 @@ def compute_breadth_from_indices(index_data):
 
 
 # ============================================================================
+# 4. THU THẬP STOCK-LEVEL DATA (HEATMAP + REAL BREADTH)
+# ============================================================================
+
+TCBS_BASE = "https://apipubaws.tcbs.com.vn"
+TCBS_HEADERS = {
+    "User-Agent": "DASHBOARD-Pipeline/1.0",
+    "Accept": "application/json",
+}
+
+
+def _fetch_json(url, params=None, max_retries=3):
+    """Fetch JSON from URL with retry. Uses urllib (no requests dependency)."""
+    from urllib.parse import urlencode
+    if params:
+        url = f"{url}?{urlencode(params)}"
+
+    for attempt in range(max_retries):
+        try:
+            req = Request(url, headers=TCBS_HEADERS)
+            with urlopen(req, timeout=15) as resp:
+                return json.loads(resp.read().decode("utf-8"))
+        except Exception as e:
+            log.warning(f"  API attempt {attempt+1} failed for {url}: {e}")
+            if attempt < max_retries - 1:
+                time.sleep(2 ** (attempt + 1))
+    return None
+
+
+def _safe_num(val, default=0):
+    """Parse number safely."""
+    if val is None:
+        return default
+    try:
+        v = float(val)
+        return v if math.isfinite(v) else default
+    except (ValueError, TypeError):
+        return default
+
+
+def _parse_tcbs_stock(item):
+    """Parse a TCBS stock entry to standard format."""
+    if not isinstance(item, dict):
+        return None
+    ticker = item.get("ticker") or item.get("symbol") or item.get("t") or ""
+    if not ticker:
+        return None
+    return {
+        "symbol": str(ticker).upper(),
+        "change_pct": round(_safe_num(item.get("percentChange") or item.get("changePct") or item.get("cp")), 2),
+        "price": _safe_num(item.get("price") or item.get("p") or item.get("closePrice")),
+        "value": _safe_num(item.get("value") or item.get("val") or item.get("nmValue")),
+        "volume": _safe_num(item.get("volume") or item.get("vol")),
+    }
+
+
+def collect_stock_snapshot():
+    """Fetch stock-level data for heatmaps and real breadth from TCBS API."""
+    log.info("=" * 60)
+    log.info("STEP 4: Thu thập Stock Snapshot (heatmap + breadth)...")
+
+    result = {
+        "asof": datetime.now().strftime("%Y-%m-%d"),
+        "gainers": [],
+        "losers": [],
+        "breadth": {},
+        "source": "TCBS",
+    }
+
+    # --- Fetch top gainers ---
+    data = _fetch_json(f"{TCBS_BASE}/stock-insight/v1/stock/top-stock-trade",
+                       params={"count": 30, "type": "increase"})
+    if data:
+        items = data.get("data", data) if isinstance(data, dict) else data
+        if isinstance(items, list):
+            parsed = [_parse_tcbs_stock(it) for it in items[:30]]
+            result["gainers"] = [p for p in parsed if p]
+    log.info(f"  Gainers: {len(result['gainers'])} stocks")
+
+    # --- Fetch top losers ---
+    data = _fetch_json(f"{TCBS_BASE}/stock-insight/v1/stock/top-stock-trade",
+                       params={"count": 30, "type": "decrease"})
+    if data:
+        items = data.get("data", data) if isinstance(data, dict) else data
+        if isinstance(items, list):
+            parsed = [_parse_tcbs_stock(it) for it in items[:30]]
+            result["losers"] = [p for p in parsed if p]
+    log.info(f"  Losers: {len(result['losers'])} stocks")
+
+    # --- Fetch all HOSE stocks for real breadth ---
+    breadth = _collect_real_breadth()
+    if breadth:
+        result["breadth"] = breadth
+        result["asof"] = breadth.get("asof", result["asof"])
+        log.info(f"  Breadth: +{breadth.get('advancing', 0)} / -{breadth.get('declining', 0)} "
+                 f"/ ={breadth.get('unchanged', 0)} (TRIN={breadth.get('trin', 'N/A')})")
+    else:
+        log.warning("  Could not fetch real breadth data, will use index-level fallback")
+
+    save_json(result, "stock_snapshot.json")
+    return result
+
+
+def _collect_real_breadth():
+    """Fetch real stock-level breadth from TCBS screener API."""
+    # Try TCBS screener for all HOSE stocks
+    all_stocks = []
+    for page in range(1, 6):  # Max 5 pages × 200 = 1000 stocks
+        data = _fetch_json(
+            f"{TCBS_BASE}/stock-insight/v2/stock/screener",
+            params={"page": page, "size": 200, "exchange": "HOSE"},
+        )
+        if not data:
+            break
+        items = data.get("data", data) if isinstance(data, dict) else data
+        if not isinstance(items, list) or not items:
+            break
+        all_stocks.extend(items)
+        if len(items) < 200:
+            break
+
+    if not all_stocks:
+        # Fallback: try market overview endpoint
+        data = _fetch_json(f"{TCBS_BASE}/market-insight/v1/market/market-overview")
+        if data and isinstance(data, dict):
+            return {
+                "asof": datetime.now().strftime("%Y-%m-%d"),
+                "advancing": int(_safe_num(data.get("noUp") or data.get("advance") or 0)),
+                "declining": int(_safe_num(data.get("noDown") or data.get("decline") or 0)),
+                "unchanged": int(_safe_num(data.get("noChange") or data.get("unchanged") or 0)),
+                "total_stocks": int(_safe_num(data.get("total") or 0)),
+                "trin": None,
+                "mcclellan": None,
+                "source": "TCBS-market-overview",
+            }
+        return None
+
+    # Compute breadth from all stocks
+    adv = dec = unch = 0
+    adv_vol = dec_vol = total_vol = 0.0
+
+    for item in all_stocks:
+        change = _safe_num(item.get("percentChange") or item.get("changePct") or item.get("cp"))
+        vol = _safe_num(item.get("volume") or item.get("vol"))
+        total_vol += vol
+        if change > 0:
+            adv += 1
+            adv_vol += vol
+        elif change < 0:
+            dec += 1
+            dec_vol += vol
+        else:
+            unch += 1
+
+    total = adv + dec + unch
+
+    # TRIN = (Adv/Dec) / (AdvVol/DecVol)
+    trin = None
+    if adv > 0 and dec > 0 and adv_vol > 0 and dec_vol > 0:
+        trin = round((adv / dec) / (adv_vol / dec_vol), 4)
+
+    # Simple McClellan approximation: Net A-D
+    net_ad = adv - dec
+    mcclellan = round(float(net_ad), 2)
+
+    return {
+        "asof": datetime.now().strftime("%Y-%m-%d"),
+        "advancing": adv,
+        "declining": dec,
+        "unchanged": unch,
+        "total_stocks": total,
+        "advance_volume": adv_vol,
+        "decline_volume": dec_vol,
+        "total_volume": total_vol,
+        "trin": trin,
+        "mcclellan": mcclellan,
+        "mcclellan_type": "Net A-D",
+        "source": "TCBS-screener",
+    }
+
+
+# ============================================================================
 # MAIN
 # ============================================================================
 
@@ -309,8 +492,14 @@ def main():
     # Step 2: Enrich with additional indicators
     index_data = enrich_indicators(index_data)
 
-    # Step 3: Simple breadth
+    # Step 3: Simple breadth (from indices, used as fallback)
     compute_breadth_from_indices(index_data)
+
+    # Step 4: Stock-level data (heatmap + real breadth) from TCBS API
+    try:
+        collect_stock_snapshot()
+    except Exception as e:
+        log.warning(f"Stock snapshot collection failed (non-fatal): {e}")
 
     log.info("=" * 60)
     log.info(f"DATA COLLECTION COMPLETED! Indices: {list(index_data.keys())}")
