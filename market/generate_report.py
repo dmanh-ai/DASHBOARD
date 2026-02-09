@@ -372,7 +372,7 @@ DỮ LIỆU:
 GIÁ 20 PHIÊN GẦN NHẤT:
 {json.dumps(summary['recent_20_bars'], ensure_ascii=False)}
 
-Viết ĐÚNG 14 phần, mỗi phần bắt đầu bằng tiêu đề IN HOA trên dòng riêng.
+Viết ĐÚNG 12 phần, mỗi phần bắt đầu bằng tiêu đề IN HOA trên dòng riêng.
 MỖI PHẦN BẮT BUỘC theo cấu trúc sau:
 
 Kết luận ngắn: [1 câu tóm tắt nhận định chính]
@@ -425,7 +425,93 @@ Dẫn chứng từ dữ liệu:
 
 Điều kiện khiến kết luận sai: [kịch bản invalidation, ví dụ "Khối lượng sụt giảm mạnh trong khi giá vẫn tiếp tục lao dốc, có thể báo hiệu lực bán đã cạn kiệt."]
 
-14 PHẦN CẦN VIẾT:
+RIÊNG phần KẾT HỢP XU HƯỚNG GIÁ VÀ KHỐI LƯỢNG, viết ĐÚNG format sau:
+
+Kết luận ngắn: [1 câu tổng kết mức đồng thuận giữa giá và khối lượng, ví dụ "Giá và khối lượng đồng thuận cao trong việc xác nhận xu hướng giảm mạnh ở ngắn và trung hạn."]
+
+Dẫn chứng từ dữ liệu:
+Ngắn/Trung hạn: [Phân tích mẫu hình giá-khối lượng: "khối lượng tăng khi giá giảm/tăng" điển hình, xác nhận xu hướng có sức mạnh hay không]
+Kiểm tra Momentum Cascade: Momentum 20 phiên ([X]) có mức độ âm/dương sâu hơn hay nông hơn Momentum 5 phiên ([Y]).
+[Đoạn giải thích: động lực giảm/tăng trung hạn so với ngắn hạn, tín hiệu xu hướng có chiều sâu hay đang suy yếu]
+
+Ý nghĩa: Hành động: [1 câu đánh giá ý nghĩa của sự đồng thuận/phân kỳ]
+[1-2 câu chiến lược: bảo vệ vốn/tấn công, mua vào/chờ đợi]
+
+Điều kiện khiến kết luận sai: [kịch bản phá vỡ đồng thuận với mức khối lượng cụ thể, ví dụ "Giá đảo chiều tăng với khối lượng cực lớn (> 1.5 tỷ CP), tạo ra mẫu hình khối lượng tăng khi giá tăng"]
+
+RIÊNG phần CUNG-CẦU, viết ĐÚNG format sau:
+
+Kết luận ngắn: [1 câu về cán cân cung-cầu và vùng giá, ví dụ "Cung (áp lực bán) đang áp đảo ở vùng giá hiện tại. Cầu mạnh chỉ có thể xuất hiện ở các vùng hỗ trợ dài hạn phía dưới."]
+
+Dẫn chứng từ dữ liệu (Volume Profile & giá bình quân theo khối lượng):
+Vùng CUNG (Áp lực bán mạnh): Point of Control (POC) tại [giá] - vùng giá có nhiều thanh khoản nhất, [nhận xét kháng cự]. Giá hiện tại nằm sâu dưới/trên VWAP20 ([giá]), cho thấy bên [bán/mua] chiếm ưu thế áp đảo.
+Vùng CẦU (Áp lực mua tiềm năng): Vùng giá từ [X] đến [Y] (quanh đường xu hướng 50 phiên và VWAP5). [nhận xét vùng lực mua phòng thủ].
+CMF20 ([giá trị]) xác nhận dòng tiền đang [chảy vào/ra khỏi] thị trường trong ngắn hạn.
+
+Ý nghĩa: Hành động: [1 câu ngắn gọn, ví dụ "Bên bán đang kiểm soát hoàn toàn."]
+[2-3 câu: đợt hồi phục gặp áp lực ở đâu, vùng nào người mua nên cân nhắc, điều kiện tích lũy]
+
+Điều kiện khiến kết luận sai: [kịch bản giá vượt VWAP20 và POC]
+
+RIÊNG phần MỨC GIÁ QUAN TRỌNG, viết ĐÚNG format sau:
+
+Kết luận ngắn: Hỗ trợ gần: [range]. Kháng cự gần: [range], sau đó là [range].
+
+Dẫn chứng và
+Độ tin cậy:
+HỖ TRỢ (Bên Mua Cần Giữ):
+[range] (Cao): [giải thích: đáy phiên, Bollinger Band dưới, Donchian]. Mất vùng này → [hệ quả].
+~ [range] (Trung bình - Cao): [giải thích: vùng tập trung MA50, VWAP5, đáy gần đây]. Hỗ trợ động quan trọng.
+[mức giá] (Trung bình): [giải thích: MA100, Keltner Band dưới]. Hỗ trợ xa hơn.
+
+KHÁNG CỰ (Bên Bán Cần Giữ):
+[range] (Cao): [giải thích: MA5, MA10]. Thách thức đầu tiên cho phục hồi.
+[range] (Trung bình): [giải thích: BB5 trên, đỉnh gần đây].
+[range] (Rất cao): [giải thích: MA20, VWAP20] - kháng cự chính xu hướng trung hạn.
+[range] (Rất cao): [giải thích: POC, High Volume Node (HVN)]. "Bức tường" kháng cự mạnh nhất.
+
+Ý nghĩa: Hành động: [1 câu nhận định đường đi ít kháng cự nhất]
+[2-3 câu: theo dõi phản ứng giá ở đâu, điều kiện xu hướng giảm kết thúc]
+
+Điều kiện khiến kết luận sai: [kịch bản phá vỡ mức kháng cự quan trọng]
+
+RIÊNG phần BIẾN ĐỘNG GIÁ, viết ĐÚNG format sau:
+
+Kết luận ngắn: [1 câu tổng kết biến động ngắn/trung hạn và có squeeze hay không, ví dụ "Biến động (volatility) ngắn hạn ở mức cao, trung hạn ở mức trung bình. Không có tín hiệu squeeze."]
+
+Dẫn chứng từ dữ liệu:
+- Ngắn hạn: biên độ dao động (5 phiên) ([X]) và biên độ dao động (10 phiên) ([Y]) cho thấy biến động [cao/thấp]. Khoảng giá trong phiên (H-L) thường trên/dưới [X] điểm.
+- Trung/Dài hạn: biên độ dao động (20 phiên) ([X]) và biên độ dao động (50 phiên) ([Y]) [ổn định/tăng/giảm] ở mức [cao/trung bình/thấp] (~[X]% so với giá).
+Độ rộng Bollinger 20 (Width= [X]%) cho thấy biến động [không ở trạng thái thắt chặt/đang thắt chặt].
+
+Kiểm tra
+TTM Squeeze: Dữ liệu ghi rõ "[CÓ/KHÔNG] (BB20 [rộng/hẹp] hơn KC20)".
+Cụ thể, dải Bollinger 20 ([range]) [rộng/hẹp] hơn dải Keltner 20 ([range]).
+[Giải thích: biến động thực tế vs trung bình, có "nén chặt" (squeeze) hay không]
+[Nhận xét trạng thái: biến động mở rộng/thu hẹp]
+
+Ý nghĩa: Hành động: [1 câu về ý nghĩa squeeze/không squeeze cho giao dịch]
+[1-2 câu bổ sung: quản lý vốn, rủi ro biến động]
+
+Điều kiện khiến kết luận sai: [kịch bản BB20 thu hẹp/mở rộng so với KC20]
+
+RIÊNG phần RỦI RO, viết ĐÚNG format sau (KHÔNG dùng "Kết luận ngắn:" box):
+
+[1-2 đoạn văn mở đầu đánh giá tổng quan rủi ro: rủi ro cao/trung bình/thấp ở ngắn hạn, trung hạn, dài hạn. Dòng tiền đã xác nhận hay chưa.]
+
+- Trung hạn (10 - 20 phiên): Rủi ro [cao/trung bình/thấp].
+  [Đoạn giải thích: giá vs MA20, ADX tăng/giảm, breadth percentile, tâm lý (X mã tăng vs Y mã giảm)]
+- Dài hạn (40 - 60 phiên): Rủi ro [cao/trung bình/thấp].
+  [Đoạn giải thích: giá vs MA50, MA200, cấu trúc xu hướng tăng dài hạn còn/mất]
+
+Điều kiện thất bại chính (khiến rủi ro tăng cao hơn dự kiến):
+1. [Điều kiện giá: đóng cửa dưới/trên mức X (đáy/đỉnh & Band Bollinger)] → hệ quả.
+2. [Điều kiện breadth: số mã tăng không vượt X, cán cân cung/cầu, tỷ lệ khối lượng tăng/giảm]
+3. [Điều kiện drivers: mã trụ tiếp tục giảm/tăng, không có driver mới hấp thụ thanh khoản]
+
+Ý nghĩa: Hành động: [1 câu chiến lược vốn, ví dụ "Ưu tiên bảo toàn vốn trong ngắn hạn. Chỉ xem xét gia tăng rủi ro khi có sự đồng thuận cải thiện giữa giá và breadth."]
+
+12 PHẦN CẦN VIẾT:
 
 XU HƯỚNG GIÁ
 
@@ -439,11 +525,7 @@ MỨC GIÁ QUAN TRỌNG
 
 BIẾN ĐỘNG GIÁ
 
-MÔ HÌNH GIÁ - MÔ HÌNH NẾN
-
 MARKET BREADTH & TÂM LÝ THỊ TRƯỜNG
-
-LỊCH SỬ & XU HƯỚNG BREADTH
 
 RỦI RO
 

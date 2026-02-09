@@ -61,7 +61,7 @@ PART_ORDER = [
     "vnsml", "vnfinselect", "vndiamond",
 ]
 
-# 14 section titles cho mỗi chỉ số (phải khớp regex trong smart_parser.py)
+# 12 section titles cho mỗi chỉ số (phải khớp regex trong smart_parser.py)
 INDEX_SECTIONS = [
     "XU HƯỚNG GIÁ",
     "XU HƯỚNG KHỐI LƯỢNG",
@@ -69,9 +69,7 @@ INDEX_SECTIONS = [
     "CUNG-CẦU",
     "MỨC GIÁ QUAN TRỌNG",
     "BIẾN ĐỘNG GIÁ",
-    "MÔ HÌNH GIÁ - MÔ HÌNH NẾN",
     "MARKET BREADTH & TÂM LÝ THỊ TRƯỜNG",
-    "LỊCH SỬ & XU HƯỚNG BREADTH",
     "RỦI RO",
     "KHUYẾN NGHỊ VỊ THẾ",
     "GIÁ MỤC TIÊU",
