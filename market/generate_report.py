@@ -8,7 +8,6 @@ import os
 import sys
 import logging
 import time
-from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime
 from pathlib import Path
 
@@ -595,8 +594,8 @@ THÔNG TIN CHUNG"""
 # CLAUDE API CALL
 # ============================================================================
 
-def call_claude(prompt, max_retries=3):
-    """Gọi Claude API với retry."""
+def call_claude(prompt, max_retries=5):
+    """Gọi Claude API với retry và rate limit handling."""
     import anthropic
 
     api_key = os.environ.get("ANTHROPIC_API_KEY")
@@ -616,11 +615,18 @@ def call_claude(prompt, max_retries=3):
             )
             return message.content[0].text
         except Exception as e:
-            log.warning(f"Claude API attempt {attempt + 1} failed: {e}")
-            if attempt < max_retries - 1:
-                time.sleep(2 ** (attempt + 1))
+            err_str = str(e).lower()
+            is_rate_limit = "rate" in err_str or "429" in err_str or "overloaded" in err_str
+            if is_rate_limit:
+                wait = min(2 ** (attempt + 2), 60)  # 4, 8, 16, 32, 60
+                log.warning(f"Rate limited (attempt {attempt + 1}/{max_retries}), waiting {wait}s...")
             else:
-                log.error(f"Claude API failed after {max_retries} attempts")
+                wait = 2 ** (attempt + 1)  # 2, 4, 8, 16, 32
+                log.warning(f"API error (attempt {attempt + 1}/{max_retries}): {e}")
+            if attempt < max_retries - 1:
+                time.sleep(wait)
+            else:
+                log.error(f"Claude API failed after {max_retries} attempts: {e}")
                 return None
 
 
@@ -714,34 +720,30 @@ def main():
         log.error("No index OHLCV data found. Run collect_data.py first!")
         sys.exit(1)
 
-    # Generate all parts concurrently (overview + REPORT_INDICES)
+    # Log available indices
+    available = list(data["index_ohlcv"].get("indices", {}).keys())
+    log.info(f"Data available for {len(available)} indices: {available}")
+
+    # Generate REPORT_INDICES SEQUENTIALLY to avoid API rate limiting.
+    # With 5 calls (overview + 4 indices) at ~30s each, total ~3 minutes.
     index_texts = {}
-    overview_text = ""
 
-    def _gen_overview():
-        return ("overview", generate_overview(data))
+    # 1) Generate overview
+    overview_text = generate_overview(data)
+    if overview_text:
+        log.info("  OVERVIEW done")
+    else:
+        log.warning("  OVERVIEW failed!")
 
-    def _gen_index(k):
-        return (k, generate_index(k, data))
-
-    max_workers = min(5, 1 + len(REPORT_INDICES))
-    log.info(f"Generating report with {max_workers} concurrent workers "
-             f"(overview + {len(REPORT_INDICES)} indices: {REPORT_INDICES})...")
-
-    with ThreadPoolExecutor(max_workers=max_workers) as executor:
-        futures = []
-        futures.append(executor.submit(_gen_overview))
-        for key in REPORT_INDICES:
-            futures.append(executor.submit(_gen_index, key))
-
-        for future in as_completed(futures):
-            key, text = future.result()
-            if key == "overview":
-                overview_text = text or ""
-                log.info("  OVERVIEW done")
-            elif text:
-                index_texts[key] = text
-                log.info(f"  {INDICES[key][1]} done")
+    # 2) Generate each index with delay between calls
+    for i, key in enumerate(REPORT_INDICES, 1):
+        time.sleep(2)  # Rate limit delay between API calls
+        text = generate_index(key, data)
+        if text:
+            index_texts[key] = text
+            log.info(f"  [{i}/{len(REPORT_INDICES)}] {INDICES[key][1]} done")
+        else:
+            log.warning(f"  [{i}/{len(REPORT_INDICES)}] {INDICES[key][1]} FAILED")
 
     # Assemble report
     full_report = assemble_report(overview_text, index_texts)
