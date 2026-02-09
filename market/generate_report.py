@@ -309,7 +309,28 @@ Tiếp theo viết 1 đoạn "Cơ hội:" nhận xét cơ hội đầu tư từ 
 Nếu có ngành nào đáng lo ngại (ví dụ VNFIN khối lượng bán tăng vọt), viết 1 dòng bắt đầu bằng "Rủi ro:" hoặc "Cảnh báo rủi ro:" cảnh báo.
 Cuối cùng viết "Snapshot các ngành khác:" liệt kê ngắn các ngành còn lại, mỗi dòng: TÊN (MÃ): Giảm/Tăng X%/ngày, tăng/giảm Y%/20 ngày.
 
-7. NHẬN ĐỊNH"""
+7. NHẬN ĐỊNH
+Phần này có CẤU TRÚC CỐ ĐỊNH, viết ĐÚNG theo thứ tự sau:
+
+"Top 3 quan sát quan trọng:"
+Danh sách đánh số 1), 2), 3) - mỗi quan sát 1-2 câu tóm tắt điểm nhấn quan trọng nhất từ toàn bộ phân tích.
+Ví dụ: "1) Áp lực bán lan rộng cực độ: Số mã giảm áp đảo 4.5 lần số mã tăng, thanh khoản bán chiếm 85%."
+
+"Cảnh báo"
+Tiếp theo viết "Rủi ro:" liệt kê 2-3 rủi ro chính với số liệu cụ thể (mức hỗ trợ, % volume...).
+
+"Mức quan trọng cần theo dõi:"
+Liệt kê các yếu tố cần theo dõi: mã trụ đang kìm hãm chỉ số, chỉ báo độ rộng A/D cần cải thiện.
+
+"Đề xuất định vị danh mục:"
+Khuyến nghị cụ thể: tỷ trọng (underweight/overweight), phòng thủ hay tấn công, ngành nào nên ưu tiên, ngành nào tránh, điểm cắt lỗ.
+
+"3-METRIC LEADERSHIP (vs VNINDEX):"
+Viết dạng bullet list:
+- Nhịp dẫn dắt: nhóm nào đang dẫn dắt thị trường
+- Vượt trội 20 phiên (so với VNINDEX): liệt kê các chỉ số outperform với điểm cộng
+- Tụt hậu 20 phiên (so với VNINDEX): liệt kê các chỉ số underperform với điểm trừ
+- Đồng thuận 5 & 20 phiên: liệt kê chỉ số có xu hướng nhất quán cả 5 và 20 phiên"""
 
 
 def build_index_prompt(summary):
