@@ -138,11 +138,8 @@ CÁC CHỈ SỐ:
 {json.dumps(summary['indices_summary'], ensure_ascii=False, indent=2)}
 
 Viết ĐÚNG 7 phần theo thứ tự, mỗi phần bắt đầu bằng số thứ tự.
-Mỗi phần phải có cấu trúc:
-- Kết luận ngắn: (1 câu)
-- Dẫn chứng & Ý nghĩa: (đánh số 1, 2, 3 với số liệu cụ thể từ data)
-- Hành động gợi ý: (khuyến nghị cụ thể)
-- Điều kiện khiến kết luận sai: (kịch bản invalidation)
+Mỗi phần viết 3-5 câu phân tích trực tiếp, DẪN CHỨNG SỐ LIỆU cụ thể từ data.
+KHÔNG dùng format "Kết luận ngắn:" cho overview. Viết dạng đoạn văn tự nhiên.
 
 1. TỔNG QUAN THỊ TRƯỜNG
 
