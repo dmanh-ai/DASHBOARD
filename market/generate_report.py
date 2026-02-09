@@ -114,6 +114,15 @@ def prepare_overview_summary(data):
     stock_snapshot = data.get("stock_snapshot", {})
     index_impact = stock_snapshot.get("index_impact", {})
 
+    # Pre-compute MA20 status for money flow analysis
+    above_ma20 = []
+    below_ma20 = []
+    for key, s in summaries.items():
+        if s.get("above_ma20") is True:
+            above_ma20.append(s["name"])
+        elif s.get("above_ma20") is False:
+            below_ma20.append(s["name"])
+
     return {
         "date": data["index_ohlcv"].get("asof", ""),
         "indices_summary": summaries,
@@ -121,6 +130,8 @@ def prepare_overview_summary(data):
         "index_impact": index_impact,
         "top_gainers": stock_snapshot.get("gainers", [])[:10],
         "top_losers": stock_snapshot.get("losers", [])[:10],
+        "above_ma20": above_ma20,
+        "below_ma20": below_ma20,
     }
 
 
@@ -200,11 +211,31 @@ def build_overview_prompt(summary):
     if movers_text:
         extra_data += f"\n{movers_text}\n"
 
+    # MA20 status summary
+    above_ma20 = summary.get('above_ma20', [])
+    below_ma20 = summary.get('below_ma20', [])
+    total_indices = len(above_ma20) + len(below_ma20)
+    ma20_text = ""
+    if total_indices > 0:
+        ma20_text = f"\nTRẠNG THÁI MA20:\n"
+        ma20_text += f"- {len(below_ma20)} trong {total_indices} chỉ số dưới MA20"
+        if above_ma20:
+            ma20_text += f"\n- Còn trên MA20: {', '.join(above_ma20)}"
+        if below_ma20:
+            ma20_text += f"\n- Đã phá vỡ MA20: {', '.join(below_ma20)}"
+
+    # Volume ratio
+    vol_ratio = b.get('volume_ratio')
+    vol_text = ""
+    if vol_ratio is not None:
+        vol_text = f"\n- Volume ratio (tăng/giảm): {vol_ratio:.2f}" if isinstance(vol_ratio, float) else f"\n- Volume ratio: {vol_ratio}"
+
     return f"""Dựa trên dữ liệu thị trường ngày {summary['date']}, viết phân tích tổng quan.
 
 DỮ LIỆU:
-{breadth_text}
-{extra_data}
+{breadth_text}{vol_text}
+{extra_data}{ma20_text}
+
 CÁC CHỈ SỐ:
 {json.dumps(summary['indices_summary'], ensure_ascii=False, indent=2)}
 
@@ -225,6 +256,13 @@ Kết thúc bằng "Ý nghĩa:" đánh giá ý nghĩa của mối quan hệ này
 Sau đó viết 1 dòng cảnh báo bắt đầu bằng "Điều kiện khiến kết luận sai:" mô tả khi nào nhận định sẽ thay đổi.
 
 3. DÒNG TIỀN & XU HƯỚNG
+Phân tích dòng tiền và xu hướng dựa trên DỮ LIỆU CỤ THỂ:
+- Volume ratio tăng/giảm và ý nghĩa (nghiêng về bên mua hay bên bán)
+- Đếm cụ thể bao nhiêu trong bao nhiêu chỉ số đã phá vỡ MA20, gọi tên những chỉ số còn trên MA20
+- Nhận xét về thanh khoản: tập trung bán tháo hay mua vào
+- Nhận định xu hướng downtrend/uptrend dựa trên cấu trúc đáy cao/đáy thấp hơn
+- Áp lực bán lan tỏa từ nhóm nào sang nhóm nào
+Viết dạng đoạn văn tự nhiên, KHÔNG dùng box đặc biệt. Có thể dùng 1 bullet point cho điểm nhấn.
 
 4. HỘI TỤ KỸ THUẬT
 
