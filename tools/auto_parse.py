@@ -15,27 +15,16 @@ from renderer import render_index, render_overview
 
 def parse_all_indices(input_txt, output_js='full_data_new.js'):
     """
-    Parse tất cả indices (overview + 15 chỉ số) từ file text
+    Parse indices từ file text (overview + 4 chỉ số chính)
     """
 
-    # Danh sách tất cả indices cần parse
+    # Danh sách indices cần parse (khớp với REPORT_INDICES trong config.py)
     indices = [
         ('OVERVIEW', 'overview'),
         ('VNINDEX', 'vnindex'),
         ('VN30', 'vn30'),
         ('VN100', 'vn100'),
         ('VNMIDCAP', 'vnmidcap'),
-        ('VNREAL', 'vnreal'),
-        ('VNIT', 'vnit'),
-        ('VNHEAL', 'vnheal'),
-        ('VNFIN', 'vnfin'),
-        ('VNENE', 'vnene'),
-        ('VNCONS', 'vncons'),
-        ('VNMAT', 'vnmat'),
-        ('VNCOND', 'vncond'),
-        ('VNSML', 'vnsml'),
-        ('VNFINSELECT', 'vnfinselect'),
-        ('VNDIAMOND', 'vndiamond')
     ]
 
     # Reliability policy:

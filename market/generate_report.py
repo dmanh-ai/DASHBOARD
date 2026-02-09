@@ -17,7 +17,7 @@ log = logging.getLogger(__name__)
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from config import (
-    INDICES, PART_ORDER, INDEX_SECTIONS, OVERVIEW_SECTIONS,
+    INDICES, PART_ORDER, REPORT_INDICES, INDEX_SECTIONS, OVERVIEW_SECTIONS,
     CLAUDE_MODEL, CLAUDE_MAX_TOKENS,
 )
 
@@ -665,9 +665,9 @@ def assemble_report(overview_text, index_texts):
     lines.append("")
     lines.append("")
 
-    # Phần II trở đi: Các chỉ số
+    # Phần II trở đi: Các chỉ số (chỉ REPORT_INDICES)
     part_num = 2
-    for key in PART_ORDER[1:]:  # Skip "overview"
+    for key in REPORT_INDICES:
         if key not in index_texts or not index_texts[key]:
             continue
 
@@ -714,7 +714,7 @@ def main():
         log.error("No index OHLCV data found. Run collect_data.py first!")
         sys.exit(1)
 
-    # Generate all parts concurrently (overview + 15 indices)
+    # Generate all parts concurrently (overview + REPORT_INDICES)
     index_texts = {}
     overview_text = ""
 
@@ -724,13 +724,14 @@ def main():
     def _gen_index(k):
         return (k, generate_index(k, data))
 
-    max_workers = min(5, len(PART_ORDER))
-    log.info(f"Generating report with {max_workers} concurrent workers...")
+    max_workers = min(5, 1 + len(REPORT_INDICES))
+    log.info(f"Generating report with {max_workers} concurrent workers "
+             f"(overview + {len(REPORT_INDICES)} indices: {REPORT_INDICES})...")
 
     with ThreadPoolExecutor(max_workers=max_workers) as executor:
         futures = []
         futures.append(executor.submit(_gen_overview))
-        for key in PART_ORDER[1:]:
+        for key in REPORT_INDICES:
             futures.append(executor.submit(_gen_index, key))
 
         for future in as_completed(futures):
@@ -755,7 +756,7 @@ def main():
 
     log.info(f"Report saved: {output_path}")
     log.info(f"Report size: {output_path.stat().st_size:,} bytes")
-    log.info(f"Indices generated: {len(index_texts)}/15")
+    log.info(f"Indices generated: {len(index_texts)}/{len(REPORT_INDICES)}")
 
     # Cũng lưu path ra stdout để script khác đọc được
     print(f"REPORT_PATH={output_path}")
