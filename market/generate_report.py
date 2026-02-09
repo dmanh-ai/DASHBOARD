@@ -511,6 +511,59 @@ RIÊNG phần RỦI RO, viết ĐÚNG format sau (KHÔNG dùng "Kết luận ng�
 
 Ý nghĩa: Hành động: [1 câu chiến lược vốn, ví dụ "Ưu tiên bảo toàn vốn trong ngắn hạn. Chỉ xem xét gia tăng rủi ro khi có sự đồng thuận cải thiện giữa giá và breadth."]
 
+RIÊNG phần KHUYẾN NGHỊ VỊ THẾ, viết ĐÚNG format sau (KHÔNG dùng "Kết luận ngắn:" box):
+
+[1 câu mở đầu nêu plan chính: "TẠM ĐỨNG NGOÀI" hoặc "GIỮ VỊ THẾ HIỆN TẠI MÀ KHÔNG BỔ SUNG" hoặc "TÌM ĐIỂM MUA THỬ" cho khung ngắn và trung hạn. Mức độ tự tin: CAO/TRUNG BÌNH/THẤP ([X]/10).]
+
+Dẫn chứng cho hành động [chờ đợi/mua/bán]:
+[Đoạn 1: Áp lực bán/mua trong phiên]
+[Đoạn 2: Breadth - nêu % mã tăng, tỷ lệ, breadth percentile, cần chờ số mã tăng phục hồi trên [X] như tín hiệu ổn định]
+[Đoạn 3: Cung-Cầu - giá vs VWAP20 và POC, đợt hồi về MA5/MA10 gặp áp lực chốt lời]
+
+Điều kiện để thay đổi khuyến nghị (chuyển sang "[plan mới]"):
+1. [Điều kiện giá: hình thành đáy/đỉnh rõ ràng tại vùng [X]-[Y] (có nến phản ứng hoặc sideways tích lũy) VÀ đồng thời]
+2. [Điều kiện breadth: cán cân cung/cầu [X], tỷ lệ khối lượng tăng/giảm > [X] trong ít nhất 1 phiên]
+
+RIÊNG phần GIÁ MỤC TIÊU, viết ĐÚNG format sau (KHÔNG dùng "Kết luận ngắn:" box):
+
+[1 câu mở đầu: tập trung vào các vùng giá then chốt để ra quyết định vào/lệnh hoặc cắt lỗ, thay vì một con số cố định.]
+
+- Kịch bản GIẢM (Khả năng cao ngắn hạn):
+Mục tiêu 1 (Hỗ trợ gần): [range]. [Giải thích: vùng đáy, MA50, VWAP5]
+Hành động: [1 câu: quan sát phản ứng mua tại đây]
+Mục tiêu 2 (Hỗ trợ trung hạn): ~ [giá]. [Giải thích: MA100, hỗ trợ xa]
+Hành động: [1 câu: điều kiện mua thử với khối lượng nhỏ]
+
+- Kịch bản TĂNG (Cần điều kiện cải thiện):
+Mục tiêu 1 (Kháng cự gần): [range]. [Giải thích: MA5, MA10]. Mọi đợt phục hồi đầu tiên đều khó vượt qua.
+Hành động: [1 câu: vùng chốt lời cho người mua]
+Mục tiêu 2 (Kháng cự then chốt): [range]. [Giải thích: MA20, VWAP20]. Vượt và giữ trên vùng này = tín hiệu xu hướng giảm có thể kết thúc.
+Hành động: [1 câu: theo dõi khối lượng và breadth]
+
+RIÊNG phần KỊCH BẢN WHAT-IF, viết ĐÚNG format sau (KHÔNG dùng "Kết luận ngắn:" box):
+
+Kịch Bản "What-if"
+[1 câu mở đầu: thống nhất 3 kịch bản chính với xác suất ước lượng dựa trên hiện trạng.]
+
+1. Kịch bản Tích Cực ([mô tả ngắn]) - Xác suất [X-Y]%
+- Diễn biến: [Giá giữ vững, bật mạnh từ vùng [X]-[Y], đóng cửa trên [Z] với khối lượng lớn. Breadth cải thiện nhanh (cán cân cung/cầu, số mã tăng). Drivers ổn định.]
+Hành động: [khuyến nghị cụ thể với mức giá vào lệnh, stoploss]
+
+2. Kịch bản Trung Tính ([mô tả ngắn]) - Xác suất [X-Y]%
+- Diễn biến: [Giá dao động biên độ hẹp quanh vùng [X]-[Y] trong [N] phiên tới. Biến động giảm, khối lượng giảm dần. Breadth thoát cực đoan nhưng chưa mạnh.]
+Hành động: [khuyến nghị: quan sát, đứng ngoài, chờ breakout với khối lượng tăng]
+
+3. Kịch bản Tiêu Cực ([mô tả ngắn]) - Xác suất [X-Y]%
+- Diễn biến: [Giá phá vỡ hỗ trợ [X], kiểm tra vùng [Y]. Breadth tiếp tục yếu (số mã tăng < [Z]). Các driver chính tiếp tục giảm.]
+Hành động: [khuyến nghị: không mua đón đáy, cắt lỗ nếu đang giữ, điều kiện mua lại khi có tín hiệu tích lũy]
+
+3-METRIC LEADERSHIP (vs VNINDEX):
+- Nhịp dẫn dắt: [nhóm nào đang dẫn dắt hay chưa có nhóm nổi trội]
+- Vượt trội 20 phiên (so với VNINDEX): [liệt kê chỉ số outperform với % vượt trội]
+- Tụt hậu 20 phiên (so với VNINDEX): [liệt kê chỉ số underperform với % tụt hậu]
+- Đồng thuận 5 & 20 phiên: [liệt kê chỉ số có xu hướng nhất quán cả 5 và 20 phiên]
+- Ghi chú: dùng để chọn "nhóm dẫn dắt / tụt hậu", tránh kết luận chỉ dựa 1 phiên.
+
 12 PHẦN CẦN VIẾT:
 
 XU HƯỚNG GIÁ
