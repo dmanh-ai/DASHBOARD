@@ -50,14 +50,14 @@ jobs:
       # STEP 1: THU THẬP DATA
       # ====================================================================
       - name: Collect market data from dmanh-ai/vnstock
-        run: python market/collect_data.py
+        run: python3 market/collect_data.py
 
       # ====================================================================
       # STEP 2: AI VIẾT BÁO CÁO
       # ====================================================================
       - name: Generate AI report
         run: |
-          OUTPUT=$(python market/generate_report.py)
+          OUTPUT=$(python3 market/generate_report.py)
           REPORT_PATH=$(echo "$OUTPUT" | grep "REPORT_PATH=" | cut -d= -f2)
           echo "REPORT_PATH=$REPORT_PATH" >> $GITHUB_ENV
           echo "Report generated: $REPORT_PATH"
@@ -80,7 +80,7 @@ jobs:
           TIMESTAMP=$(basename "$REPORT_PATH" .txt | sed 's/BaoCao_//')
           OUTPUT_JS="full_data_${TIMESTAMP}.js"
 
-          python tools/auto_parse.py "$REPORT_PATH" "$OUTPUT_JS"
+          python3 tools/auto_parse.py "$REPORT_PATH" "$OUTPUT_JS"
 
           # Validate JS syntax
           node --check "$OUTPUT_JS"
@@ -107,7 +107,7 @@ jobs:
       # STEP 5: GENERATE JS DATA FILES
       # ====================================================================
       - name: Generate JS data files
-        run: python market/generate_market_data_js.py
+        run: python3 market/generate_market_data_js.py
 
       # ====================================================================
       # STEP 6: GENERATE META
