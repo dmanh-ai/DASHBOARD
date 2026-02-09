@@ -386,10 +386,32 @@ Hành động gợi ý: [Khuyến nghị cụ thể với mức giá rõ ràng]
 
 Điều kiện khiến kết luận sai: [Kịch bản invalidation cụ thể với mức giá]
 
-RIÊNG phần XU HƯỚNG GIÁ, mục "Dẫn chứng & Ý nghĩa" phải chia thành:
-- Ngắn hạn (1-5 phiên): [phân tích MA5, MA10, momentum ngắn]
-- Trung hạn (10-20 phiên): [phân tích MA20, momentum trung]
-- Dài hạn (>50 phiên): [phân tích MA50, MA200]
+RIÊNG phần XU HƯỚNG GIÁ, viết ĐÚNG format sau (KHÔNG dùng "Dẫn chứng & Ý nghĩa", KHÔNG dùng "Hành động gợi ý"):
+
+Kết luận ngắn: [1 câu tổng kết xu hướng ngắn/trung/dài hạn]
+
+Dẫn chứng từ dữ liệu:
+- Ngắn hạn (1 - 5 phiên): Giá ([close]) nằm dưới/trên tất cả các đường MA ngắn (đường xu hướng 5 phiên= [MA5], đường xu hướng 20 phiên= [MA20]).
+  Đoạn tiếp: Momentum 5 phiên âm/dương sâu ([%]), tín hiệu hướng phần (5 phiên) ở mức [RSI] (quá bán/mua cực độ) cho thấy [nhận xét].
+- Trung hạn (10 - 20 phiên): Giá nằm dưới/trên đường xu hướng 20 phiên ([MA20]) và đã giảm/tăng [X%] trong 20 phiên, độ mạnh xu hướng (20 phiên) ở mức [ADX] cho thấy xu hướng [nhận xét sức mạnh].
+- Dài hạn (> 50 phiên): Giá vẫn nằm trên/dưới đường xu hướng 50 phiên ([MA50]) và đường xu hướng 100 phiên ([MA100]). Momentum 50 và 100 phiên vẫn dương/âm (lần lượt [X] và [Y]), xác nhận xu hướng [nhận xét].
+
+Kiểm tra Divergence & Alignment:
+Tín hiệu hướng phần Divergence: [Giá và RSI có divergence không? Cả giá và tín hiệu hướng phần ngắn/trung hạn đang đồng hành hay phân kỳ?]
+Độ mạnh xu hướng Alignment: độ mạnh xu hướng (5 phiên) ở mức [ADX_5] kết hợp với giá [tăng/giảm] mạnh, cho thấy [đánh giá độ tin cậy xu hướng].
+Độ mạnh xu hướng (20 phiên) ([ADX_20]) đang [tăng/giảm] → báo hiệu xu hướng [đang thiết lập/suy yếu].
+
+Ý nghĩa: Hành động: [khuyến nghị giao dịch ngắn gọn 1 câu, ví dụ "Lực bán chiếm ưu thế tuyệt đối."]
+[2-3 câu bổ sung: có nên mua/bán không, chờ tín hiệu gì]
+
+Điều kiện khiến kết luận sai: [kịch bản invalidation với mức giá cụ thể từ MA, ví dụ "Giá phục hồi mạnh, đóng cửa vượt lên và giữ được trên vùng đường xu hướng 5 phiên ([MA5]) với khối lượng lớn."]
+
+GHI CHÚ THUẬT NGỮ cho XU HƯỚNG GIÁ:
+- Gọi RSI là "tín hiệu hướng phần"
+- Gọi ADX là "độ mạnh xu hướng"
+- Gọi MA là "đường xu hướng X phiên"
+- Gọi Momentum là "Momentum X phiên"
+- KHÔNG viết tắt RSI, ADX, MA trong phần XU HƯỚNG GIÁ
 
 14 PHẦN CẦN VIẾT:
 
