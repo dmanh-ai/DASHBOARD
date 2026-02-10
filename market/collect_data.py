@@ -20,7 +20,7 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(me
 log = logging.getLogger(__name__)
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from config import INDICES, AVAILABLE_CSV, PRICE_SCALE, GITHUB_DATA_URL
+from config import INDICES, AVAILABLE_CSV, PRICE_SCALE, GITHUB_DATA_URL, GITHUB_STOCK_DATA_BASE
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 CACHE_DIR = PROJECT_ROOT / "market_cache"
@@ -291,6 +291,190 @@ def compute_breadth_from_indices(index_data):
 
 
 # ============================================================================
+# 4. THU THẬP STOCK-LEVEL DATA TỪ VNSTOCK REPO
+# ============================================================================
+
+def _fetch_stock_csv(asof_date, filename, max_retries=3):
+    """Fetch stock-level CSV from vnstock repo daily folder."""
+    import time
+    url = f"{GITHUB_STOCK_DATA_BASE}/{asof_date}/{filename}"
+    log.info(f"  Fetching: {url}")
+
+    for attempt in range(max_retries):
+        try:
+            req = Request(url, headers={"User-Agent": "DASHBOARD-Pipeline/1.0"})
+            with urlopen(req, timeout=30) as resp:
+                text = resp.read().decode("utf-8-sig")
+            reader = csv.DictReader(io.StringIO(text))
+            rows = list(reader)
+            log.info(f"  OK: {filename} → {len(rows)} rows")
+            return rows
+        except URLError as e:
+            log.warning(f"  Attempt {attempt+1} failed: {e}")
+            if attempt < max_retries - 1:
+                time.sleep(2 ** (attempt + 1))
+        except Exception as e:
+            log.error(f"  Error parsing {filename}: {e}")
+            return []
+
+    log.error(f"  FAILED to fetch {filename} after {max_retries} attempts")
+    return []
+
+
+def _parse_price_board_stock(row):
+    """Parse 1 row từ price_board.csv thành stock dict."""
+    symbol = row.get("symbol", "").strip()
+    if not symbol:
+        return None
+
+    ref_price = parse_float(row.get("ref_price"))
+    match_price = parse_float(row.get("match_price"))
+    if not ref_price or not match_price or ref_price == 0:
+        return None
+
+    change_pct = round((match_price - ref_price) / ref_price * 100, 2)
+    acc_value = parse_float(row.get("accumulated_value")) or 0
+    acc_volume = parse_int(row.get("accumulated_volume"))
+
+    return {
+        "symbol": symbol,
+        "change_pct": change_pct,
+        "price": match_price,
+        "volume": acc_volume,
+        "value": acc_value,
+    }
+
+
+def collect_stock_data(asof_date):
+    """Thu thập stock-level data (heatmap, breadth, impact) từ vnstock repo."""
+    log.info("=" * 60)
+    log.info(f"STEP 4: Thu thập Stock Data cho ngày {asof_date}...")
+
+    result = {
+        "asof": asof_date,
+        "gainers": [],
+        "losers": [],
+        "breadth": {},
+        "index_impact": {},
+        "index_stocks": {},
+    }
+
+    # --- Top gainers ---
+    rows = _fetch_stock_csv(asof_date, "top_gainers.csv")
+    for row in rows[:30]:
+        symbol = row.get("symbol", "")
+        if not symbol:
+            continue
+        result["gainers"].append({
+            "symbol": symbol,
+            "change_pct": parse_float(row.get("percent_change")) or 0,
+            "price": parse_float(row.get("close_price")) or 0,
+            "volume": parse_int(row.get("total_trades")),
+            "value": parse_float(row.get("total_value")) or 0,
+        })
+    log.info(f"  Gainers: {len(result['gainers'])} stocks")
+
+    # --- Top losers ---
+    rows = _fetch_stock_csv(asof_date, "top_losers.csv")
+    for row in rows[:30]:
+        symbol = row.get("symbol", "")
+        if not symbol:
+            continue
+        result["losers"].append({
+            "symbol": symbol,
+            "change_pct": parse_float(row.get("percent_change")) or 0,
+            "price": parse_float(row.get("close_price")) or 0,
+            "volume": parse_int(row.get("total_trades")),
+            "value": parse_float(row.get("total_value")) or 0,
+        })
+    log.info(f"  Losers: {len(result['losers'])} stocks")
+
+    # --- Market breadth (real stock-level) ---
+    rows = _fetch_stock_csv(asof_date, "market_breadth.csv")
+    for row in rows:
+        if row.get("exchange", "").upper() == "HOSE":
+            result["breadth"] = {
+                "asof": asof_date,
+                "advancing": parse_int(row.get("advancing")),
+                "declining": parse_int(row.get("declining")),
+                "unchanged": parse_int(row.get("unchanged")),
+                "total_stocks": parse_int(row.get("total_stocks")),
+                "net_ad": parse_int(row.get("net_ad")),
+                "source": "vnstock-repo",
+            }
+            break
+
+    if result["breadth"]:
+        save_json(result["breadth"], "breadth_snapshot.json")
+        b = result["breadth"]
+        log.info(f"  Breadth (HOSE): +{b['advancing']} / -{b['declining']} / ={b['unchanged']}")
+
+    # --- Index impact ---
+    pos_rows = _fetch_stock_csv(asof_date, "index_impact_positive.csv")
+    neg_rows = _fetch_stock_csv(asof_date, "index_impact_negative.csv")
+    impact = {"positive": [], "negative": []}
+    for row in pos_rows[:10]:
+        symbol = row.get("symbol", "")
+        if symbol:
+            impact["positive"].append({
+                "symbol": symbol,
+                "change_pct": parse_float(row.get("percent_change")) or 0,
+                "impact": parse_float(row.get("impact")) or parse_float(row.get("point_change")) or 0,
+            })
+    for row in neg_rows[:10]:
+        symbol = row.get("symbol", "")
+        if symbol:
+            impact["negative"].append({
+                "symbol": symbol,
+                "change_pct": parse_float(row.get("percent_change")) or 0,
+                "impact": parse_float(row.get("impact")) or parse_float(row.get("point_change")) or 0,
+            })
+    if impact["positive"] or impact["negative"]:
+        result["index_impact"] = impact
+        log.info(f"  Index impact: {len(impact['positive'])} positive, {len(impact['negative'])} negative")
+
+    # --- Per-index stock data from price_board.csv ---
+    pb_rows = _fetch_stock_csv(asof_date, "price_board.csv")
+    if pb_rows:
+        from index_constituents import VN30
+
+        # Parse all HOSE stocks
+        hose_stocks = {}
+        for row in pb_rows:
+            exchange = row.get("exchange", "").strip()
+            if exchange not in ("HSX", "HOSE"):
+                continue
+            stock = _parse_price_board_stock(row)
+            if stock and stock["symbol"] not in hose_stocks:
+                hose_stocks[stock["symbol"]] = stock
+
+        log.info(f"  Price board: {len(hose_stocks)} HOSE stocks parsed")
+
+        # VN30: filter by constituent list
+        vn30_stocks = [hose_stocks[s] for s in VN30 if s in hose_stocks]
+        if vn30_stocks:
+            result["index_stocks"]["VN30"] = {"stocks": vn30_stocks}
+            log.info(f"  VN30: {len(vn30_stocks)} stocks")
+
+        # VN100: top 100 HOSE stocks by accumulated_value
+        all_hose = sorted(hose_stocks.values(), key=lambda x: x.get("value", 0), reverse=True)
+        vn100_stocks = all_hose[:100]
+        if vn100_stocks:
+            result["index_stocks"]["VN100"] = {"stocks": vn100_stocks}
+            log.info(f"  VN100: {len(vn100_stocks)} stocks (top 100 by value)")
+
+        # VNMIDCAP: VN100 stocks NOT in VN30
+        vn30_set = set(VN30)
+        vnmid_stocks = [s for s in vn100_stocks if s["symbol"] not in vn30_set]
+        if vnmid_stocks:
+            result["index_stocks"]["VNMID"] = {"stocks": vnmid_stocks}
+            log.info(f"  VNMID: {len(vnmid_stocks)} stocks (VN100 minus VN30)")
+
+    save_json(result, "stock_snapshot.json")
+    return result
+
+
+# ============================================================================
 # MAIN
 # ============================================================================
 
@@ -309,8 +493,12 @@ def main():
     # Step 2: Enrich with additional indicators
     index_data = enrich_indicators(index_data)
 
-    # Step 3: Breadth from indices
+    # Step 3: Breadth from indices (fallback, may be overwritten by Step 4)
     compute_breadth_from_indices(index_data)
+
+    # Step 4: Stock-level data (heatmap, real breadth, index impact)
+    asof_date = max(d["latest"]["date"] for d in index_data.values())
+    collect_stock_data(asof_date)
 
     log.info("=" * 60)
     log.info(f"DATA COLLECTION COMPLETED! Indices: {list(index_data.keys())}")
