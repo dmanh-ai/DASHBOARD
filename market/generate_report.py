@@ -41,20 +41,9 @@ def load_json(filename):
 
 def load_all_data():
     """Load tất cả data đã thu thập."""
-    # Load stock snapshot for real breadth data
-    stock_snapshot = load_json("stock_snapshot.json")
-    stock_breadth = stock_snapshot.get("breadth", {}) if stock_snapshot else {}
-
-    # Prefer stock-level breadth if available, fallback to index-level
-    if stock_breadth and stock_breadth.get("total_stocks", 0) > 50:
-        breadth = stock_breadth
-    else:
-        breadth = load_json("breadth_snapshot.json")
-
     return {
         "index_ohlcv": load_json("index_ohlcv.json"),
-        "breadth": breadth,
-        "stock_snapshot": stock_snapshot or {},
+        "breadth": load_json("breadth_snapshot.json"),
     }
 
 
@@ -118,10 +107,6 @@ def prepare_overview_summary(data):
 
     breadth = data["breadth"]
 
-    # Stock impact data (which stocks drive VNINDEX)
-    stock_snapshot = data.get("stock_snapshot", {})
-    index_impact = stock_snapshot.get("index_impact", {})
-
     # Pre-compute MA20 status for money flow analysis
     above_ma20 = []
     below_ma20 = []
@@ -135,9 +120,6 @@ def prepare_overview_summary(data):
         "date": data["index_ohlcv"].get("asof", ""),
         "indices_summary": summaries,
         "breadth": breadth,
-        "index_impact": index_impact,
-        "top_gainers": stock_snapshot.get("gainers", [])[:10],
-        "top_losers": stock_snapshot.get("losers", [])[:10],
         "above_ma20": above_ma20,
         "below_ma20": below_ma20,
     }
@@ -184,41 +166,6 @@ def build_overview_prompt(summary):
         breadth_lines.append(f"- McClellan Oscillator: {mcclellan:.2f} ({mcc_type})" if isinstance(mcclellan, float) else f"- McClellan: {mcclellan}")
     breadth_text = "\n".join(breadth_lines)
 
-    # Build index impact description (stock contributions to VNINDEX)
-    impact = summary.get('index_impact', {})
-    impact_text = ""
-    pos_list = impact.get('positive', [])
-    neg_list = impact.get('negative', [])
-    if pos_list or neg_list:
-        lines = ["CỔ PHIẾU TÁC ĐỘNG ĐẾN VNINDEX:"]
-        if neg_list:
-            neg_items = [f"  {s['symbol']} ({s['change_pct']:+.2f}%, đóng góp {s['impact']:+.3f})" for s in neg_list[:5]]
-            lines.append("- Kéo xuống: " + ", ".join(neg_items))
-        if pos_list:
-            pos_items = [f"  {s['symbol']} ({s['change_pct']:+.2f}%, đóng góp {s['impact']:+.3f})" for s in pos_list[:5]]
-            lines.append("- Nâng đỡ: " + ", ".join(pos_items))
-        impact_text = "\n".join(lines)
-
-    # Build top movers description
-    top_gainers = summary.get('top_gainers', [])
-    top_losers = summary.get('top_losers', [])
-    movers_text = ""
-    if top_gainers or top_losers:
-        lines = ["TOP CỔ PHIẾU BIẾN ĐỘNG:"]
-        if top_gainers:
-            g_items = [f"{s['symbol']} ({s['change_pct']:+.2f}%)" for s in top_gainers[:5]]
-            lines.append(f"- Tăng mạnh nhất: {', '.join(g_items)}")
-        if top_losers:
-            l_items = [f"{s['symbol']} ({s['change_pct']:+.2f}%)" for s in top_losers[:5]]
-            lines.append(f"- Giảm mạnh nhất: {', '.join(l_items)}")
-        movers_text = "\n".join(lines)
-
-    extra_data = ""
-    if impact_text:
-        extra_data += f"\n{impact_text}\n"
-    if movers_text:
-        extra_data += f"\n{movers_text}\n"
-
     # MA20 status summary
     above_ma20 = summary.get('above_ma20', [])
     below_ma20 = summary.get('below_ma20', [])
@@ -232,17 +179,11 @@ def build_overview_prompt(summary):
         if below_ma20:
             ma20_text += f"\n- Đã phá vỡ MA20: {', '.join(below_ma20)}"
 
-    # Volume ratio
-    vol_ratio = b.get('volume_ratio')
-    vol_text = ""
-    if vol_ratio is not None:
-        vol_text = f"\n- Volume ratio (tăng/giảm): {vol_ratio:.2f}" if isinstance(vol_ratio, float) else f"\n- Volume ratio: {vol_ratio}"
-
     return f"""Dựa trên dữ liệu thị trường ngày {summary['date']}, viết phân tích tổng quan.
 
 DỮ LIỆU:
-{breadth_text}{vol_text}
-{extra_data}{ma20_text}
+{breadth_text}
+{ma20_text}
 
 CÁC CHỈ SỐ:
 {json.dumps(summary['indices_summary'], ensure_ascii=False, indent=2)}
@@ -258,8 +199,7 @@ Phân tích bức tranh chung: breadth, volume, xu hướng chính. Kết thúc 
 
 2. PHÂN TÍCH MỐI QUAN HỆ
 Phân tích mối quan hệ giữa các nhóm vốn hóa (largecap/midcap/smallcap) qua VN100, VN30, VNMIDCAP, VNSML.
-NẾU CÓ dữ liệu cổ phiếu tác động, đề cập cụ thể tên mã cổ phiếu kéo xuống/nâng đỡ VNINDEX với % thay đổi và điểm đóng góp.
-Ví dụ: "VCB (-4.83%, đóng góp -0.211), HPG (-2.72%, đóng góp -0.102)..."
+So sánh mức thay đổi giữa các nhóm, nhóm nào mạnh/yếu hơn, phân kỳ hay đồng thuận.
 Kết thúc bằng "Ý nghĩa:" đánh giá ý nghĩa của mối quan hệ này.
 Sau đó viết 1 dòng cảnh báo bắt đầu bằng "Điều kiện khiến kết luận sai:" mô tả khi nào nhận định sẽ thay đổi.
 
