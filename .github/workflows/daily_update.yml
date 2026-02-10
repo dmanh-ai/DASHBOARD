@@ -1,9 +1,9 @@
 name: Daily Market Update
 
 on:
-  # Chạy tự động lúc 11:00 UTC = 18:00 VN time (sau khi thị trường đóng cửa)
+  # Chạy tự động lúc 08:15 UTC = 15:15 VN time (sau khi thị trường đóng cửa)
   schedule:
-    - cron: '0 11 * * 1-5'  # Thứ 2-6, 18:00 VN
+    - cron: '15 8 * * 1-5'  # Thứ 2-6, 15:15 VN
 
   # Cho phép chạy thủ công
   workflow_dispatch:
