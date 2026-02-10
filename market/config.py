@@ -51,6 +51,8 @@ PRICE_SCALE = 1000.0
 
 # GitHub raw URL cho data
 GITHUB_DATA_URL = "https://raw.githubusercontent.com/dmanh-ai/vnstock/main/data/indices"
+# Stock-level data (daily folder)
+GITHUB_STOCK_DATA_BASE = "https://raw.githubusercontent.com/dmanh-ai/vnstock/main/data"
 
 # Thứ tự phần trong báo cáo
 # PART_ORDER: tất cả chỉ số (dùng cho overview - cần data tất cả để xếp hạng/phân tích ngành)

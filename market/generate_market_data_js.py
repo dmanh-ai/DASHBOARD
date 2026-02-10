@@ -102,6 +102,76 @@ def generate_vnindex_price_20d():
 
 
 # ============================================================================
+# 4. VNINDEX HEATMAP (from stock_snapshot.json)
+# ============================================================================
+
+def generate_vnindex_heatmap():
+    """Tạo vnindex_heatmap_data.js - heatmap cổ phiếu tăng/giảm VNINDEX."""
+    stock = load_json("stock_snapshot.json")
+    if not stock:
+        log.warning("No stock_snapshot.json, skipping vnindex heatmap")
+        return
+
+    gainers = stock.get("gainers", [])
+    losers = stock.get("losers", [])
+
+    if not gainers and not losers:
+        log.warning("No gainers/losers data, skipping vnindex heatmap")
+        return
+
+    output = {
+        "date": stock.get("asof", ""),
+        "gainers": gainers,
+        "losers": losers,
+    }
+
+    write_js("vnindex_heatmap_data.js", "UI_GLM_VNINDEX_HEATMAP", output)
+
+
+# ============================================================================
+# 5. INDEX HEATMAPS (VN30, VN100, VNMIDCAP from price_board)
+# ============================================================================
+
+def generate_index_heatmaps():
+    """Tạo index_heatmap_data.js - heatmap cho VN30, VN100, VNMIDCAP."""
+    stock = load_json("stock_snapshot.json")
+    if not stock:
+        log.warning("No stock_snapshot.json, skipping index heatmaps")
+        return
+
+    index_stocks = stock.get("index_stocks", {})
+    if not index_stocks:
+        log.warning("No per-index stock data, skipping index heatmaps")
+        return
+
+    output = {
+        "asof": stock.get("asof", ""),
+        "indices": {},
+    }
+
+    for idx_name, idx_data in index_stocks.items():
+        stocks = idx_data.get("stocks", [])
+        gainers = sorted(
+            [s for s in stocks if (s.get("change_pct") or 0) > 0],
+            key=lambda x: x.get("change_pct", 0),
+            reverse=True,
+        )[:30]
+        losers = sorted(
+            [s for s in stocks if (s.get("change_pct") or 0) < 0],
+            key=lambda x: x.get("change_pct", 0),
+        )[:30]
+
+        output["indices"][idx_name] = {
+            "gainers": gainers,
+            "losers": losers,
+            "count_pos": len([s for s in stocks if (s.get("change_pct") or 0) > 0]),
+            "count_neg": len([s for s in stocks if (s.get("change_pct") or 0) < 0]),
+        }
+
+    write_js("index_heatmap_data.js", "UI_GLM_INDEX_HEATMAPS", output)
+
+
+# ============================================================================
 # MAIN
 # ============================================================================
 
@@ -113,6 +183,8 @@ def main():
     generate_index_ohlcv()
     generate_breadth_snapshot()
     generate_vnindex_price_20d()
+    generate_vnindex_heatmap()
+    generate_index_heatmaps()
 
     log.info("=" * 60)
     log.info("ALL JS FILES GENERATED!")
