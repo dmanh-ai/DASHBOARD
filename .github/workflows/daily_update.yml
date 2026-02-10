@@ -17,6 +17,11 @@ env:
   ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
   UI_GLM_MIN_SUCCESS_ITEMS: "3"
 
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
 jobs:
   update-dashboard:
     runs-on: ubuntu-latest
@@ -183,3 +188,14 @@ jobs:
           git push origin main
 
           echo "Pushed to main successfully!"
+
+      # ====================================================================
+      # STEP 8: TRIGGER GITHUB PAGES REBUILD
+      # ====================================================================
+      - name: Trigger Pages deployment
+        run: |
+          curl -s -X POST \
+            -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+            -H "Accept: application/vnd.github.v3+json" \
+            "https://api.github.com/repos/${{ github.repository }}/pages/builds"
+          echo "Pages rebuild triggered!"
