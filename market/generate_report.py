@@ -311,7 +311,7 @@ DỮ LIỆU:
 GIÁ 20 PHIÊN GẦN NHẤT:
 {json.dumps(summary['recent_20_bars'], ensure_ascii=False)}
 
-Viết ĐÚNG 12 phần, mỗi phần bắt đầu bằng tiêu đề IN HOA trên dòng riêng.
+Viết ĐÚNG 10 phần, mỗi phần bắt đầu bằng tiêu đề IN HOA trên dòng riêng.
 MỖI PHẦN BẮT BUỘC theo cấu trúc sau:
 
 Kết luận ngắn: [1 câu tóm tắt nhận định chính]
@@ -503,7 +503,7 @@ Hành động: [khuyến nghị: không mua đón đáy, cắt lỗ nếu đang 
 - Đồng thuận 5 & 20 phiên: [liệt kê chỉ số có xu hướng nhất quán cả 5 và 20 phiên]
 - Ghi chú: dùng để chọn "nhóm dẫn dắt / tụt hậu", tránh kết luận chỉ dựa 1 phiên.
 
-12 PHẦN CẦN VIẾT:
+10 PHẦN CẦN VIẾT:
 
 XU HƯỚNG GIÁ
 
@@ -517,17 +517,13 @@ MỨC GIÁ QUAN TRỌNG
 
 BIẾN ĐỘNG GIÁ
 
-MARKET BREADTH & TÂM LÝ THỊ TRƯỜNG
-
 RỦI RO
 
 KHUYẾN NGHỊ VỊ THẾ
 
 GIÁ MỤC TIÊU
 
-KỊCH BẢN WHAT-IF
-
-THÔNG TIN CHUNG"""
+KỊCH BẢN WHAT-IF"""
 
 
 # ============================================================================

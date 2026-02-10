@@ -65,7 +65,7 @@ PART_ORDER = [
 # REPORT_INDICES: chỉ số được viết phân tích AI chi tiết (12 sections mỗi chỉ số)
 REPORT_INDICES = ["vnindex", "vn30", "vn100", "vnmidcap"]
 
-# 12 section titles cho mỗi chỉ số (phải khớp regex trong smart_parser.py)
+# 10 section titles cho mỗi chỉ số (phải khớp regex trong smart_parser.py)
 INDEX_SECTIONS = [
     "XU HƯỚNG GIÁ",
     "XU HƯỚNG KHỐI LƯỢNG",
@@ -73,12 +73,10 @@ INDEX_SECTIONS = [
     "CUNG-CẦU",
     "MỨC GIÁ QUAN TRỌNG",
     "BIẾN ĐỘNG GIÁ",
-    "MARKET BREADTH & TÂM LÝ THỊ TRƯỜNG",
     "RỦI RO",
     "KHUYẾN NGHỊ VỊ THẾ",
     "GIÁ MỤC TIÊU",
     "KỊCH BẢN WHAT-IF",
-    "THÔNG TIN CHUNG",
 ]
 
 # 7 section titles cho overview
