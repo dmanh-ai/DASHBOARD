@@ -141,7 +141,7 @@ QUY TẮC FORMAT BẮT BUỘC cho mỗi section phân tích chỉ số:
 QUY TẮC VIẾT:
 - Dùng số liệu CỤ THỂ từ data (giá, MA, RSI, volume...)
 - KHÔNG dùng markdown formatting (**, ##, -, •). Viết plain text.
-- KHÔNG viết lại tiêu đề section.
+- Mỗi phần BẮT BUỘC bắt đầu bằng TIÊU ĐỀ SECTION trên 1 dòng riêng biệt (ví dụ: XU HƯỚNG GIÁ, rồi xuống dòng mới viết nội dung)
 - Dùng dấu phẩy phân cách hàng nghìn: 1,856 (không phải 1.856)
 - Dùng T-0 (hôm nay), T-1, T-2... cho các phiên trước
 - Gọi MA là "đường xu hướng X phiên" khi giải thích"""
