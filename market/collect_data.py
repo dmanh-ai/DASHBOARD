@@ -1,6 +1,6 @@
 """
-Thu thập dữ liệu chứng khoán VN từ repo dmanh-ai/vnstock.
-Đọc CSV files có sẵn tại: github.com/dmanh-ai/vnstock/data/indices/
+Thu thập dữ liệu chứng khoán VN từ repo dmanh-ai/data.
+Đọc CSV files có sẵn tại: github.com/dmanh-ai/data/data/indices/
 Indicators (SMA, RSI, MACD, BB) đã được tính sẵn trong CSV.
 Output: JSON files trong market_cache/
 """
@@ -27,7 +27,7 @@ CACHE_DIR = PROJECT_ROOT / "market_cache"
 CACHE_DIR.mkdir(parents=True, exist_ok=True)
 
 # ============================================================================
-# DATA SOURCE: GitHub repo dmanh-ai/vnstock
+# DATA SOURCE: GitHub repo dmanh-ai/data
 # ============================================================================
 
 GITHUB_RAW_BASE = GITHUB_DATA_URL
@@ -296,7 +296,7 @@ def compute_breadth_from_indices(index_data):
 
 def main():
     log.info("=" * 60)
-    log.info("DATA COLLECTION STARTED (source: dmanh-ai/vnstock)")
+    log.info("DATA COLLECTION STARTED (source: dmanh-ai/data)")
     log.info("=" * 60)
 
     # Step 1: Fetch index OHLCV + indicators from CSV
