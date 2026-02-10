@@ -3979,18 +3979,7 @@
                 { key: 'vnindex', name: 'VNINDEX' },
                 { key: 'vn30', name: 'VN30' },
                 { key: 'vn100', name: 'VN100' },
-                { key: 'vnmidcap', name: 'VNMIDCAP' },
-                { key: 'vnreal', name: 'VNREAL' },
-                { key: 'vnit', name: 'VNIT' },
-                { key: 'vnheal', name: 'VNHEAL' },
-                { key: 'vnfin', name: 'VNFIN' },
-                { key: 'vnene', name: 'VNENE' },
-                { key: 'vncons', name: 'VNCONS' },
-                { key: 'vnmat', name: 'VNMAT' },
-                { key: 'vncond', name: 'VNCOND' },
-                { key: 'vnsml', name: 'VNSML' },
-                { key: 'vnfinselect', name: 'VNFINSELECT' },
-                { key: 'vndiamond', name: 'VNDIAMOND' }
+                { key: 'vnmidcap', name: 'VNMIDCAP' }
             ];
 
             const indices = all.filter(i => isIndexAllowedForCurrentPlan(i.key));
@@ -4282,17 +4271,6 @@
 	                vn30: 'VN30',
 	                vn100: 'VN100',
 	                vnmidcap: 'VNMID',
-	                vnsml: 'VNSML',
-	                vnfinselect: 'VNFINSELECT',
-	                vndiamond: 'VNDIAMOND',
-	                vnreal: 'VNREAL',
-	                vnit: 'VNIT',
-	                vnheal: 'VNHEAL',
-	                vnfin: 'VNFIN',
-	                vnene: 'VNENE',
-	                vncons: 'VNCONS',
-	                vnmat: 'VNMAT',
-	                vncond: 'VNCOND',
 	            };
 	            return map[indexKey] || null;
 	        }
@@ -4512,17 +4490,6 @@
 	                ['vn30', 'VN30'],
                 ['vn100', 'VN100'],
                 ['vnmidcap', 'VNMIDCAP'],
-                ['vnsml', 'VNSML'],
-                ['vnfinselect', 'VNFINSELECT'],
-                ['vndiamond', 'VNDIAMOND'],
-                ['vnreal', 'VNREAL'],
-                ['vnit', 'VNIT'],
-                ['vnheal', 'VNHEAL'],
-                ['vnfin', 'VNFIN'],
-                ['vnene', 'VNENE'],
-                ['vncons', 'VNCONS'],
-                ['vnmat', 'VNMAT'],
-                ['vncond', 'VNCOND'],
             ];
 
 	            return keys.map(([key, label]) => ({ key, label, ...(parseIndexMetrics(key) || {}) }));
