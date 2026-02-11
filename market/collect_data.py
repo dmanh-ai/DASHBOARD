@@ -475,6 +475,78 @@ def collect_stock_data(asof_date):
 
 
 # ============================================================================
+# 5. THU THẬP DỮ LIỆU NƯỚC NGOÀI
+# ============================================================================
+
+def collect_foreign_data(asof_date):
+    """Thu thập foreign flow, top buy, top sell từ vnstock repo."""
+    log.info("=" * 60)
+    log.info(f"STEP 5: Thu thập Foreign Data cho ngày {asof_date}...")
+
+    result = {
+        "asof": asof_date,
+        "flow": {},
+        "top_buy": [],
+        "top_sell": [],
+    }
+
+    # --- Foreign flow summary ---
+    rows = _fetch_stock_csv(asof_date, "foreign_flow.csv")
+    for row in rows:
+        if row.get("exchange", "").upper() in ("HOSE", "ALL"):
+            key = row.get("exchange", "").upper()
+            result["flow"][key] = {
+                "exchange": key,
+                "buy_volume": parse_int(row.get("foreign_buy_volume")),
+                "sell_volume": parse_int(row.get("foreign_sell_volume")),
+                "net_volume": parse_int(row.get("foreign_net_volume")),
+                "buy_value": parse_float(row.get("foreign_buy_value")) or 0,
+                "sell_value": parse_float(row.get("foreign_sell_value")) or 0,
+                "net_value": parse_float(row.get("foreign_net_value")) or 0,
+            }
+
+    if result["flow"]:
+        log.info(f"  Foreign flow: {list(result['flow'].keys())}")
+
+    # --- Top foreign buy ---
+    rows = _fetch_stock_csv(asof_date, "foreign_top_buy.csv")
+    for row in rows[:20]:
+        symbol = row.get("symbol", "").strip()
+        if not symbol:
+            continue
+        result["top_buy"].append({
+            "symbol": symbol,
+            "exchange": row.get("exchange", "").strip(),
+            "price": parse_float(row.get("close_price")) or 0,
+            "buy_volume": parse_int(row.get("foreign_buy_volume")),
+            "sell_volume": parse_int(row.get("foreign_sell_volume")),
+            "net_volume": parse_int(row.get("foreign_net_volume")),
+            "net_value": parse_float(row.get("foreign_net_value")) or 0,
+        })
+    log.info(f"  Foreign top buy: {len(result['top_buy'])} stocks")
+
+    # --- Top foreign sell ---
+    rows = _fetch_stock_csv(asof_date, "foreign_top_sell.csv")
+    for row in rows[:20]:
+        symbol = row.get("symbol", "").strip()
+        if not symbol:
+            continue
+        result["top_sell"].append({
+            "symbol": symbol,
+            "exchange": row.get("exchange", "").strip(),
+            "price": parse_float(row.get("close_price")) or 0,
+            "buy_volume": parse_int(row.get("foreign_buy_volume")),
+            "sell_volume": parse_int(row.get("foreign_sell_volume")),
+            "net_volume": parse_int(row.get("foreign_net_volume")),
+            "net_value": parse_float(row.get("foreign_net_value")) or 0,
+        })
+    log.info(f"  Foreign top sell: {len(result['top_sell'])} stocks")
+
+    save_json(result, "foreign_data.json")
+    return result
+
+
+# ============================================================================
 # MAIN
 # ============================================================================
 
@@ -499,6 +571,9 @@ def main():
     # Step 4: Stock-level data (heatmap, real breadth, index impact)
     asof_date = max(d["latest"]["date"] for d in index_data.values())
     collect_stock_data(asof_date)
+
+    # Step 5: Foreign flow data
+    collect_foreign_data(asof_date)
 
     log.info("=" * 60)
     log.info(f"DATA COLLECTION COMPLETED! Indices: {list(index_data.keys())}")

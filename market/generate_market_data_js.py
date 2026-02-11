@@ -172,6 +172,20 @@ def generate_index_heatmaps():
 
 
 # ============================================================================
+# 6. FOREIGN FLOW DATA
+# ============================================================================
+
+def generate_foreign_flow():
+    """Tạo foreign_flow_data.js - dữ liệu giao dịch nước ngoài."""
+    data = load_json("foreign_data.json")
+    if not data:
+        log.warning("No foreign_data.json, skipping")
+        return
+
+    write_js("foreign_flow_data.js", "UI_GLM_FOREIGN_FLOW", data)
+
+
+# ============================================================================
 # MAIN
 # ============================================================================
 
@@ -185,6 +199,7 @@ def main():
     generate_vnindex_price_20d()
     generate_vnindex_heatmap()
     generate_index_heatmaps()
+    generate_foreign_flow()
 
     log.info("=" * 60)
     log.info("ALL JS FILES GENERATED!")
