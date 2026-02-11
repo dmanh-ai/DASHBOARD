@@ -162,19 +162,10 @@ jobs:
           git config user.email "ducmanh.isg@gmail.com"
           git config user.name "Dmanh"
 
-          # Add generated files
-          git add -f \
-            full_data.js \
-            full_data_public.js \
-            ui_glm_meta.js \
-            ui_glm_meta.json \
-            index_ohlcv.js \
-            market_breadth_snapshot.js \
-            vnindex_price_20d.js \
-            vnindex_heatmap_data.js \
-            index_heatmap_data.js \
-            foreign_flow_data.js \
-            2>/dev/null || true
+          # Add generated files individually (missing files must not block others)
+          for f in full_data.js full_data_public.js ui_glm_meta.js ui_glm_meta.json index_ohlcv.js market_breadth_snapshot.js vnindex_price_20d.js vnindex_heatmap_data.js index_heatmap_data.js foreign_flow_data.js; do
+            [ -f "$f" ] && git add -f "$f" && echo "Staged: $f" || echo "Skip (not found): $f"
+          done
 
           # Check if there are changes
           if git diff --cached --quiet; then

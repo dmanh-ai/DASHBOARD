@@ -129,7 +129,7 @@ def generate_vnindex_heatmap():
 
 
 # ============================================================================
-# 5. INDEX HEATMAPS (VN30, VN100, VNMIDCAP from price_board)
+# 5. INDEX HEATMAPS (VN30, VN100, VNMIDCAP from top_gainers + top_losers)
 # ============================================================================
 
 def generate_index_heatmaps():
