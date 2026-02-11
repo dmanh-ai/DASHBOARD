@@ -16,6 +16,6 @@ VN30 = [
     "VJC", "VNM", "VPB", "VPL", "VRE",
 ]
 
-# VN100 & VNMIDCAP: se duoc tu dong xac dinh tu price_board.csv
+# VN100 & VNMIDCAP: se duoc tu dong xac dinh tu top_gainers + top_losers
 # VN100 = top 100 co phieu HOSE theo gia tri giao dich
 # VNMIDCAP = co phieu trong VN100 nhung khong thuoc VN30

@@ -321,29 +321,6 @@ def _fetch_stock_csv(asof_date, filename, max_retries=3):
     return []
 
 
-def _parse_price_board_stock(row):
-    """Parse 1 row từ price_board.csv thành stock dict."""
-    symbol = row.get("symbol", "").strip()
-    if not symbol:
-        return None
-
-    ref_price = parse_float(row.get("ref_price"))
-    match_price = parse_float(row.get("match_price"))
-    if not ref_price or not match_price or ref_price == 0:
-        return None
-
-    change_pct = round((match_price - ref_price) / ref_price * 100, 2)
-    acc_value = parse_float(row.get("accumulated_value")) or 0
-    acc_volume = parse_int(row.get("accumulated_volume"))
-
-    return {
-        "symbol": symbol,
-        "change_pct": change_pct,
-        "price": match_price,
-        "volume": acc_volume,
-        "value": acc_value,
-    }
-
 
 def collect_stock_data(asof_date):
     """Thu thập stock-level data (heatmap, breadth, impact) từ vnstock repo."""
@@ -360,34 +337,42 @@ def collect_stock_data(asof_date):
     }
 
     # --- Top gainers ---
-    rows = _fetch_stock_csv(asof_date, "top_gainers.csv")
-    for row in rows[:30]:
+    all_stocks = {}  # dict symbol → stock for index filtering
+    gainer_rows = _fetch_stock_csv(asof_date, "top_gainers.csv")
+    for row in gainer_rows:
         symbol = row.get("symbol", "")
         if not symbol:
             continue
-        result["gainers"].append({
+        stock = {
             "symbol": symbol,
             "change_pct": parse_float(row.get("percent_change")) or 0,
             "price": parse_float(row.get("close_price")) or 0,
             "volume": parse_int(row.get("total_trades")),
             "value": parse_float(row.get("total_value")) or 0,
-        })
-    log.info(f"  Gainers: {len(result['gainers'])} stocks")
+        }
+        if symbol not in all_stocks:
+            all_stocks[symbol] = stock
+    result["gainers"] = [all_stocks[s] for s in list(all_stocks)[:30]]
+    log.info(f"  Gainers: {len(gainer_rows)} total, top {len(result['gainers'])} saved")
 
     # --- Top losers ---
-    rows = _fetch_stock_csv(asof_date, "top_losers.csv")
-    for row in rows[:30]:
+    loser_rows = _fetch_stock_csv(asof_date, "top_losers.csv")
+    for row in loser_rows:
         symbol = row.get("symbol", "")
         if not symbol:
             continue
-        result["losers"].append({
+        stock = {
             "symbol": symbol,
             "change_pct": parse_float(row.get("percent_change")) or 0,
             "price": parse_float(row.get("close_price")) or 0,
             "volume": parse_int(row.get("total_trades")),
             "value": parse_float(row.get("total_value")) or 0,
-        })
-    log.info(f"  Losers: {len(result['losers'])} stocks")
+        }
+        if symbol not in all_stocks:
+            all_stocks[symbol] = stock
+    result["losers"] = [all_stocks[s] for s in list(all_stocks) if all_stocks[s]["change_pct"] < 0][:30]
+    log.info(f"  Losers: {len(loser_rows)} total, top {len(result['losers'])} saved")
+    log.info(f"  All stocks combined: {len(all_stocks)} unique symbols")
 
     # --- Market breadth (real stock-level) ---
     rows = _fetch_stock_csv(asof_date, "market_breadth.csv")
@@ -433,32 +418,19 @@ def collect_stock_data(asof_date):
         result["index_impact"] = impact
         log.info(f"  Index impact: {len(impact['positive'])} positive, {len(impact['negative'])} negative")
 
-    # --- Per-index stock data from price_board.csv ---
-    pb_rows = _fetch_stock_csv(asof_date, "price_board.csv")
-    if pb_rows:
+    # --- Per-index stock data from gainers + losers ---
+    if all_stocks:
         from index_constituents import VN30
 
-        # Parse all HOSE stocks
-        hose_stocks = {}
-        for row in pb_rows:
-            exchange = row.get("exchange", "").strip()
-            if exchange not in ("HSX", "HOSE"):
-                continue
-            stock = _parse_price_board_stock(row)
-            if stock and stock["symbol"] not in hose_stocks:
-                hose_stocks[stock["symbol"]] = stock
-
-        log.info(f"  Price board: {len(hose_stocks)} HOSE stocks parsed")
-
         # VN30: filter by constituent list
-        vn30_stocks = [hose_stocks[s] for s in VN30 if s in hose_stocks]
+        vn30_stocks = [all_stocks[s] for s in VN30 if s in all_stocks]
         if vn30_stocks:
             result["index_stocks"]["VN30"] = {"stocks": vn30_stocks}
-            log.info(f"  VN30: {len(vn30_stocks)} stocks")
+            log.info(f"  VN30: {len(vn30_stocks)}/{len(VN30)} stocks found in gainers/losers")
 
-        # VN100: top 100 HOSE stocks by accumulated_value
-        all_hose = sorted(hose_stocks.values(), key=lambda x: x.get("value", 0), reverse=True)
-        vn100_stocks = all_hose[:100]
+        # VN100: top 100 stocks by value
+        all_sorted = sorted(all_stocks.values(), key=lambda x: x.get("value", 0), reverse=True)
+        vn100_stocks = all_sorted[:100]
         if vn100_stocks:
             result["index_stocks"]["VN100"] = {"stocks": vn100_stocks}
             log.info(f"  VN100: {len(vn100_stocks)} stocks (top 100 by value)")
