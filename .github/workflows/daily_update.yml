@@ -173,6 +173,7 @@ jobs:
             vnindex_price_20d.js \
             vnindex_heatmap_data.js \
             index_heatmap_data.js \
+            foreign_flow_data.js \
             2>/dev/null || true
 
           # Check if there are changes
