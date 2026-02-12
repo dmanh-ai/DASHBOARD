@@ -186,6 +186,20 @@ def generate_foreign_flow():
 
 
 # ============================================================================
+# 7. EXTRA DATA (commodities, FX, gold, bonds, funds, portfolio)
+# ============================================================================
+
+def generate_extra_data():
+    """Tạo extra_data.js từ extra_data.json (commodities, FX, gold, bonds, funds, portfolio)."""
+    data = load_json("extra_data.json")
+    if not data:
+        log.warning("No extra_data.json, skipping extra data JS")
+        return
+
+    write_js("extra_data.js", "UI_GLM_EXTRA_DATA", data)
+
+
+# ============================================================================
 # MAIN
 # ============================================================================
 
@@ -200,6 +214,7 @@ def main():
     generate_vnindex_heatmap()
     generate_index_heatmaps()
     generate_foreign_flow()
+    generate_extra_data()
 
     log.info("=" * 60)
     log.info("ALL JS FILES GENERATED!")

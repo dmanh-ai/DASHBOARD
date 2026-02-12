@@ -11,6 +11,7 @@
 							    <script src="vnindex_heatmap_data.js"></script>
 							    <script src="index_heatmap_data.js"></script>
 							    <script src="foreign_flow_data.js"></script>
+							    <script src="extra_data.js"></script>
 							    <script src="vendor/lightweight-charts.standalone.production.js"></script>
 							    <script src="scripts/content_formatter.js"></script>
 
@@ -2543,6 +2544,31 @@
 	            text-overflow: ellipsis;
 	        }
 
+	        /* Data tables for extra sections */
+	        .data-table {
+	            width: 100%;
+	            border-collapse: collapse;
+	            font-size: 0.82rem;
+	        }
+	        .data-table th, .data-table td {
+	            padding: 6px 8px;
+	            border-bottom: 1px solid var(--border-color);
+	            white-space: nowrap;
+	        }
+	        .data-table th {
+	            background: var(--card-bg);
+	            font-weight: 600;
+	            font-size: 0.75rem;
+	            text-transform: uppercase;
+	            color: var(--text-secondary);
+	            position: sticky;
+	            top: 0;
+	            z-index: 1;
+	        }
+	        .data-table tbody tr:hover {
+	            background: rgba(128, 128, 128, 0.06);
+	        }
+
 	        /* Summary charts/cards */
 	        .idx-cards {
 	            display: grid;
@@ -3879,7 +3905,7 @@
 
 	        const UI_GLM_PUBLIC_BUILD = true;
 
-	        const UI_GLM_LITE_ALLOWED_INDICES = new Set(['overview', 'vnindex', 'vn30', 'vn100', 'vnmidcap', 'vnsml', 'vnreal', 'vnit', 'vnheal', 'vnfin', 'vnene', 'vncons', 'vnmat', 'vncond', 'vnfinselect', 'vndiamond']);
+	        const UI_GLM_LITE_ALLOWED_INDICES = new Set(['overview', 'vnindex', 'vn30', 'vn100', 'vnmidcap', 'vnsml', 'vnreal', 'vnit', 'vnheal', 'vnfin', 'vnene', 'vncons', 'vnmat', 'vncond', 'vnfinselect', 'vndiamond', '__commodities', '__bondlab', '__portfolio', '__funds']);
 	        const UI_GLM_LITE_HIDDEN_SECTIONS = new Set([].map(s => s.trim().toUpperCase()));
 
 	        function getPlanPreference() {
@@ -3976,7 +4002,7 @@
 
         // Render sidebar
         function renderSidebar() {
-            const all = [
+            const indexItems = [
                 { key: 'overview', name: 'TỔNG HỢP' },
                 { key: 'vnindex', name: 'VNINDEX' },
                 { key: 'vn30', name: 'VN30' },
@@ -3984,16 +4010,37 @@
                 { key: 'vnmidcap', name: 'VNMIDCAP' }
             ];
 
-            const indices = all.filter(i => isIndexAllowedForCurrentPlan(i.key));
+            const extraItems = [
+                { key: '__commodities', name: '📦 Hàng hoá & Tỷ giá' },
+                { key: '__bondlab', name: '🏛️ Bondlab' },
+                { key: '__portfolio', name: '💼 Portfolio' },
+                { key: '__funds', name: '🏦 Quỹ mở' },
+            ];
+
+            const indices = indexItems.filter(i => isIndexAllowedForCurrentPlan(i.key));
+            const extras = extraItems.filter(i => isIndexAllowedForCurrentPlan(i.key));
 
             const container = document.getElementById('indexList');
-            container.innerHTML = indices.map(idx => `
-                <div class="index-item ${idx.key === 'vnindex' ? 'active' : ''}"
+            let html = indices.map(idx => `
+                <div class="index-item"
                      onclick="selectIndex('${idx.key}')"
                      data-index="${idx.key}">
                     <span class="name">${idx.name}</span>
                 </div>
             `).join('');
+
+            if (extras.length) {
+                html += '<div class="sidebar-divider" style="border-top:1px solid var(--border-color);margin:8px 0;opacity:0.5;"></div>';
+                html += extras.map(idx => `
+                    <div class="index-item"
+                         onclick="selectIndex('${idx.key}')"
+                         data-index="${idx.key}">
+                        <span class="name">${idx.name}</span>
+                    </div>
+                `).join('');
+            }
+
+            container.innerHTML = html;
         }
 
         // State
@@ -4505,6 +4552,17 @@
 	                ['vn30', 'VN30'],
                 ['vn100', 'VN100'],
                 ['vnmidcap', 'VNMIDCAP'],
+                ['vnsml', 'VNSML'],
+                ['vnreal', 'VNREAL'],
+                ['vnit', 'VNIT'],
+                ['vnheal', 'VNHEAL'],
+                ['vnfin', 'VNFIN'],
+                ['vnene', 'VNENE'],
+                ['vncons', 'VNCONS'],
+                ['vnmat', 'VNMAT'],
+                ['vncond', 'VNCOND'],
+                ['vnfinselect', 'VNFINSELECT'],
+                ['vndiamond', 'VNDIAMOND'],
             ];
 
 	            return keys.map(([key, label]) => ({ key, label, ...(parseIndexMetrics(key) || {}) }));
@@ -6603,8 +6661,245 @@
 	            }
 	        }
 
+	        // ================================================================
+	        // EXTRA SECTIONS: Commodities, Bondlab, Portfolio, Funds
+	        // ================================================================
+	        const EXTRA_SECTION_KEYS = new Set(['__commodities', '__bondlab', '__portfolio', '__funds']);
+
+	        function getExtraData() {
+	            return (typeof window !== 'undefined' && window.UI_GLM_EXTRA_DATA) ? window.UI_GLM_EXTRA_DATA : null;
+	        }
+
+	        function fmtNum(v, d) { return v == null ? '—' : Number(v).toLocaleString('vi-VN', { maximumFractionDigits: d != null ? d : 2 }); }
+	        function fmtPct(v) { if (v == null) return '—'; const s = Number(v) >= 0 ? '+' : ''; return s + Number(v).toFixed(2) + '%'; }
+	        function chipCls(v) { return v == null ? 'neutral' : (v > 0 ? 'positive' : (v < 0 ? 'negative' : 'neutral')); }
+
+	        function renderExtraSectionContent(key) {
+	            const ed = getExtraData();
+	            if (!ed) return '<div class="info-box"><p>Chưa có dữ liệu. Chạy pipeline để thu thập.</p></div>';
+	            if (key === '__commodities') return renderCommoditiesPage(ed);
+	            if (key === '__bondlab') return renderBondlabPage(ed);
+	            if (key === '__portfolio') return renderPortfolioPage(ed);
+	            if (key === '__funds') return renderFundsPage(ed);
+	            return '<div class="info-box"><p>Không có dữ liệu.</p></div>';
+	        }
+
+	        // --- COMMODITIES PAGE ---
+	        function renderCommoditiesPage(ed) {
+	            let html = '';
+	            // 1. Exchange Rates
+	            const rates = ed.exchange_rates || [];
+	            if (rates.length) {
+	                html += '<div class="block"><div class="block-header">💱 Tỷ giá Vietcombank</div><div class="block-body">';
+	                html += '<table class="data-table"><thead><tr><th>Mã</th><th>Tiền tệ</th><th>Mua TM</th><th>Mua CK</th><th>Bán</th><th>%1D</th></tr></thead><tbody>';
+	                for (const r of rates) {
+	                    html += `<tr><td><strong>${escapeHtml(r.code)}</strong></td><td>${escapeHtml(r.name)}</td>`;
+	                    html += `<td style="text-align:right">${fmtNum(r.buy_cash, 0)}</td>`;
+	                    html += `<td style="text-align:right">${fmtNum(r.buy_transfer, 0)}</td>`;
+	                    html += `<td style="text-align:right">${fmtNum(r.sell, 0)}</td>`;
+	                    html += `<td style="text-align:right"><span class="chip ${chipCls(r.change_1d)}">${fmtPct(r.change_1d)}</span></td></tr>`;
+	                }
+	                html += '</tbody></table></div></div>';
+	            }
+
+	            // 2. Gold
+	            const gold = ed.gold || [];
+	            if (gold.length) {
+	                html += '<div class="block"><div class="block-header">🥇 Giá vàng SJC</div><div class="block-body">';
+	                html += '<table class="data-table"><thead><tr><th>Chi nhánh</th><th>Mua</th><th>Bán</th><th>%1D</th></tr></thead><tbody>';
+	                for (const g of gold) {
+	                    html += `<tr><td>${escapeHtml(g.branch)}</td>`;
+	                    html += `<td style="text-align:right">${fmtNum(g.buy / 1e6, 2)}tr</td>`;
+	                    html += `<td style="text-align:right">${fmtNum(g.sell / 1e6, 2)}tr</td>`;
+	                    html += `<td style="text-align:right"><span class="chip ${chipCls(g.change_1d)}">${fmtPct(g.change_1d)}</span></td></tr>`;
+	                }
+	                html += '</tbody></table></div></div>';
+	            }
+
+	            // 3. FX Pairs
+	            const fx = ed.fx || [];
+	            if (fx.length) {
+	                html += '<div class="block"><div class="block-header">💹 Tỷ giá quốc tế (FX)</div><div class="block-body">';
+	                html += '<table class="data-table"><thead><tr><th>Cặp</th><th>Giá</th><th>%1D</th><th>%20D</th></tr></thead><tbody>';
+	                for (const f of fx) {
+	                    html += `<tr><td><strong>${escapeHtml(f.label)}</strong></td>`;
+	                    html += `<td style="text-align:right">${fmtNum(f.close, f.close > 1000 ? 0 : 4)}</td>`;
+	                    html += `<td style="text-align:right"><span class="chip ${chipCls(f.change_1d)}">${fmtPct(f.change_1d)}</span></td>`;
+	                    html += `<td style="text-align:right"><span class="chip ${chipCls(f.change_20d)}">${fmtPct(f.change_20d)}</span></td></tr>`;
+	                }
+	                html += '</tbody></table></div></div>';
+	            }
+
+	            // 4. Commodities
+	            const comms = ed.commodities || [];
+	            if (comms.length) {
+	                const groups = {};
+	                for (const c of comms) { (groups[c.group] = groups[c.group] || []).push(c); }
+	                for (const [group, items] of Object.entries(groups)) {
+	                    html += `<div class="block"><div class="block-header">📦 ${escapeHtml(group)}</div><div class="block-body">`;
+	                    html += '<table class="data-table"><thead><tr><th>Hàng hoá</th><th>Giá</th><th>Đơn vị</th><th>%1D</th><th>%20D</th></tr></thead><tbody>';
+	                    for (const c of items) {
+	                        html += `<tr><td><strong>${escapeHtml(c.name)}</strong></td>`;
+	                        html += `<td style="text-align:right">${fmtNum(c.close, 2)}</td>`;
+	                        html += `<td>${escapeHtml(c.unit)}</td>`;
+	                        html += `<td style="text-align:right"><span class="chip ${chipCls(c.change_1d)}">${fmtPct(c.change_1d)}</span></td>`;
+	                        html += `<td style="text-align:right"><span class="chip ${chipCls(c.change_20d)}">${fmtPct(c.change_20d)}</span></td></tr>`;
+	                    }
+	                    html += '</tbody></table></div></div>';
+	                }
+	            }
+
+	            return html || '<div class="info-box"><p>Chưa có dữ liệu hàng hoá.</p></div>';
+	        }
+
+	        // --- BONDLAB PAGE ---
+	        function renderBondlabPage(ed) {
+	            const bonds = ed.bonds || [];
+	            if (!bonds.length) return '<div class="info-box"><p>Chưa có dữ liệu trái phiếu. Đang phát triển.</p></div>';
+	            let html = '<div class="block"><div class="block-header">🏛️ Trái phiếu doanh nghiệp</div><div class="block-body">';
+	            const cols = Object.keys(bonds[0] || {});
+	            html += '<table class="data-table"><thead><tr>' + cols.map(c => `<th>${escapeHtml(c)}</th>`).join('') + '</tr></thead><tbody>';
+	            for (const b of bonds.slice(0, 50)) {
+	                html += '<tr>' + cols.map(c => `<td>${escapeHtml(String(b[c] || ''))}</td>`).join('') + '</tr>';
+	            }
+	            html += '</tbody></table></div></div>';
+	            return html;
+	        }
+
+	        // --- PORTFOLIO PAGE ---
+	        function renderPortfolioPage(ed) {
+	            const positions = ed.portfolio || [];
+	            if (!positions.length) return '<div class="info-box"><p>Chưa có vị thế. Cập nhật file <code>market/portfolio.json</code> để theo dõi danh mục.</p></div>';
+
+	            let html = '<div class="block"><div class="block-header">💼 Danh mục đầu tư</div><div class="block-body">';
+	            html += '<table class="data-table"><thead><tr><th>Mã</th><th>Tên</th><th>Giá mua</th><th>Giá hiện tại</th><th>SL</th><th>Ngày giữ</th><th>PnL %</th><th>PnL (VND)</th><th>TP</th><th>SL</th><th>→TP %</th><th>→SL %</th></tr></thead><tbody>';
+	            for (const p of positions) {
+	                const pnlCls = chipCls(p.pnl_pct);
+	                html += `<tr>`;
+	                html += `<td><strong>${escapeHtml(p.symbol || '')}</strong></td>`;
+	                html += `<td>${escapeHtml(p.name || '')}</td>`;
+	                html += `<td style="text-align:right">${fmtNum(p.buy_price, 0)}</td>`;
+	                html += `<td style="text-align:right">${fmtNum(p.current_price, 0)}</td>`;
+	                html += `<td style="text-align:right">${fmtNum(p.quantity, 0)}</td>`;
+	                html += `<td style="text-align:center">${p.holding_days != null ? p.holding_days + 'D' : '—'}</td>`;
+	                html += `<td style="text-align:right"><span class="chip ${pnlCls}">${fmtPct(p.pnl_pct)}</span></td>`;
+	                html += `<td style="text-align:right"><span class="chip ${pnlCls}">${fmtNum(p.pnl_value, 0)}</span></td>`;
+	                html += `<td style="text-align:right;color:#26a69a">${fmtNum(p.tp, 0)}</td>`;
+	                html += `<td style="text-align:right;color:#ef5350">${fmtNum(p.sl, 0)}</td>`;
+	                html += `<td style="text-align:right"><span class="chip positive">${fmtPct(p.tp_distance_pct)}</span></td>`;
+	                html += `<td style="text-align:right"><span class="chip negative">${fmtPct(p.sl_distance_pct)}</span></td>`;
+	                html += `</tr>`;
+	            }
+	            html += '</tbody></table></div></div>';
+
+	            // Summary
+	            const totalPnl = positions.reduce((s, p) => s + (p.pnl_value || 0), 0);
+	            const totalCost = positions.reduce((s, p) => s + ((p.buy_price || 0) * (p.quantity || 0)), 0);
+	            const totalPnlPct = totalCost ? ((totalPnl / totalCost) * 100) : null;
+	            html += `<div class="block"><div class="block-header">📊 Tổng hợp</div><div class="block-body">`;
+	            html += `<div class="idx-cards">`;
+	            html += `<div class="idx-card"><div class="idx-top"><div class="idx-code">Tổng PnL</div><div class="idx-change"><span class="chip ${chipCls(totalPnl)}">${fmtNum(totalPnl, 0)} VND</span></div></div></div>`;
+	            html += `<div class="idx-card"><div class="idx-top"><div class="idx-code">PnL %</div><div class="idx-change"><span class="chip ${chipCls(totalPnlPct)}">${fmtPct(totalPnlPct)}</span></div></div></div>`;
+	            html += `<div class="idx-card"><div class="idx-top"><div class="idx-code">Vị thế</div><div class="idx-change"><span class="chip neutral">${positions.length}</span></div></div></div>`;
+	            html += `</div></div></div>`;
+
+	            return html;
+	        }
+
+	        // --- FUNDS PAGE ---
+	        function renderFundsPage(ed) {
+	            const funds = ed.funds || {};
+	            const holdings = funds.holdings || [];
+	            const listings = funds.listings || [];
+
+	            if (!holdings.length) return '<div class="info-box"><p>Chưa có dữ liệu quỹ mở.</p></div>';
+
+	            let html = '';
+
+	            // Fund performance overview
+	            if (listings.length) {
+	                html += '<div class="block"><div class="block-header">📈 NAV & Hiệu suất quỹ</div><div class="block-body">';
+	                html += '<table class="data-table"><thead><tr><th>Quỹ</th><th>Loại</th><th>NAV</th><th>%1D</th><th>%1M</th><th>%3M</th><th>%12M</th><th>%YTD</th></tr></thead><tbody>';
+	                for (const f of listings) {
+	                    html += `<tr><td><strong>${escapeHtml(f.short_name)}</strong></td>`;
+	                    html += `<td>${escapeHtml(f.fund_type)}</td>`;
+	                    html += `<td style="text-align:right">${fmtNum(f.nav, 0)}</td>`;
+	                    html += `<td style="text-align:right"><span class="chip ${chipCls(f.nav_change_1d)}">${fmtPct(f.nav_change_1d)}</span></td>`;
+	                    html += `<td style="text-align:right"><span class="chip ${chipCls(f.nav_change_1m)}">${fmtPct(f.nav_change_1m)}</span></td>`;
+	                    html += `<td style="text-align:right"><span class="chip ${chipCls(f.nav_change_3m)}">${fmtPct(f.nav_change_3m)}</span></td>`;
+	                    html += `<td style="text-align:right"><span class="chip ${chipCls(f.nav_change_12m)}">${fmtPct(f.nav_change_12m)}</span></td>`;
+	                    html += `<td style="text-align:right"><span class="chip ${chipCls(f.nav_change_ytd)}">${fmtPct(f.nav_change_ytd)}</span></td></tr>`;
+	                }
+	                html += '</tbody></table></div></div>';
+	            }
+
+	            // Holdings cross-tab: rows = funds, columns = stocks, values = %NAV
+	            // Collect unique funds and stocks
+	            const fundNames = [...new Set(holdings.filter(h => h.type === 'STOCK').map(h => h.fund_name))];
+	            const stockMap = {};  // stock -> [{fund, pct}]
+	            for (const h of holdings) {
+	                if (h.type !== 'STOCK') continue;
+	                if (!stockMap[h.stock]) stockMap[h.stock] = {};
+	                stockMap[h.stock][h.fund_name] = h.pct;
+	            }
+
+	            // Sort stocks by total allocation value (descending)
+	            const stockTotals = Object.entries(stockMap).map(([stock, funds]) => ({
+	                stock,
+	                total: Object.values(funds).reduce((s, v) => s + v, 0),
+	                funds,
+	            })).sort((a, b) => b.total - a.total);
+
+	            // Top 30 stocks for display
+	            const topStocks = stockTotals.slice(0, 30);
+
+	            if (topStocks.length && fundNames.length) {
+	                html += '<div class="block"><div class="block-header">📊 Phân bổ cổ phiếu theo quỹ (Top 30, % NAV)</div><div class="block-body" style="overflow-x:auto">';
+	                html += '<table class="data-table" style="font-size:0.75rem"><thead><tr><th>Cổ phiếu</th>';
+	                for (const fn of fundNames) html += `<th style="text-align:center;writing-mode:vertical-rl;max-width:40px">${escapeHtml(fn)}</th>`;
+	                html += '<th>Tổng</th></tr></thead><tbody>';
+	                for (const row of topStocks) {
+	                    html += `<tr><td><strong>${escapeHtml(row.stock)}</strong></td>`;
+	                    for (const fn of fundNames) {
+	                        const val = row.funds[fn];
+	                        if (val != null) {
+	                            const intensity = Math.min(val / 8, 1);
+	                            const bg = `rgba(38,166,154,${(intensity * 0.4).toFixed(2)})`;
+	                            html += `<td style="text-align:center;background:${bg}">${val.toFixed(1)}</td>`;
+	                        } else {
+	                            html += '<td style="text-align:center;color:var(--text-secondary)">—</td>';
+	                        }
+	                    }
+	                    html += `<td style="text-align:center;font-weight:600">${row.total.toFixed(1)}</td></tr>`;
+	                }
+	                html += '</tbody></table></div></div>';
+	            }
+
+	            return html;
+	        }
+
 	        // Render section list in middle column
 	        function renderSectionList(indexKey) {
+	            // Handle extra section pages (full-page render, no sub-sections)
+	            if (EXTRA_SECTION_KEYS.has(indexKey)) {
+	                const titles = {
+	                    '__commodities': 'Hàng hoá & Tỷ giá',
+	                    '__bondlab': 'Bondlab',
+	                    '__portfolio': 'Portfolio',
+	                    '__funds': 'Quỹ mở',
+	                };
+	                document.getElementById('sectionNavTitle').textContent = titles[indexKey] || '';
+	                document.getElementById('sectionList').innerHTML = '<div class="no-sections">Xem nội dung ở giữa</div>';
+
+	                // Render full content immediately
+	                const contentDiv = document.getElementById('singleSectionContent');
+	                document.getElementById('pageTitle').textContent = titles[indexKey] || '';
+	                contentDiv.innerHTML = `<div class="section-card"><div class="section-content">${renderExtraSectionContent(indexKey)}</div></div>`;
+	                contentDiv.style.display = 'block';
+	                document.getElementById('emptyState').style.display = 'none';
+	                return;
+	            }
+
 	            const index = data[indexKey];
 	            if (!index || !index.sections) {
 	                document.getElementById('sectionList').innerHTML = '<div class="no-sections">Không có dữ liệu</div>';
@@ -6876,6 +7171,9 @@
 
             // Render section list
             renderSectionList(key);
+
+            // Extra sections render full content directly - don't reset
+            if (EXTRA_SECTION_KEYS.has(key)) return;
 
             // Mobile: after selecting an index, bring the section list into view.
             try {
