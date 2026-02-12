@@ -92,6 +92,15 @@ OVERVIEW_SECTIONS = [
     "NHẬN ĐỊNH",
 ]
 
+# 5 section titles cho BONDLAB (sidebar)
+BONDLAB_SECTIONS = [
+    "SNAPSHOT NHANH",
+    "ODDS (PHIÊN KẾ TIẾP)",
+    "INTERBANK",
+    "DIỄN GIẢI",
+    "ALERTS",
+]
+
 # Claude model
 CLAUDE_MODEL = "claude-sonnet-4-5-20250929"
 CLAUDE_MAX_TOKENS = 8192

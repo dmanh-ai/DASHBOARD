@@ -186,6 +186,34 @@ def generate_foreign_flow():
 
 
 # ============================================================================
+# 7. BONDLAB DATA
+# ============================================================================
+
+def generate_bondlab():
+    """Tạo bondlab_data.js - dữ liệu trái phiếu và liên ngân hàng."""
+    data = load_json("bondlab_data.json")
+    if not data:
+        log.warning("No bondlab_data.json, skipping")
+        return
+
+    write_js("bondlab_data.js", "UI_GLM_BONDLAB", data)
+
+
+# ============================================================================
+# 8. RESEARCHLAB DATA
+# ============================================================================
+
+def generate_researchlab():
+    """Tạo researchlab_data.js - ResearchLab memo data."""
+    data = load_json("researchlab_data.json")
+    if not data:
+        log.warning("No researchlab_data.json, skipping")
+        return
+
+    write_js("researchlab_data.js", "UI_GLM_RESEARCHLAB", data)
+
+
+# ============================================================================
 # MAIN
 # ============================================================================
 
@@ -200,6 +228,8 @@ def main():
     generate_vnindex_heatmap()
     generate_index_heatmaps()
     generate_foreign_flow()
+    generate_bondlab()
+    generate_researchlab()
 
     log.info("=" * 60)
     log.info("ALL JS FILES GENERATED!")
