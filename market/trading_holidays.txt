@@ -1,0 +1,40 @@
+# ==============================================================================
+# LỊCH NGHỈ GIAO DỊCH CHỨNG KHOÁN VIỆT NAM
+# ==============================================================================
+# Nguồn: Ủy ban Chứng khoán Nhà nước (SSC) / Sở GDCK TP.HCM (HOSE)
+# Cập nhật hàng năm theo Thông báo chính thức từ SGDCK
+#
+# Format: YYYY-MM-DD  # Tên ngày lễ
+# - Chỉ liệt kê ngày trong tuần (thứ 2 - thứ 6)
+# - Thứ 7 & Chủ nhật đã được loại trừ bởi cron schedule
+# - Cập nhật file này mỗi năm khi HOSE/HNX công bố lịch nghỉ
+# ==============================================================================
+
+# === 2026 ===
+# Ref: Thông báo 2294/TB-SGDHCM ngày 09/12/2025
+
+# Tết Dương lịch
+2026-01-01  # Tết Dương lịch
+2026-01-02  # Tết Dương lịch (hoán đổi ngày nghỉ từ T7 10/01)
+
+# Tết Nguyên đán Bính Ngọ
+2026-02-16  # Tết Nguyên đán - 29 tháng Chạp
+2026-02-17  # Tết Nguyên đán - Mùng 1
+2026-02-18  # Tết Nguyên đán - Mùng 2
+2026-02-19  # Tết Nguyên đán - Mùng 3
+2026-02-20  # Tết Nguyên đán - Mùng 4
+
+# Giỗ Tổ Hùng Vương (10/3 Âm lịch → CN 26/04, nghỉ bù T2)
+2026-04-27  # Giỗ Tổ Hùng Vương (nghỉ bù)
+
+# Ngày Giải phóng miền Nam & Quốc tế Lao động
+2026-04-30  # Ngày Giải phóng miền Nam 30/4
+2026-05-01  # Ngày Quốc tế Lao động 1/5
+
+# Quốc khánh 2/9 (hoán đổi T2 31/08 ← T7 22/08)
+2026-08-31  # Quốc khánh (hoán đổi nghỉ bù)
+2026-09-01  # Quốc khánh (ngày liền kề trước)
+2026-09-02  # Quốc khánh 2/9
+
+# Ngày Văn hóa Việt Nam (Nghị quyết 80-NQ/TW, chờ Quốc hội luật hóa)
+2026-11-24  # Ngày Văn hóa Việt Nam

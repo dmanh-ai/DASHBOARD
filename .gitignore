@@ -2,6 +2,7 @@
 # Word/Excel source files - INTELLECTUAL PROPERTY
 *.txt
 !market/requirements.txt
+!market/trading_holidays.txt
 *.docx
 *.doc
 *.xlsx
