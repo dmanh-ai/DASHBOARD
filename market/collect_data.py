@@ -765,14 +765,28 @@ def collect_commodities_data(asof_date):
 # ============================================================================
 
 def collect_portfolio_data(asof_date):
-    """Thu thập dữ liệu portfolio từ vnstock repo."""
+    """Thu thập dữ liệu portfolio: đọc local portfolio.json trước, fallback vnstock repo."""
     log.info("=" * 60)
     log.info(f"STEP 8: Thu thập Portfolio Data cho ngày {asof_date}...")
 
-    # Try daily folder first, then root
-    data = _fetch_daily_json(asof_date, "portfolio.json")
+    data = None
+
+    # 1. Try local portfolio.json (root of DASHBOARD repo)
+    local_path = PROJECT_ROOT / "portfolio.json"
+    if local_path.exists():
+        try:
+            with open(local_path, "r", encoding="utf-8") as f:
+                data = json.load(f)
+            log.info(f"  OK: portfolio.json from local ({local_path})")
+        except Exception as e:
+            log.warning(f"  Error reading local portfolio.json: {e}")
+
+    # 2. Fallback: try vnstock repo daily folder
     if not data:
-        # Fallback: try root data/portfolio.json
+        data = _fetch_daily_json(asof_date, "portfolio.json")
+
+    # 3. Fallback: try vnstock repo root data/portfolio.json
+    if not data:
         import time as _time
         url = f"{GITHUB_STOCK_DATA_BASE}/portfolio.json"
         log.info(f"  Fetching: {url}")
@@ -782,7 +796,7 @@ def collect_portfolio_data(asof_date):
                 with urlopen(req, timeout=20) as resp:
                     text = resp.read().decode("utf-8-sig")
                 data = json.loads(text)
-                log.info(f"  OK: portfolio.json from root")
+                log.info(f"  OK: portfolio.json from repo root")
                 break
             except (URLError, json.JSONDecodeError) as e:
                 log.warning(f"  Attempt {attempt+1} failed: {e}")
@@ -795,7 +809,7 @@ def collect_portfolio_data(asof_date):
 
     data["asof"] = asof_date
     save_json(data, "portfolio_data.json")
-    log.info(f"  Portfolio data saved: {list(data.keys())}")
+    log.info(f"  Portfolio data saved: {len(data.get('holdings', []))} holdings")
     return data
 
 
