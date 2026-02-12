@@ -5176,6 +5176,47 @@
 	            const dateText = cm.asof ? ` (${cm.asof})` : '';
 	            let html = '';
 
+	            // World commodities table
+	            const wc = Array.isArray(cm.world_commodities) ? cm.world_commodities : [];
+	            if (wc.length > 0) {
+	                let wcRows = '';
+	                wc.forEach((c, i) => {
+	                    const bg = i % 2 === 0 ? 'rgba(255,255,255,0.03)' : 'transparent';
+	                    const closeStr = c.close != null ? Number(c.close).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2}) : 'N/A';
+	                    const changeStr = c.change != null ? (c.change >= 0 ? '+' : '') + Number(c.change).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2}) : '';
+	                    const pctStr = c.change_pct != null ? (c.change_pct >= 0 ? '+' : '') + c.change_pct.toFixed(2) + '%' : '';
+	                    const pctColor = c.change_pct > 0 ? '#00c853' : c.change_pct < 0 ? '#ff1744' : '#888';
+	                    const unitStr = c.unit ? `<span style="color:#888;font-size:11px;"> ${escapeHtml(c.unit)}</span>` : '';
+	                    wcRows += `
+	                        <tr style="background:${bg};">
+	                            <td style="padding:6px 10px;font-weight:600;">${escapeHtml(c.name || '')}</td>
+	                            <td style="padding:6px 10px;text-align:right;">${closeStr}${unitStr}</td>
+	                            <td style="padding:6px 10px;text-align:right;color:${pctColor};">${changeStr}</td>
+	                            <td style="padding:6px 10px;text-align:right;color:${pctColor};font-weight:600;">${pctStr}</td>
+	                        </tr>
+	                    `;
+	                });
+
+	                html += `
+	                    <div class="block" style="margin-bottom:12px;">
+	                        <div class="block-header">🌍 Hàng hoá thế giới${dateText}</div>
+	                        <div class="block-body" style="overflow-x:auto;">
+	                            <table style="width:100%;border-collapse:collapse;font-size:13px;">
+	                                <thead>
+	                                    <tr style="border-bottom:1px solid rgba(255,255,255,0.1);">
+	                                        <th style="padding:6px 10px;text-align:left;">Hàng hoá</th>
+	                                        <th style="padding:6px 10px;text-align:right;">Giá</th>
+	                                        <th style="padding:6px 10px;text-align:right;">Thay đổi</th>
+	                                        <th style="padding:6px 10px;text-align:right;">%</th>
+	                                    </tr>
+	                                </thead>
+	                                <tbody>${wcRows}</tbody>
+	                            </table>
+	                        </div>
+	                    </div>
+	                `;
+	            }
+
 	            // Gold table
 	            const gold = Array.isArray(cm.gold) ? cm.gold : [];
 	            if (gold.length > 0) {

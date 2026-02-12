@@ -595,8 +595,61 @@ def _fetch_root_csv(filename, max_retries=3):
     return []
 
 
+def _fetch_commodity_csv(filename, max_retries=2):
+    """Fetch CSV from vnstock repo data/commodity/ folder."""
+    import time as _time
+    url = f"{GITHUB_STOCK_DATA_BASE}/commodity/{filename}"
+    log.info(f"  Fetching: {url}")
+
+    for attempt in range(max_retries):
+        try:
+            req = Request(url, headers={"User-Agent": "DASHBOARD-Pipeline/1.0"})
+            with urlopen(req, timeout=20) as resp:
+                text = resp.read().decode("utf-8-sig")
+            reader = csv.DictReader(io.StringIO(text))
+            rows = list(reader)
+            log.info(f"  OK: commodity/{filename} → {len(rows)} rows")
+            return rows
+        except URLError:
+            if attempt < max_retries - 1:
+                _time.sleep(1)
+        except Exception as e:
+            log.warning(f"  Error parsing commodity/{filename}: {e}")
+            return []
+
+    return []
+
+
+def _extract_latest_ohlcv(rows):
+    """Trích xuất giá mới nhất từ OHLCV CSV rows."""
+    if not rows:
+        return None
+    last = rows[-1]
+    prev = rows[-2] if len(rows) > 1 else last
+
+    close = parse_float(last.get("close") or last.get("price") or last.get("sell_price"))
+    prev_close = parse_float(prev.get("close") or prev.get("price") or prev.get("sell_price"))
+
+    change = None
+    change_pct = None
+    if close is not None and prev_close is not None and prev_close != 0:
+        change = round(close - prev_close, 2)
+        change_pct = round(change / prev_close * 100, 2)
+
+    return {
+        "date": str(last.get("date") or last.get("time", ""))[:10],
+        "close": close,
+        "open": parse_float(last.get("open")),
+        "high": parse_float(last.get("high")),
+        "low": parse_float(last.get("low")),
+        "prev_close": prev_close,
+        "change": change,
+        "change_pct": change_pct,
+    }
+
+
 def collect_commodities_data(asof_date):
-    """Thu thập dữ liệu hàng hoá: vàng, tỷ giá từ vnstock repo."""
+    """Thu thập dữ liệu hàng hoá: vàng, tỷ giá, nguyên vật liệu thế giới."""
     log.info("=" * 60)
     log.info(f"STEP 7: Thu thập Commodities Data cho ngày {asof_date}...")
 
@@ -604,9 +657,47 @@ def collect_commodities_data(asof_date):
         "asof": asof_date,
         "gold": [],
         "exchange_rates": [],
+        "world_commodities": [],
     }
 
-    # --- Gold: try daily btmc_gold.csv first (has world_price), fallback to root gold_prices.csv ---
+    # --- 1. World commodities from data/commodity/ ---
+    COMMODITY_FILES = [
+        ("gold_global.csv", "Vàng thế giới", "USD/oz"),
+        ("oil_crude.csv", "Dầu thô WTI", "USD/thùng"),
+        ("gas_natural.csv", "Khí tự nhiên", "USD/MMBtu"),
+        ("iron_ore.csv", "Quặng sắt", "USD/tấn"),
+        ("steel_hrc.csv", "Thép HRC", "USD/tấn"),
+        ("steel_d10.csv", "Thép D10", "VND/kg"),
+        ("coke.csv", "Than cốc", "USD/tấn"),
+        ("fertilizer_ure.csv", "Phân Urê", "USD/tấn"),
+        ("soybean.csv", "Đậu nành", "USD/bushel"),
+        ("corn.csv", "Ngô", "USD/bushel"),
+        ("sugar.csv", "Đường", "USD/lb"),
+    ]
+
+    for csv_file, display_name, unit in COMMODITY_FILES:
+        rows = _fetch_commodity_csv(csv_file)
+        if rows:
+            latest = _extract_latest_ohlcv(rows)
+            if latest and latest["close"] is not None:
+                latest["name"] = display_name
+                latest["unit"] = unit
+                result["world_commodities"].append(latest)
+
+    log.info(f"  World commodities: {len(result['world_commodities'])} items")
+
+    # --- 2. Also try commodities.json from daily folder ---
+    daily_comm = _fetch_daily_json(asof_date, "commodities.json")
+    if daily_comm:
+        # Merge any extra data from daily JSON
+        if "commodities" in daily_comm and isinstance(daily_comm["commodities"], list):
+            existing_names = {c["name"] for c in result["world_commodities"]}
+            for item in daily_comm["commodities"]:
+                if item.get("name") and item["name"] not in existing_names:
+                    result["world_commodities"].append(item)
+        log.info(f"  Daily commodities.json merged")
+
+    # --- 3. Gold VN: try daily btmc_gold.csv first, fallback to root ---
     btmc_rows = _fetch_stock_csv(asof_date, "btmc_gold.csv")
     if btmc_rows:
         seen = set()
@@ -615,17 +706,15 @@ def collect_commodities_data(asof_date):
             if not name or name in seen:
                 continue
             seen.add(name)
-            item = {
+            result["gold"].append({
                 "name": name,
                 "karat": row.get("karat", "").strip(),
                 "buy": parse_float(row.get("buy_price")),
                 "sell": parse_float(row.get("sell_price")),
                 "world_price": parse_float(row.get("world_price")),
-            }
-            result["gold"].append(item)
+            })
         log.info(f"  Gold (BTMC): {len(result['gold'])} items")
     else:
-        # Fallback: root gold_prices.csv (SJC only)
         sjc_rows = _fetch_root_csv("gold_prices.csv")
         if sjc_rows:
             seen = set()
@@ -636,17 +725,15 @@ def collect_commodities_data(asof_date):
                 if not name or key in seen:
                     continue
                 seen.add(key)
-                item = {
+                result["gold"].append({
                     "name": f"{name} ({branch})" if branch else name,
                     "buy": parse_float(row.get("buy_price")),
                     "sell": parse_float(row.get("sell_price")),
-                }
-                result["gold"].append(item)
-            # Keep only first entry per name (representative)
+                })
             result["gold"] = result["gold"][:5]
             log.info(f"  Gold (SJC): {len(result['gold'])} items")
 
-    # --- Exchange rates: try daily first, fallback to root ---
+    # --- 4. Exchange rates ---
     fx_rows = _fetch_stock_csv(asof_date, "exchange_rate.csv")
     if not fx_rows:
         fx_rows = _fetch_root_csv("exchange_rates.csv")
@@ -656,17 +743,16 @@ def collect_commodities_data(asof_date):
             code = row.get("currency_code", "").strip()
             if not code:
                 continue
-            item = {
+            result["exchange_rates"].append({
                 "code": code,
                 "name": row.get("currency_name", "").strip(),
                 "buy_cash": parse_float(row.get("buy_cash")),
                 "buy_transfer": parse_float(row.get("buy_transfer")),
                 "sell": parse_float(row.get("sell")),
-            }
-            result["exchange_rates"].append(item)
+            })
         log.info(f"  Exchange rates: {len(result['exchange_rates'])} currencies")
 
-    if result["gold"] or result["exchange_rates"]:
+    if result["gold"] or result["exchange_rates"] or result["world_commodities"]:
         save_json(result, "commodities_data.json")
         return result
 

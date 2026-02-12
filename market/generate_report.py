@@ -834,59 +834,92 @@ def generate_researchlab_memo(data):
 # COMMODITIES AI RECOMMENDATION
 # ============================================================================
 
-COMMODITIES_SYSTEM_PROMPT = """Bạn là chuyên gia phân tích hàng hoá và tỷ giá Việt Nam.
-Viết khuyến nghị bằng tiếng Việt, chuyên nghiệp, ngắn gọn, có dẫn chứng số liệu.
+COMMODITIES_SYSTEM_PROMPT = """Bạn là chuyên gia phân tích hàng hoá thế giới và tác động đến thị trường Việt Nam.
+Viết khuyến nghị bằng tiếng Việt, chuyên nghiệp, ngắn gọn, có dẫn chứng số liệu cụ thể.
 
 QUY TẮC:
 - KHÔNG dùng markdown formatting (**, ##). Viết plain text.
-- Dùng số liệu CỤ THỂ từ data.
-- Viết thực tế, tập trung vào tác động lên thị trường cổ phiếu VN."""
+- Dùng số liệu CỤ THỂ từ data hàng hoá (giá, % thay đổi, đơn vị).
+- Tập trung phân tích xu hướng hàng hoá (dầu, thép, sắt, vàng, nông sản...) và tác động kinh tế.
+- Viết thực tế, tập trung vào tác động lên nền kinh tế và thị trường cổ phiếu VN."""
 
 
 def build_commodities_prompt(data):
-    """Prompt cho khuyến nghị hàng hoá."""
+    """Prompt cho khuyến nghị hàng hoá dựa trên dữ liệu commodity thực tế."""
     commodities = data.get("commodities", {})
-    bondlab = data.get("bondlab", {})
-    bondlab_clean = {k: v for k, v in bondlab.items() if k != "analysis"} if bondlab else {}
 
-    # Index summary for context
-    indices = data.get("index_ohlcv", {}).get("indices", {})
-    idx_brief = {}
-    for k in ["vnindex", "vnfin", "vnene", "vnmat", "vncons"]:
-        idx = indices.get(k, {})
-        latest = idx.get("latest", {})
-        if latest:
-            idx_brief[k] = {
-                "close": latest.get("close"),
-                "change_pct": latest.get("change_pct"),
-            }
+    # Tóm tắt world_commodities cho prompt
+    world_comm = commodities.get("world_commodities", [])
+    comm_summary = []
+    for c in world_comm:
+        name = c.get("name", "")
+        close = c.get("close")
+        change_pct = c.get("change_pct")
+        unit = c.get("unit", "")
+        if close is not None:
+            pct_str = f"{change_pct:+.2f}%" if change_pct is not None else "N/A"
+            comm_summary.append(f"- {name}: {close} {unit} ({pct_str})")
+
+    comm_text = "\n".join(comm_summary) if comm_summary else "Không có dữ liệu"
+
+    # Gold VN summary
+    gold = commodities.get("gold", [])
+    gold_text = ""
+    if gold:
+        gold_lines = []
+        for g in gold[:5]:
+            name = g.get("name", "")
+            buy = g.get("buy")
+            sell = g.get("sell")
+            if buy and sell:
+                gold_lines.append(f"- {name}: Mua {buy:,.0f} / Bán {sell:,.0f} VND")
+        gold_text = "\n".join(gold_lines)
+
+    # Exchange rates summary
+    fx = commodities.get("exchange_rates", [])
+    fx_text = ""
+    if fx:
+        fx_lines = []
+        for r in fx[:5]:
+            code = r.get("code", "")
+            sell = r.get("sell")
+            if sell:
+                fx_lines.append(f"- {code}: Bán {sell:,.0f} VND")
+        fx_text = "\n".join(fx_lines)
 
     asof = commodities.get("asof", data.get("index_ohlcv", {}).get("asof", ""))
 
-    return f"""Dựa trên dữ liệu hàng hoá và thị trường ngày {asof}, viết KHUYẾN NGHỊ ngắn gọn.
+    return f"""Dựa trên dữ liệu hàng hoá thế giới ngày {asof}, viết KHUYẾN NGHỊ ngắn gọn.
 
-DỮ LIỆU HÀNG HOÁ:
-{json.dumps(commodities, ensure_ascii=False, indent=2)}
+HÀNG HOÁ THẾ GIỚI (giá mới nhất):
+{comm_text}
 
-DỮ LIỆU TRÁI PHIẾU (tham khảo):
-{json.dumps(bondlab_clean, ensure_ascii=False, indent=2)}
+GIÁ VÀNG VIỆT NAM:
+{gold_text or "Không có dữ liệu"}
 
-CHỈ SỐ CỔ PHIẾU LIÊN QUAN:
-{json.dumps(idx_brief, ensure_ascii=False, indent=2)}
+TỶ GIÁ:
+{fx_text or "Không có dữ liệu"}
 
 Viết khuyến nghị theo cấu trúc:
 
 TỔNG QUAN HÀNG HOÁ
-2-3 câu tổng kết biến động giá vàng (trong nước + thế giới), tỷ giá USD/VND, và các hàng hoá quan trọng.
+3-4 câu tổng kết xu hướng hàng hoá thế giới: nhóm năng lượng (dầu thô, khí tự nhiên), nhóm kim loại (thép, sắt, than cốc), nhóm nông sản (đậu nành, ngô, đường), vàng. Nêu giá và % thay đổi cụ thể.
 
-TÁC ĐỘNG LÊN CỔ PHIẾU
-2-3 câu phân tích giá hàng hoá ảnh hưởng thế nào đến các nhóm ngành: VNENE (năng lượng), VNMAT (vật liệu), VNCONS (tiêu dùng), VNFIN (tài chính - qua tỷ giá).
+TÁC ĐỘNG LÊN KINH TẾ & CỔ PHIẾU VIỆT NAM
+3-4 câu phân tích tác động của giá hàng hoá lên:
+- Nhóm năng lượng (dầu khí, điện): giá dầu thô tăng/giảm ảnh hưởng thế nào
+- Nhóm vật liệu xây dựng (thép, xi măng): giá thép, sắt, than cốc tác động gì
+- Nhóm phân bón, nông nghiệp: giá phân Urê, đậu nành, ngô ảnh hưởng đầu vào
+- Nhóm tài chính: tỷ giá, giá vàng → dòng vốn ngoại
 
 KHUYẾN NGHỊ
-2-3 câu khuyến nghị cụ thể: nhóm ngành nào được hưởng lợi, nhóm nào chịu áp lực từ biến động hàng hoá. Nêu mức giá vàng/tỷ giá cần theo dõi.
+3-4 câu khuyến nghị cụ thể dựa trên xu hướng hàng hoá:
+- Nhóm nào hưởng lợi từ giá hàng hoá hiện tại
+- Nhóm nào chịu áp lực chi phí đầu vào tăng
+- Mức giá hàng hoá nào cần theo dõi (dầu > X USD/thùng, thép > Y USD/tấn, vàng > Z USD/oz)
 
 CẢNH BÁO
-1-2 câu cảnh báo rủi ro nếu có (biến động tỷ giá mạnh, giá vàng thế giới, giá dầu...)."""
+1-2 câu cảnh báo rủi ro: biến động dầu/vàng bất ngờ, áp lực tỷ giá, rủi ro supply chain."""
 
 
 def generate_commodities_recommendation(data):
