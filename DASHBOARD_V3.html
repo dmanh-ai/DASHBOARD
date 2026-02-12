@@ -14,6 +14,7 @@
 							    <script src="bondlab_data.js"></script>
 							    <script src="researchlab_data.js"></script>
 							    <script src="commodities_data.js"></script>
+							    <script src="portfolio_data.js"></script>
 							    <script src="vendor/lightweight-charts.standalone.production.js"></script>
 							    <script src="scripts/content_formatter.js"></script>
 
@@ -3882,7 +3883,7 @@
 
 	        const UI_GLM_PUBLIC_BUILD = true;
 
-	        const UI_GLM_LITE_ALLOWED_INDICES = new Set(['overview', 'vnindex', 'vn30', 'vn100', 'vnmidcap', 'vnsml', 'vnreal', 'vnit', 'vnheal', 'vnfin', 'vnene', 'vncons', 'vnmat', 'vncond', 'vnfinselect', 'vndiamond', 'bondlab', 'researchlab', 'commodities']);
+	        const UI_GLM_LITE_ALLOWED_INDICES = new Set(['overview', 'vnindex', 'vn30', 'vn100', 'vnmidcap', 'vnsml', 'vnreal', 'vnit', 'vnheal', 'vnfin', 'vnene', 'vncons', 'vnmat', 'vncond', 'vnfinselect', 'vndiamond', 'bondlab', 'researchlab', 'commodities', 'portfolio']);
 	        const UI_GLM_LITE_HIDDEN_SECTIONS = new Set([].map(s => s.trim().toUpperCase()));
 
 	        function getPlanPreference() {
@@ -3988,6 +3989,7 @@
                 { key: 'bondlab', name: 'BONDLAB' },
                 { key: 'researchlab', name: 'RESEARCHLAB' },
                 { key: 'commodities', name: 'HÀNG HOÁ' },
+                { key: 'portfolio', name: 'PORTFOLIO' },
             ];
 
             const indices = all.filter(i => isIndexAllowedForCurrentPlan(i.key));
@@ -4333,6 +4335,18 @@
 	                ];
 	                if (cm && cm.recommendation) {
 	                    sections.push({ title: '💡 Khuyến nghị', icon: '💡', content: cm.recommendation, alert: false, __uiType: 'commodities_recommendation' });
+	                }
+	                return sections;
+	            }
+
+	            // PORTFOLIO: 1 section (AI recommendation)
+	            if (indexKey === 'portfolio') {
+	                const pf = window.UI_GLM_PORTFOLIO || null;
+	                const sections = [];
+	                if (pf && pf.recommendation) {
+	                    sections.push({ title: '🤖 Khuyến nghị AI', icon: '🤖', content: pf.recommendation, alert: false, __uiType: 'portfolio_recommendation' });
+	                } else {
+	                    sections.push({ title: '🤖 Khuyến nghị AI', icon: '🤖', content: '', alert: false, __uiType: 'portfolio_recommendation' });
 	                }
 	                return sections;
 	            }
@@ -7232,6 +7246,26 @@
 	                return;
 	            }
 
+	            // PORTFOLIO: no FULL_DATA entry
+	            if (indexKey === 'portfolio') {
+	                document.getElementById('sectionNavTitle').textContent = 'Portfolio';
+	                const sections = getSectionsForIndex('portfolio');
+	                const container = document.getElementById('sectionList');
+	                let html = '';
+	                sections.forEach((section, idx) => {
+	                    html += `
+	                        <div class="section-item"
+	                             onclick="selectSection(${idx})"
+	                             data-section="${idx}">
+	                            <span class="icon">${section.icon || '📊'}</span>
+	                            <span class="title">${section.title.replace(/`/g, '')}</span>
+	                        </div>
+	                    `;
+	                });
+	                container.innerHTML = html;
+	                return;
+	            }
+
 	            const index = data[indexKey];
 	            if (!index || !index.sections) {
 	                document.getElementById('sectionList').innerHTML = '<div class="no-sections">Không có dữ liệu</div>';
@@ -7374,6 +7408,62 @@
 	                    <div class="section-card">
 	                        <div class="section-body">
 	                            ${formatter.format(recText)}
+	                        </div>
+	                    </div>
+	                `;
+	            } else if (section.__uiType === 'portfolio_recommendation') {
+	                const formatter = new ContentFormatter();
+	                const pfText = (section.content || '')
+	                    .replace(/\\n/g, '\n').replace(/\\t/g, '').replace(/\s+/g, ' ').trim();
+	                const pf = window.UI_GLM_PORTFOLIO || {};
+	                const holdings = Array.isArray(pf.holdings) ? pf.holdings : [];
+	                let holdingsHtml = '';
+	                if (holdings.length > 0) {
+	                    let hRows = '';
+	                    holdings.forEach((h, i) => {
+	                        const bg = i % 2 === 0 ? 'rgba(255,255,255,0.03)' : 'transparent';
+	                        const symbol = escapeHtml(h.symbol || '');
+	                        const qty = h.quantity != null ? Number(h.quantity).toLocaleString('vi-VN') : '';
+	                        const avgP = h.avg_price != null ? Number(h.avg_price).toLocaleString('vi-VN') : '';
+	                        const weight = h.weight_pct != null ? h.weight_pct + '%' : '';
+	                        const sector = escapeHtml(h.sector || '');
+	                        hRows += `<tr style="background:${bg};">
+	                            <td style="padding:6px 10px;font-weight:600;">${symbol}</td>
+	                            <td style="padding:6px 10px;text-align:right;">${qty}</td>
+	                            <td style="padding:6px 10px;text-align:right;">${avgP}</td>
+	                            <td style="padding:6px 10px;text-align:right;">${weight}</td>
+	                            <td style="padding:6px 10px;color:#888;">${sector}</td>
+	                        </tr>`;
+	                    });
+	                    const eqRatio = pf.equity_ratio != null ? `Vốn chủ: ${pf.equity_ratio}%` : '';
+	                    const mgRatio = pf.margin_ratio != null ? ` | Margin: ${pf.margin_ratio}%` : '';
+	                    const metaText = (eqRatio || mgRatio) ? `<div style="margin-bottom:8px;color:#aaa;font-size:12px;">${eqRatio}${mgRatio}</div>` : '';
+	                    holdingsHtml = `
+	                        <div class="block" style="margin-bottom:12px;">
+	                            <div class="block-header">📋 Danh mục hiện tại${pf.asof ? ' (' + pf.asof + ')' : ''}</div>
+	                            <div class="block-body" style="overflow-x:auto;">
+	                                ${metaText}
+	                                <table style="width:100%;border-collapse:collapse;font-size:13px;">
+	                                    <thead>
+	                                        <tr style="border-bottom:1px solid rgba(255,255,255,0.1);">
+	                                            <th style="padding:6px 10px;text-align:left;">Mã</th>
+	                                            <th style="padding:6px 10px;text-align:right;">SL</th>
+	                                            <th style="padding:6px 10px;text-align:right;">Giá vốn</th>
+	                                            <th style="padding:6px 10px;text-align:right;">Tỷ trọng</th>
+	                                            <th style="padding:6px 10px;text-align:left;">Ngành</th>
+	                                        </tr>
+	                                    </thead>
+	                                    <tbody>${hRows}</tbody>
+	                                </table>
+	                            </div>
+	                        </div>
+	                    `;
+	                }
+	                contentDiv.innerHTML = `
+	                    <div class="section-card">
+	                        <div class="section-body">
+	                            ${holdingsHtml}
+	                            ${pfText ? formatter.format(pfText) : '<div class="info-box"><p>Chưa có dữ liệu portfolio hoặc khuyến nghị AI.</p></div>'}
 	                        </div>
 	                    </div>
 	                `;
