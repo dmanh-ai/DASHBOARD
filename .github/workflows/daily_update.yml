@@ -152,7 +152,7 @@ jobs:
           git config user.name "Dmanh"
 
           # Add generated files individually (missing files must not block others)
-          for f in full_data_public.js ui_glm_meta.json index_ohlcv.js market_breadth_snapshot.js vnindex_price_20d.js vnindex_heatmap_data.js index_heatmap_data.js foreign_flow_data.js bondlab_data.js researchlab_data.js commodities_data.js portfolio_data.js; do
+          for f in full_data_public.js ui_glm_meta.json index_ohlcv.js market_breadth_snapshot.js vnindex_price_20d.js vnindex_heatmap_data.js index_heatmap_data.js foreign_flow_data.js bondlab_data.js researchlab_data.js commodities_data.js portfolio_data.js fund_data.js; do
             [ -f "$f" ] && git add -f "$f" && echo "Staged: $f" || echo "Skip (not found): $f"
           done
 

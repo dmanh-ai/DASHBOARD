@@ -814,6 +814,75 @@ def collect_portfolio_data(asof_date):
 
 
 # ============================================================================
+# 9. THU THẬP DỮ LIỆU QUỸ MỞ
+# ============================================================================
+
+def collect_fund_data(asof_date):
+    """Thu thập dữ liệu quỹ mở từ vnstock repo data/funds/fund_listing.csv."""
+    log.info("=" * 60)
+    log.info(f"STEP 9: Thu thập Fund Data cho ngày {asof_date}...")
+
+    import time as _time
+    url = f"{GITHUB_STOCK_DATA_BASE}/funds/fund_listing.csv"
+    log.info(f"  Fetching: {url}")
+
+    rows = []
+    for attempt in range(3):
+        try:
+            req = Request(url, headers={"User-Agent": "DASHBOARD-Pipeline/1.0"})
+            with urlopen(req, timeout=30) as resp:
+                text = resp.read().decode("utf-8-sig")
+            reader = csv.DictReader(io.StringIO(text))
+            rows = list(reader)
+            log.info(f"  OK: fund_listing.csv → {len(rows)} funds")
+            break
+        except URLError as e:
+            log.warning(f"  Attempt {attempt+1} failed: {e}")
+            if attempt < 2:
+                _time.sleep(2 ** (attempt + 1))
+        except Exception as e:
+            log.error(f"  Error parsing fund_listing.csv: {e}")
+            break
+
+    if not rows:
+        log.warning("  fund_listing.csv not found, skipping Fund")
+        return None
+
+    funds = []
+    for row in rows:
+        short_name = (row.get("short_name") or "").strip()
+        if not short_name:
+            continue
+        funds.append({
+            "short_name": short_name,
+            "name": (row.get("name") or "").strip(),
+            "fund_type": (row.get("fund_type") or "").strip(),
+            "owner": (row.get("fund_owner_name") or "").strip(),
+            "management_fee": parse_float(row.get("management_fee")),
+            "nav": parse_float(row.get("nav")),
+            "nav_change_prev": parse_float(row.get("nav_change_previous")),
+            "nav_change_ytd": parse_float(row.get("nav_change_last_year")),
+            "nav_change_1m": parse_float(row.get("nav_change_1m")),
+            "nav_change_3m": parse_float(row.get("nav_change_3m")),
+            "nav_change_6m": parse_float(row.get("nav_change_6m")),
+            "nav_change_12m": parse_float(row.get("nav_change_12m")),
+            "nav_change_24m": parse_float(row.get("nav_change_24m")),
+            "nav_change_36m": parse_float(row.get("nav_change_36m")),
+            "inception_date": (row.get("inception_date") or "").strip()[:10],
+            "nav_update_at": (row.get("nav_update_at") or "").strip()[:10],
+        })
+
+    result = {
+        "asof": asof_date,
+        "funds": funds,
+    }
+
+    save_json(result, "fund_data.json")
+    log.info(f"  Fund data saved: {len(funds)} funds")
+    return result
+
+
+# ============================================================================
 # MAIN
 # ============================================================================
 
@@ -850,6 +919,9 @@ def main():
 
     # Step 8: Portfolio data
     collect_portfolio_data(asof_date)
+
+    # Step 9: Fund data (quỹ mở)
+    collect_fund_data(asof_date)
 
     log.info("=" * 60)
     log.info(f"DATA COLLECTION COMPLETED! Indices: {list(index_data.keys())}")
