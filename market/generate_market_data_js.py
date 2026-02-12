@@ -228,6 +228,20 @@ def generate_commodities():
 
 
 # ============================================================================
+# 10. PORTFOLIO DATA
+# ============================================================================
+
+def generate_portfolio():
+    """Tạo portfolio_data.js - dữ liệu danh mục + khuyến nghị AI."""
+    data = load_json("portfolio_data.json")
+    if not data:
+        log.warning("No portfolio_data.json, skipping")
+        return
+
+    write_js("portfolio_data.js", "UI_GLM_PORTFOLIO", data)
+
+
+# ============================================================================
 # MAIN
 # ============================================================================
 
@@ -245,6 +259,7 @@ def main():
     generate_bondlab()
     generate_researchlab()
     generate_commodities()
+    generate_portfolio()
 
     log.info("=" * 60)
     log.info("ALL JS FILES GENERATED!")

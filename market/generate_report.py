@@ -48,6 +48,7 @@ def load_all_data():
         "stock_snapshot": load_json("stock_snapshot.json"),
         "foreign": load_json("foreign_data.json"),
         "commodities": load_json("commodities_data.json"),
+        "portfolio": load_json("portfolio_data.json"),
     }
 
 
@@ -964,6 +965,202 @@ def generate_commodities_recommendation(data):
 
 
 # ============================================================================
+# PORTFOLIO AI RECOMMENDATION
+# ============================================================================
+
+PORTFOLIO_SYSTEM_PROMPT = """Bạn là chuyên gia tư vấn đầu tư cá nhân chứng khoán Việt Nam.
+Nhiệm vụ: Dựa trên danh mục cổ phiếu của nhà đầu tư và TOÀN BỘ dữ liệu thị trường đã thu thập,
+đưa ra nhận định và khuyến nghị cá nhân hóa.
+
+QUY TẮC:
+- KHÔNG dùng markdown formatting (**, ##). Viết plain text.
+- Dùng số liệu CỤ THỂ từ data (giá, %, RSI, MA, breadth, hàng hoá, trái phiếu...).
+- Phân tích phải liên kết chặt chẽ giữa danh mục cá nhân và bối cảnh thị trường.
+- Viết tiếng Việt chuyên nghiệp, thẳng thắn, có chiều sâu."""
+
+
+def build_portfolio_prompt(data):
+    """Prompt cho khuyến nghị portfolio dựa trên tất cả data."""
+    portfolio = data.get("portfolio", {})
+
+    # Portfolio holdings
+    holdings = portfolio.get("holdings", [])
+    holdings_text = ""
+    if holdings:
+        lines = []
+        for h in holdings:
+            symbol = h.get("symbol", "")
+            qty = h.get("quantity", 0)
+            avg_price = h.get("avg_price", 0)
+            weight = h.get("weight_pct", "")
+            sector = h.get("sector", "")
+            line = f"- {symbol}: {qty} CP, giá vốn {avg_price:,.0f}" if avg_price else f"- {symbol}: {qty} CP"
+            if weight:
+                line += f", tỷ trọng {weight}%"
+            if sector:
+                line += f" ({sector})"
+            lines.append(line)
+        holdings_text = "\n".join(lines)
+    else:
+        holdings_text = "Chưa có dữ liệu danh mục"
+
+    # Portfolio metadata
+    capital_info = ""
+    equity_ratio = portfolio.get("equity_ratio")
+    margin_ratio = portfolio.get("margin_ratio")
+    total_value = portfolio.get("total_value")
+    cash = portfolio.get("cash")
+    if equity_ratio is not None:
+        capital_info += f"- Vốn chủ: {equity_ratio}%\n"
+    if margin_ratio is not None:
+        capital_info += f"- Margin: {margin_ratio}%\n"
+    if total_value is not None:
+        capital_info += f"- Tổng giá trị: {total_value:,.0f} VND\n"
+    if cash is not None:
+        capital_info += f"- Tiền mặt: {cash:,.0f} VND\n"
+
+    # Index summary
+    indices = data.get("index_ohlcv", {}).get("indices", {})
+    idx_brief = {}
+    for key in ["vnindex", "vn30", "vnfin", "vnreal", "vnit", "vnene", "vnmat", "vncons", "vnheal"]:
+        idx = indices.get(key, {})
+        latest = idx.get("latest", {})
+        ind = idx.get("indicators", {})
+        if latest:
+            idx_brief[key] = {
+                "close": latest.get("close"),
+                "change_pct": latest.get("change_pct"),
+                "rsi14": ind.get("rsi_14") or ind.get("rsi14"),
+                "above_ma20": ind.get("above_ma20"),
+            }
+
+    # Breadth
+    breadth = data.get("breadth", {})
+
+    # Foreign flow
+    foreign = data.get("foreign", {})
+    foreign_summary = {}
+    if foreign.get("flow"):
+        for ex, fl in foreign["flow"].items():
+            foreign_summary[ex] = {"net_value": fl.get("net_value")}
+
+    # Commodities summary
+    commodities = data.get("commodities", {})
+    world_comm = commodities.get("world_commodities", [])
+    comm_lines = []
+    for c in world_comm[:6]:
+        name = c.get("name", "")
+        close = c.get("close")
+        pct = c.get("change_pct")
+        if close is not None:
+            pct_str = f"{pct:+.2f}%" if pct is not None else ""
+            comm_lines.append(f"- {name}: {close} ({pct_str})")
+    comm_text = "\n".join(comm_lines) if comm_lines else "N/A"
+
+    # BondLab summary
+    bondlab = data.get("bondlab", {})
+    bondlab_clean = {}
+    for k in ["yield_curve", "interbank", "odds", "alerts"]:
+        if k in bondlab:
+            bondlab_clean[k] = bondlab[k]
+
+    asof = data.get("index_ohlcv", {}).get("asof", portfolio.get("asof", ""))
+
+    return f"""Dựa trên danh mục đầu tư cá nhân và dữ liệu thị trường ngày {asof}, viết KHUYẾN NGHỊ chi tiết.
+
+DANH MỤC ĐẦU TƯ:
+{holdings_text}
+
+THÔNG TIN VỐN:
+{capital_info or "Không có dữ liệu"}
+
+CHỈ SỐ THỊ TRƯỜNG:
+{json.dumps(idx_brief, ensure_ascii=False, indent=2)}
+
+BREADTH:
+Tăng {breadth.get('advancing', 'N/A')}, Giảm {breadth.get('declining', 'N/A')}, Đứng {breadth.get('unchanged', 'N/A')}
+
+GIAO DỊCH NƯỚC NGOÀI:
+{json.dumps(foreign_summary, ensure_ascii=False)}
+
+HÀNG HOÁ THẾ GIỚI:
+{comm_text}
+
+TRÁI PHIẾU (tóm tắt):
+{json.dumps(bondlab_clean, ensure_ascii=False, indent=2) if bondlab_clean else "N/A"}
+
+Viết khuyến nghị theo cấu trúc:
+
+ĐÁNH GIÁ DANH MỤC
+3-5 câu đánh giá tổng quan danh mục: tỷ trọng ngành, mức độ tập trung/phân tán, rủi ro margin (nếu có).
+Đánh giá từng cổ phiếu chính trong danh mục: ngành của nó đang mạnh hay yếu (dựa trên chỉ số ngành), giá hiện tại vs giá vốn, RSI ngành, vị trí so với MA20.
+
+PHÂN TÍCH BỐI CẢNH
+3-4 câu phân tích bối cảnh thị trường ảnh hưởng thế nào đến danh mục:
+- Breadth thị trường (tăng/giảm) ảnh hưởng nhóm nào trong danh mục
+- Xu hướng dòng vốn ngoại (mua/bán ròng) tác động nhóm nào
+- Giá hàng hoá thế giới (dầu, thép, vàng...) ảnh hưởng cổ phiếu nào trong danh mục
+- Lãi suất trái phiếu (nếu có data) tác động tài chính ra sao
+
+KHUYẾN NGHỊ HÀNH ĐỘNG
+4-6 câu khuyến nghị CỤ THỂ cho từng vị thế:
+- Cổ phiếu nào nên GIỮ (lý do: ngành mạnh, RSI chưa quá mua, trên MA20)
+- Cổ phiếu nào nên CẮT GIẢM/CHỐT LỜI (lý do: ngành yếu, RSI quá mua, dưới MA20, áp lực ngoại)
+- Cổ phiếu nào nên TĂNG TỶ TRỌNG/MUA THÊM (lý do: ngành đang hưởng lợi từ hàng hoá, ngoại mua ròng)
+- Gợi ý điều chỉnh tỷ trọng tiền mặt/margin dựa trên mức độ rủi ro thị trường
+
+CẢNH BÁO RỦI RO
+2-3 câu cảnh báo rủi ro cụ thể cho danh mục:
+- Rủi ro margin call nếu thị trường giảm thêm X%
+- Rủi ro tập trung ngành (nếu quá nhiều 1 ngành)
+- Mức giá cần theo dõi: stoploss cho từng cổ phiếu chính, trigger cắt margin
+
+THEO DÕI PHIÊN TỚI
+2-3 yếu tố cần theo dõi phiên kế tiếp liên quan đến danh mục."""
+
+
+def generate_portfolio_recommendation(data):
+    """Tạo khuyến nghị AI cho portfolio."""
+    portfolio = data.get("portfolio", {})
+    if not portfolio or not portfolio.get("holdings"):
+        log.warning("No portfolio data or empty holdings, skipping AI recommendation")
+        return None
+
+    log.info("Generating PORTFOLIO recommendation...")
+    import anthropic
+
+    api_key = os.environ.get("ANTHROPIC_API_KEY")
+    if not api_key:
+        log.warning("No API key, skipping portfolio recommendation")
+        return None
+
+    client = anthropic.Anthropic(api_key=api_key)
+    prompt = build_portfolio_prompt(data)
+
+    for attempt in range(3):
+        try:
+            message = client.messages.create(
+                model=CLAUDE_MODEL,
+                max_tokens=4096,
+                system=PORTFOLIO_SYSTEM_PROMPT,
+                messages=[{"role": "user", "content": prompt}],
+            )
+            text = message.content[0].text
+            log.info("  PORTFOLIO recommendation done")
+            return text
+        except Exception as e:
+            err_str = str(e).lower()
+            is_rate_limit = "rate" in err_str or "429" in err_str or "overloaded" in err_str
+            wait = min(2 ** (attempt + 2), 30) if is_rate_limit else 2 ** (attempt + 1)
+            log.warning(f"  Portfolio API attempt {attempt + 1}/3: {e}")
+            if attempt < 2:
+                time.sleep(wait)
+
+    log.error("  PORTFOLIO recommendation failed after 3 attempts")
+    return None
+
+
+# ============================================================================
 # GENERATE FULL REPORT
 # ============================================================================
 
@@ -1125,6 +1322,28 @@ def main():
             log.info("  Commodities recommendation saved to commodities_data.json")
         else:
             log.warning("  commodities_data.json not found, cannot save recommendation")
+
+    # 6) Generate Portfolio AI recommendation (save to portfolio_data.json)
+    time.sleep(2)
+    portfolio_text = generate_portfolio_recommendation(data)
+    if portfolio_text:
+        portfolio_cache = CACHE_DIR / "portfolio_data.json"
+        if portfolio_cache.exists():
+            with open(portfolio_cache, "r", encoding="utf-8") as f:
+                portfolio_json = json.load(f)
+            portfolio_json["recommendation"] = portfolio_text
+            with open(portfolio_cache, "w", encoding="utf-8") as f:
+                json.dump(portfolio_json, f, ensure_ascii=False, default=str)
+            log.info("  Portfolio recommendation saved to portfolio_data.json")
+        else:
+            # Create new file with just recommendation
+            portfolio_json = {
+                "asof": data["index_ohlcv"].get("asof", ""),
+                "recommendation": portfolio_text,
+            }
+            with open(portfolio_cache, "w", encoding="utf-8") as f:
+                json.dump(portfolio_json, f, ensure_ascii=False, default=str)
+            log.info("  Portfolio recommendation saved (new file)")
 
     # Assemble report
     full_report = assemble_report(overview_text, index_texts)
