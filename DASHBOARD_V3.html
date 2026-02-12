@@ -13,6 +13,7 @@
 							    <script src="foreign_flow_data.js"></script>
 							    <script src="bondlab_data.js"></script>
 							    <script src="researchlab_data.js"></script>
+							    <script src="commodities_data.js"></script>
 							    <script src="vendor/lightweight-charts.standalone.production.js"></script>
 							    <script src="scripts/content_formatter.js"></script>
 
@@ -3881,7 +3882,7 @@
 
 	        const UI_GLM_PUBLIC_BUILD = true;
 
-	        const UI_GLM_LITE_ALLOWED_INDICES = new Set(['overview', 'vnindex', 'vn30', 'vn100', 'vnmidcap', 'vnsml', 'vnreal', 'vnit', 'vnheal', 'vnfin', 'vnene', 'vncons', 'vnmat', 'vncond', 'vnfinselect', 'vndiamond', 'bondlab', 'researchlab']);
+	        const UI_GLM_LITE_ALLOWED_INDICES = new Set(['overview', 'vnindex', 'vn30', 'vn100', 'vnmidcap', 'vnsml', 'vnreal', 'vnit', 'vnheal', 'vnfin', 'vnene', 'vncons', 'vnmat', 'vncond', 'vnfinselect', 'vndiamond', 'bondlab', 'researchlab', 'commodities']);
 	        const UI_GLM_LITE_HIDDEN_SECTIONS = new Set([].map(s => s.trim().toUpperCase()));
 
 	        function getPlanPreference() {
@@ -3986,6 +3987,7 @@
                 { key: 'vnmidcap', name: 'VNMIDCAP' },
                 { key: 'bondlab', name: 'BONDLAB' },
                 { key: 'researchlab', name: 'RESEARCHLAB' },
+                { key: 'commodities', name: 'HÀNG HOÁ' },
             ];
 
             const indices = all.filter(i => isIndexAllowedForCurrentPlan(i.key));
@@ -4321,6 +4323,18 @@
 	                return [
 	                    { title: '🏛 Alert Memo (AI)', icon: '🏛', content: '', alert: false, __uiType: 'researchlab_memo' },
 	                ];
+	            }
+
+	            // COMMODITIES: 2 sections (data table + AI recommendation)
+	            if (indexKey === 'commodities') {
+	                const cm = window.UI_GLM_COMMODITIES || null;
+	                const sections = [
+	                    { title: '🌍 Hàng hoá thế giới', icon: '🌍', content: '', alert: false, __uiType: 'commodities_table' },
+	                ];
+	                if (cm && cm.recommendation) {
+	                    sections.push({ title: '💡 Khuyến nghị', icon: '💡', content: cm.recommendation, alert: false, __uiType: 'commodities_recommendation' });
+	                }
+	                return sections;
 	            }
 
 	            const indexData = data[indexKey];
@@ -5149,6 +5163,143 @@
 	            }
 
 	            return html || '<div class="info-box"><p>Không có dữ liệu ResearchLab.</p></div>';
+	        }
+
+	        // ====================================================================
+	        // COMMODITIES RENDERING
+	        // ====================================================================
+
+	        function renderCommoditiesTable() {
+	            const cm = window.UI_GLM_COMMODITIES || null;
+	            if (!cm) return '<div class="info-box"><p>Không có dữ liệu hàng hoá.</p></div>';
+
+	            const dateText = cm.asof ? ` (${cm.asof})` : '';
+	            let html = '';
+
+	            // World commodities table
+	            const wc = Array.isArray(cm.world_commodities) ? cm.world_commodities : [];
+	            if (wc.length > 0) {
+	                let wcRows = '';
+	                wc.forEach((c, i) => {
+	                    const bg = i % 2 === 0 ? 'rgba(255,255,255,0.03)' : 'transparent';
+	                    const closeStr = c.close != null ? Number(c.close).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2}) : 'N/A';
+	                    const changeStr = c.change != null ? (c.change >= 0 ? '+' : '') + Number(c.change).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2}) : '';
+	                    const pctStr = c.change_pct != null ? (c.change_pct >= 0 ? '+' : '') + c.change_pct.toFixed(2) + '%' : '';
+	                    const pctColor = c.change_pct > 0 ? '#00c853' : c.change_pct < 0 ? '#ff1744' : '#888';
+	                    const unitStr = c.unit ? `<span style="color:#888;font-size:11px;"> ${escapeHtml(c.unit)}</span>` : '';
+	                    wcRows += `
+	                        <tr style="background:${bg};">
+	                            <td style="padding:6px 10px;font-weight:600;">${escapeHtml(c.name || '')}</td>
+	                            <td style="padding:6px 10px;text-align:right;">${closeStr}${unitStr}</td>
+	                            <td style="padding:6px 10px;text-align:right;color:${pctColor};">${changeStr}</td>
+	                            <td style="padding:6px 10px;text-align:right;color:${pctColor};font-weight:600;">${pctStr}</td>
+	                        </tr>
+	                    `;
+	                });
+
+	                html += `
+	                    <div class="block" style="margin-bottom:12px;">
+	                        <div class="block-header">🌍 Hàng hoá thế giới${dateText}</div>
+	                        <div class="block-body" style="overflow-x:auto;">
+	                            <table style="width:100%;border-collapse:collapse;font-size:13px;">
+	                                <thead>
+	                                    <tr style="border-bottom:1px solid rgba(255,255,255,0.1);">
+	                                        <th style="padding:6px 10px;text-align:left;">Hàng hoá</th>
+	                                        <th style="padding:6px 10px;text-align:right;">Giá</th>
+	                                        <th style="padding:6px 10px;text-align:right;">Thay đổi</th>
+	                                        <th style="padding:6px 10px;text-align:right;">%</th>
+	                                    </tr>
+	                                </thead>
+	                                <tbody>${wcRows}</tbody>
+	                            </table>
+	                        </div>
+	                    </div>
+	                `;
+	            }
+
+	            // Gold table
+	            const gold = Array.isArray(cm.gold) ? cm.gold : [];
+	            if (gold.length > 0) {
+	                let goldRows = '';
+	                gold.forEach((g, i) => {
+	                    const bg = i % 2 === 0 ? 'rgba(255,255,255,0.03)' : 'transparent';
+	                    const buyStr = g.buy != null ? Number(g.buy).toLocaleString('vi-VN') : 'N/A';
+	                    const sellStr = g.sell != null ? Number(g.sell).toLocaleString('vi-VN') : 'N/A';
+	                    const worldStr = g.world_price != null ? Number(g.world_price).toLocaleString('en-US') : '';
+	                    const karatStr = g.karat ? `<span style="color:#888;font-size:11px;"> (${escapeHtml(g.karat)})</span>` : '';
+	                    goldRows += `
+	                        <tr style="background:${bg};">
+	                            <td style="padding:6px 10px;font-weight:600;">${escapeHtml(g.name || '')}${karatStr}</td>
+	                            <td style="padding:6px 10px;text-align:right;color:#00c853;">${buyStr}</td>
+	                            <td style="padding:6px 10px;text-align:right;color:#ff1744;">${sellStr}</td>
+	                            ${worldStr ? `<td style="padding:6px 10px;text-align:right;color:#ffab00;">${worldStr}</td>` : ''}
+	                        </tr>
+	                    `;
+	                });
+
+	                const hasWorld = gold.some(g => g.world_price != null);
+	                html += `
+	                    <div class="block" style="margin-bottom:12px;">
+	                        <div class="block-header">🥇 Giá vàng${dateText}</div>
+	                        <div class="block-body" style="overflow-x:auto;">
+	                            <table style="width:100%;border-collapse:collapse;font-size:13px;">
+	                                <thead>
+	                                    <tr style="border-bottom:1px solid rgba(255,255,255,0.1);">
+	                                        <th style="padding:6px 10px;text-align:left;">Loại</th>
+	                                        <th style="padding:6px 10px;text-align:right;">Mua</th>
+	                                        <th style="padding:6px 10px;text-align:right;">Bán</th>
+	                                        ${hasWorld ? '<th style="padding:6px 10px;text-align:right;">Thế giới</th>' : ''}
+	                                    </tr>
+	                                </thead>
+	                                <tbody>${goldRows}</tbody>
+	                            </table>
+	                        </div>
+	                    </div>
+	                `;
+	            }
+
+	            // Exchange rates table
+	            const fx = Array.isArray(cm.exchange_rates) ? cm.exchange_rates : [];
+	            if (fx.length > 0) {
+	                let fxRows = '';
+	                fx.forEach((r, i) => {
+	                    const bg = i % 2 === 0 ? 'rgba(255,255,255,0.03)' : 'transparent';
+	                    const buyC = r.buy_cash != null ? Number(r.buy_cash).toLocaleString('vi-VN') : 'N/A';
+	                    const buyT = r.buy_transfer != null ? Number(r.buy_transfer).toLocaleString('vi-VN') : 'N/A';
+	                    const sellStr = r.sell != null ? Number(r.sell).toLocaleString('vi-VN') : 'N/A';
+	                    fxRows += `
+	                        <tr style="background:${bg};">
+	                            <td style="padding:6px 10px;font-weight:600;">${escapeHtml(r.code || '')}</td>
+	                            <td style="padding:6px 10px;color:#888;">${escapeHtml(r.name || '')}</td>
+	                            <td style="padding:6px 10px;text-align:right;">${buyC}</td>
+	                            <td style="padding:6px 10px;text-align:right;">${buyT}</td>
+	                            <td style="padding:6px 10px;text-align:right;font-weight:600;">${sellStr}</td>
+	                        </tr>
+	                    `;
+	                });
+
+	                html += `
+	                    <div class="block" style="margin-bottom:12px;">
+	                        <div class="block-header">💱 Tỷ giá${dateText}</div>
+	                        <div class="block-body" style="overflow-x:auto;">
+	                            <table style="width:100%;border-collapse:collapse;font-size:13px;">
+	                                <thead>
+	                                    <tr style="border-bottom:1px solid rgba(255,255,255,0.1);">
+	                                        <th style="padding:6px 10px;text-align:left;">Mã</th>
+	                                        <th style="padding:6px 10px;text-align:left;">Tiền tệ</th>
+	                                        <th style="padding:6px 10px;text-align:right;">Mua TM</th>
+	                                        <th style="padding:6px 10px;text-align:right;">Mua CK</th>
+	                                        <th style="padding:6px 10px;text-align:right;">Bán</th>
+	                                    </tr>
+	                                </thead>
+	                                <tbody>${fxRows}</tbody>
+	                            </table>
+	                        </div>
+	                    </div>
+	                `;
+	            }
+
+	            return html || '<div class="info-box"><p>Không có dữ liệu hàng hoá.</p></div>';
 	        }
 
 		        function getIndexOhlcvPayload(indexKey) {
@@ -7061,6 +7212,26 @@
 	                return;
 	            }
 
+	            // COMMODITIES: no FULL_DATA entry
+	            if (indexKey === 'commodities') {
+	                document.getElementById('sectionNavTitle').textContent = 'Hàng hoá';
+	                const sections = getSectionsForIndex('commodities');
+	                const container = document.getElementById('sectionList');
+	                let html = '';
+	                sections.forEach((section, idx) => {
+	                    html += `
+	                        <div class="section-item"
+	                             onclick="selectSection(${idx})"
+	                             data-section="${idx}">
+	                            <span class="icon">${section.icon || '📊'}</span>
+	                            <span class="title">${section.title.replace(/`/g, '')}</span>
+	                        </div>
+	                    `;
+	                });
+	                container.innerHTML = html;
+	                return;
+	            }
+
 	            const index = data[indexKey];
 	            if (!index || !index.sections) {
 	                document.getElementById('sectionList').innerHTML = '<div class="no-sections">Không có dữ liệu</div>';
@@ -7184,6 +7355,25 @@
 	                    <div class="section-card">
 	                        <div class="section-body">
 	                            ${rlHtml}
+	                        </div>
+	                    </div>
+	                `;
+	            } else if (section.__uiType === 'commodities_table') {
+	                contentDiv.innerHTML = `
+	                    <div class="section-card">
+	                        <div class="section-body">
+	                            ${renderCommoditiesTable()}
+	                        </div>
+	                    </div>
+	                `;
+	            } else if (section.__uiType === 'commodities_recommendation') {
+	                const formatter = new ContentFormatter();
+	                const recText = (section.content || '')
+	                    .replace(/\\n/g, '\n').replace(/\\t/g, '').replace(/\s+/g, ' ').trim();
+	                contentDiv.innerHTML = `
+	                    <div class="section-card">
+	                        <div class="section-body">
+	                            ${formatter.format(recText)}
 	                        </div>
 	                    </div>
 	                `;

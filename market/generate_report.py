@@ -47,6 +47,7 @@ def load_all_data():
         "bondlab": load_json("bondlab_data.json"),
         "stock_snapshot": load_json("stock_snapshot.json"),
         "foreign": load_json("foreign_data.json"),
+        "commodities": load_json("commodities_data.json"),
     }
 
 
@@ -830,6 +831,139 @@ def generate_researchlab_memo(data):
 
 
 # ============================================================================
+# COMMODITIES AI RECOMMENDATION
+# ============================================================================
+
+COMMODITIES_SYSTEM_PROMPT = """Bạn là chuyên gia phân tích hàng hoá thế giới và tác động đến thị trường Việt Nam.
+Viết khuyến nghị bằng tiếng Việt, chuyên nghiệp, ngắn gọn, có dẫn chứng số liệu cụ thể.
+
+QUY TẮC:
+- KHÔNG dùng markdown formatting (**, ##). Viết plain text.
+- Dùng số liệu CỤ THỂ từ data hàng hoá (giá, % thay đổi, đơn vị).
+- Tập trung phân tích xu hướng hàng hoá (dầu, thép, sắt, vàng, nông sản...) và tác động kinh tế.
+- Viết thực tế, tập trung vào tác động lên nền kinh tế và thị trường cổ phiếu VN."""
+
+
+def build_commodities_prompt(data):
+    """Prompt cho khuyến nghị hàng hoá dựa trên dữ liệu commodity thực tế."""
+    commodities = data.get("commodities", {})
+
+    # Tóm tắt world_commodities cho prompt
+    world_comm = commodities.get("world_commodities", [])
+    comm_summary = []
+    for c in world_comm:
+        name = c.get("name", "")
+        close = c.get("close")
+        change_pct = c.get("change_pct")
+        unit = c.get("unit", "")
+        if close is not None:
+            pct_str = f"{change_pct:+.2f}%" if change_pct is not None else "N/A"
+            comm_summary.append(f"- {name}: {close} {unit} ({pct_str})")
+
+    comm_text = "\n".join(comm_summary) if comm_summary else "Không có dữ liệu"
+
+    # Gold VN summary
+    gold = commodities.get("gold", [])
+    gold_text = ""
+    if gold:
+        gold_lines = []
+        for g in gold[:5]:
+            name = g.get("name", "")
+            buy = g.get("buy")
+            sell = g.get("sell")
+            if buy and sell:
+                gold_lines.append(f"- {name}: Mua {buy:,.0f} / Bán {sell:,.0f} VND")
+        gold_text = "\n".join(gold_lines)
+
+    # Exchange rates summary
+    fx = commodities.get("exchange_rates", [])
+    fx_text = ""
+    if fx:
+        fx_lines = []
+        for r in fx[:5]:
+            code = r.get("code", "")
+            sell = r.get("sell")
+            if sell:
+                fx_lines.append(f"- {code}: Bán {sell:,.0f} VND")
+        fx_text = "\n".join(fx_lines)
+
+    asof = commodities.get("asof", data.get("index_ohlcv", {}).get("asof", ""))
+
+    return f"""Dựa trên dữ liệu hàng hoá thế giới ngày {asof}, viết KHUYẾN NGHỊ ngắn gọn.
+
+HÀNG HOÁ THẾ GIỚI (giá mới nhất):
+{comm_text}
+
+GIÁ VÀNG VIỆT NAM:
+{gold_text or "Không có dữ liệu"}
+
+TỶ GIÁ:
+{fx_text or "Không có dữ liệu"}
+
+Viết khuyến nghị theo cấu trúc:
+
+TỔNG QUAN HÀNG HOÁ
+3-4 câu tổng kết xu hướng hàng hoá thế giới: nhóm năng lượng (dầu thô, khí tự nhiên), nhóm kim loại (thép, sắt, than cốc), nhóm nông sản (đậu nành, ngô, đường), vàng. Nêu giá và % thay đổi cụ thể.
+
+TÁC ĐỘNG LÊN KINH TẾ & CỔ PHIẾU VIỆT NAM
+3-4 câu phân tích tác động của giá hàng hoá lên:
+- Nhóm năng lượng (dầu khí, điện): giá dầu thô tăng/giảm ảnh hưởng thế nào
+- Nhóm vật liệu xây dựng (thép, xi măng): giá thép, sắt, than cốc tác động gì
+- Nhóm phân bón, nông nghiệp: giá phân Urê, đậu nành, ngô ảnh hưởng đầu vào
+- Nhóm tài chính: tỷ giá, giá vàng → dòng vốn ngoại
+
+KHUYẾN NGHỊ
+3-4 câu khuyến nghị cụ thể dựa trên xu hướng hàng hoá:
+- Nhóm nào hưởng lợi từ giá hàng hoá hiện tại
+- Nhóm nào chịu áp lực chi phí đầu vào tăng
+- Mức giá hàng hoá nào cần theo dõi (dầu > X USD/thùng, thép > Y USD/tấn, vàng > Z USD/oz)
+
+CẢNH BÁO
+1-2 câu cảnh báo rủi ro: biến động dầu/vàng bất ngờ, áp lực tỷ giá, rủi ro supply chain."""
+
+
+def generate_commodities_recommendation(data):
+    """Tạo khuyến nghị AI cho hàng hoá."""
+    commodities = data.get("commodities", {})
+    if not commodities:
+        log.warning("No commodities data, skipping AI recommendation")
+        return None
+
+    log.info("Generating COMMODITIES recommendation...")
+    import anthropic
+
+    api_key = os.environ.get("ANTHROPIC_API_KEY")
+    if not api_key:
+        log.warning("No API key, skipping commodities recommendation")
+        return None
+
+    client = anthropic.Anthropic(api_key=api_key)
+    prompt = build_commodities_prompt(data)
+
+    for attempt in range(3):
+        try:
+            message = client.messages.create(
+                model=CLAUDE_MODEL,
+                max_tokens=2048,
+                system=COMMODITIES_SYSTEM_PROMPT,
+                messages=[{"role": "user", "content": prompt}],
+            )
+            text = message.content[0].text
+            log.info("  COMMODITIES recommendation done")
+            return text
+        except Exception as e:
+            err_str = str(e).lower()
+            is_rate_limit = "rate" in err_str or "429" in err_str or "overloaded" in err_str
+            wait = min(2 ** (attempt + 2), 30) if is_rate_limit else 2 ** (attempt + 1)
+            log.warning(f"  Commodities API attempt {attempt + 1}/3: {e}")
+            if attempt < 2:
+                time.sleep(wait)
+
+    log.error("  COMMODITIES recommendation failed after 3 attempts")
+    return None
+
+
+# ============================================================================
 # GENERATE FULL REPORT
 # ============================================================================
 
@@ -976,6 +1110,21 @@ def main():
         with open(rl_path, "w", encoding="utf-8") as f:
             json.dump(rl_data, f, ensure_ascii=False, default=str)
         log.info(f"  ResearchLab memo saved to {rl_path}")
+
+    # 5) Generate Commodities AI recommendation (save to commodities_data.json)
+    time.sleep(2)
+    comm_text = generate_commodities_recommendation(data)
+    if comm_text:
+        comm_cache = CACHE_DIR / "commodities_data.json"
+        if comm_cache.exists():
+            with open(comm_cache, "r", encoding="utf-8") as f:
+                comm_json = json.load(f)
+            comm_json["recommendation"] = comm_text
+            with open(comm_cache, "w", encoding="utf-8") as f:
+                json.dump(comm_json, f, ensure_ascii=False, default=str)
+            log.info("  Commodities recommendation saved to commodities_data.json")
+        else:
+            log.warning("  commodities_data.json not found, cannot save recommendation")
 
     # Assemble report
     full_report = assemble_report(overview_text, index_texts)

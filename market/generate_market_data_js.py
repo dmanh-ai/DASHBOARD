@@ -214,6 +214,20 @@ def generate_researchlab():
 
 
 # ============================================================================
+# 9. COMMODITIES DATA
+# ============================================================================
+
+def generate_commodities():
+    """Tạo commodities_data.js - dữ liệu hàng hoá thế giới."""
+    data = load_json("commodities_data.json")
+    if not data:
+        log.warning("No commodities_data.json, skipping")
+        return
+
+    write_js("commodities_data.js", "UI_GLM_COMMODITIES", data)
+
+
+# ============================================================================
 # MAIN
 # ============================================================================
 
@@ -230,6 +244,7 @@ def main():
     generate_foreign_flow()
     generate_bondlab()
     generate_researchlab()
+    generate_commodities()
 
     log.info("=" * 60)
     log.info("ALL JS FILES GENERATED!")
