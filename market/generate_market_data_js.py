@@ -200,6 +200,20 @@ def generate_bondlab():
 
 
 # ============================================================================
+# 8. RESEARCHLAB DATA
+# ============================================================================
+
+def generate_researchlab():
+    """Tạo researchlab_data.js - ResearchLab memo data."""
+    data = load_json("researchlab_data.json")
+    if not data:
+        log.warning("No researchlab_data.json, skipping")
+        return
+
+    write_js("researchlab_data.js", "UI_GLM_RESEARCHLAB", data)
+
+
+# ============================================================================
 # MAIN
 # ============================================================================
 
@@ -215,6 +229,7 @@ def main():
     generate_index_heatmaps()
     generate_foreign_flow()
     generate_bondlab()
+    generate_researchlab()
 
     log.info("=" * 60)
     log.info("ALL JS FILES GENERATED!")

@@ -565,6 +565,26 @@ def collect_bondlab_data(asof_date):
 
 
 # ============================================================================
+# 7. THU THẬP DỮ LIỆU RESEARCHLAB
+# ============================================================================
+
+def collect_researchlab_data(asof_date):
+    """Thu thập ResearchLab memo data từ vnstock repo."""
+    log.info("=" * 60)
+    log.info(f"STEP 7: Thu thập ResearchLab Data cho ngày {asof_date}...")
+
+    data = _fetch_daily_json(asof_date, "researchlab_memo.json")
+    if not data:
+        log.warning("  researchlab_memo.json not found, skipping ResearchLab")
+        return None
+
+    data["asof"] = asof_date
+    save_json(data, "researchlab_data.json")
+    log.info(f"  ResearchLab data saved: {list(data.keys())}")
+    return data
+
+
+# ============================================================================
 # MAIN
 # ============================================================================
 
@@ -595,6 +615,9 @@ def main():
 
     # Step 6: BondLab data
     collect_bondlab_data(asof_date)
+
+    # Step 7: ResearchLab data
+    collect_researchlab_data(asof_date)
 
     log.info("=" * 60)
     log.info(f"DATA COLLECTION COMPLETED! Indices: {list(index_data.keys())}")

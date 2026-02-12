@@ -12,6 +12,7 @@
 							    <script src="index_heatmap_data.js"></script>
 							    <script src="foreign_flow_data.js"></script>
 							    <script src="bondlab_data.js"></script>
+							    <script src="researchlab_data.js"></script>
 							    <script src="vendor/lightweight-charts.standalone.production.js"></script>
 							    <script src="scripts/content_formatter.js"></script>
 
@@ -3880,7 +3881,7 @@
 
 	        const UI_GLM_PUBLIC_BUILD = true;
 
-	        const UI_GLM_LITE_ALLOWED_INDICES = new Set(['overview', 'vnindex', 'vn30', 'vn100', 'vnmidcap', 'vnsml', 'vnreal', 'vnit', 'vnheal', 'vnfin', 'vnene', 'vncons', 'vnmat', 'vncond', 'vnfinselect', 'vndiamond', 'bondlab']);
+	        const UI_GLM_LITE_ALLOWED_INDICES = new Set(['overview', 'vnindex', 'vn30', 'vn100', 'vnmidcap', 'vnsml', 'vnreal', 'vnit', 'vnheal', 'vnfin', 'vnene', 'vncons', 'vnmat', 'vncond', 'vnfinselect', 'vndiamond', 'bondlab', 'researchlab']);
 	        const UI_GLM_LITE_HIDDEN_SECTIONS = new Set([].map(s => s.trim().toUpperCase()));
 
 	        function getPlanPreference() {
@@ -3984,6 +3985,7 @@
                 { key: 'vn100', name: 'VN100' },
                 { key: 'vnmidcap', name: 'VNMIDCAP' },
                 { key: 'bondlab', name: 'BONDLAB' },
+                { key: 'researchlab', name: 'RESEARCHLAB' },
             ];
 
             const indices = all.filter(i => isIndexAllowedForCurrentPlan(i.key));
@@ -4312,6 +4314,13 @@
 	                // Alerts section
 	                sections.push({ title: '🚨 Alerts', icon: '🚨', content: '', alert: true, __uiType: 'bondlab_alerts' });
 	                return sections;
+	            }
+
+	            // RESEARCHLAB: single "Alert Memo (AI)" section
+	            if (indexKey === 'researchlab') {
+	                return [
+	                    { title: '🏛 Alert Memo (AI)', icon: '🏛', content: '', alert: false, __uiType: 'researchlab_memo' },
+	                ];
 	            }
 
 	            const indexData = data[indexKey];
@@ -5062,6 +5071,84 @@
 	                    </div>
 	                </div>
 	            `;
+	        }
+
+	        // ====================================================================
+	        // RESEARCHLAB RENDERING
+	        // ====================================================================
+
+	        function renderResearchlabMemo() {
+	            const rl = window.UI_GLM_RESEARCHLAB || null;
+	            if (!rl) return '<div class="info-box"><p>Không có dữ liệu ResearchLab.</p></div>';
+
+	            const dateText = rl.asof ? `Cập nhật: ${rl.asof}` : '';
+
+	            // Section mapping: key → display header
+	            const sectionDefs = [
+	                { key: 'summary', header: 'RESEARCHLAB_MEMO: SUMMARY:' },
+	                { key: 'alerts', header: 'ALERTS:' },
+	                { key: 'evidence', header: 'EVIDENCE:' },
+	                { key: 'market_context', header: 'MARKET_CONTEXT:' },
+	                { key: 'watchlist', header: 'WATCHLIST:' },
+	            ];
+
+	            let html = '';
+
+	            if (dateText) {
+	                html += `<div style="color:#888;font-size:12px;margin-bottom:16px;">${escapeHtml(dateText)}</div>`;
+	            }
+
+	            // Try structured data first (object with arrays)
+	            let hasStructured = false;
+	            sectionDefs.forEach(def => {
+	                const items = rl[def.key];
+	                if (Array.isArray(items) && items.length > 0) {
+	                    hasStructured = true;
+	                    html += `<div style="margin-bottom:20px;">`;
+	                    html += `<div style="font-weight:700;font-size:15px;margin-bottom:10px;color:var(--text-primary, #e0e0e0);">${escapeHtml(def.header)}</div>`;
+	                    html += `<ul style="margin:0;padding-left:20px;list-style-type:disc;">`;
+	                    items.forEach(item => {
+	                        html += `<li style="margin-bottom:8px;line-height:1.6;color:var(--text-secondary, #b0b0b0);">${escapeHtml(String(item))}</li>`;
+	                    });
+	                    html += `</ul></div>`;
+	                }
+	            });
+
+	            // Fallback: if data has a "memo" or "content" text field, render as formatted text
+	            if (!hasStructured) {
+	                const text = rl.memo || rl.content || rl.text || '';
+	                if (text) {
+	                    const formatter = new ContentFormatter();
+	                    const cleanContent = text
+	                        .replace(/\\n/g, '\n')
+	                        .replace(/\\t/g, '')
+	                        .trim();
+	                    html += formatter.format(cleanContent);
+	                } else {
+	                    // Try rendering all non-meta keys as sections
+	                    const metaKeys = new Set(['asof', 'updated_at', 'source']);
+	                    Object.keys(rl).forEach(k => {
+	                        if (metaKeys.has(k)) return;
+	                        const val = rl[k];
+	                        if (Array.isArray(val) && val.length > 0) {
+	                            html += `<div style="margin-bottom:20px;">`;
+	                            html += `<div style="font-weight:700;font-size:15px;margin-bottom:10px;color:var(--text-primary, #e0e0e0);">${escapeHtml(k.toUpperCase())}:</div>`;
+	                            html += `<ul style="margin:0;padding-left:20px;list-style-type:disc;">`;
+	                            val.forEach(item => {
+	                                html += `<li style="margin-bottom:8px;line-height:1.6;color:var(--text-secondary, #b0b0b0);">${escapeHtml(String(item))}</li>`;
+	                            });
+	                            html += `</ul></div>`;
+	                        } else if (typeof val === 'string' && val.length > 0) {
+	                            html += `<div style="margin-bottom:20px;">`;
+	                            html += `<div style="font-weight:700;font-size:15px;margin-bottom:10px;">${escapeHtml(k.toUpperCase())}:</div>`;
+	                            html += `<div style="line-height:1.6;color:var(--text-secondary, #b0b0b0);">${escapeHtml(val)}</div>`;
+	                            html += `</div>`;
+	                        }
+	                    });
+	                }
+	            }
+
+	            return html || '<div class="info-box"><p>Không có dữ liệu ResearchLab.</p></div>';
 	        }
 
 		        function getIndexOhlcvPayload(indexKey) {
@@ -6954,6 +7041,26 @@
 	                return;
 	            }
 
+	            // RESEARCHLAB: no FULL_DATA entry
+	            if (indexKey === 'researchlab') {
+	                document.getElementById('sectionNavTitle').textContent = 'ResearchLab';
+	                const sections = getSectionsForIndex('researchlab');
+	                const container = document.getElementById('sectionList');
+	                let html = '';
+	                sections.forEach((section, idx) => {
+	                    html += `
+	                        <div class="section-item"
+	                             onclick="selectSection(${idx})"
+	                             data-section="${idx}">
+	                            <span class="icon">${section.icon || '📊'}</span>
+	                            <span class="title">${section.title.replace(/`/g, '')}</span>
+	                        </div>
+	                    `;
+	                });
+	                container.innerHTML = html;
+	                return;
+	            }
+
 	            const index = data[indexKey];
 	            if (!index || !index.sections) {
 	                document.getElementById('sectionList').innerHTML = '<div class="no-sections">Không có dữ liệu</div>';
@@ -7068,6 +7175,15 @@
 	                    <div class="section-card">
 	                        <div class="section-body">
 	                            ${renderForeignTopSection()}
+	                        </div>
+	                    </div>
+	                `;
+	            } else if (section.__uiType === 'researchlab_memo') {
+	                const rlHtml = renderResearchlabMemo();
+	                contentDiv.innerHTML = `
+	                    <div class="section-card">
+	                        <div class="section-body">
+	                            ${rlHtml}
 	                        </div>
 	                    </div>
 	                `;
