@@ -45,6 +45,8 @@ def load_all_data():
         "index_ohlcv": load_json("index_ohlcv.json"),
         "breadth": load_json("breadth_snapshot.json"),
         "bondlab": load_json("bondlab_data.json"),
+        "stock_snapshot": load_json("stock_snapshot.json"),
+        "foreign": load_json("foreign_data.json"),
     }
 
 
@@ -670,6 +672,164 @@ def generate_bondlab_analysis(data):
 
 
 # ============================================================================
+# RESEARCHLAB AI MEMO
+# ============================================================================
+
+RESEARCHLAB_SYSTEM_PROMPT = """Bạn là chuyên gia nghiên cứu vĩ mô và liên thị trường (cross-asset) Việt Nam.
+Nhiệm vụ: viết Research Memo tổng hợp mối quan hệ giữa thị trường trái phiếu, lãi suất và thị trường cổ phiếu.
+
+QUY TẮC FORMAT BẮT BUỘC:
+- Output PHẢI là JSON hợp lệ với 5 key: summary, alerts, evidence, market_context, watchlist
+- Mỗi key là một array of strings, mỗi string là 1 bullet point
+- KHÔNG dùng markdown. Viết plain text tiếng Việt.
+- Dùng số liệu CỤ THỂ từ data.
+- Mỗi phần 2-4 bullet points."""
+
+
+def build_researchlab_prompt(data):
+    """Prompt cho ResearchLab memo dựa trên tất cả data đã thu thập."""
+    # Tóm tắt index performance
+    indices = data.get("index_ohlcv", {}).get("indices", {})
+    index_summary = {}
+    for key, idx in indices.items():
+        latest = idx.get("latest", {})
+        bars = idx.get("bars", [])
+        perf_5d = None
+        if len(bars) >= 6:
+            c5 = bars[-6].get("c", 0)
+            c0 = bars[-1].get("c", 0)
+            if c5 and c5 > 0:
+                perf_5d = round((c0 / c5 - 1) * 100, 2)
+        perf_20d = None
+        if len(bars) >= 21:
+            c20 = bars[-21].get("c", 0)
+            c0 = bars[-1].get("c", 0)
+            if c20 and c20 > 0:
+                perf_20d = round((c0 / c20 - 1) * 100, 2)
+        index_summary[key] = {
+            "name": idx.get("name", key),
+            "close": latest.get("close"),
+            "change_pct": latest.get("change_pct"),
+            "perf_5d": perf_5d,
+            "perf_20d": perf_20d,
+        }
+
+    # Breadth
+    breadth = data.get("breadth", {})
+
+    # BondLab
+    bondlab = data.get("bondlab", {})
+    # Remove analysis text to keep prompt focused on numbers
+    bondlab_clean = {k: v for k, v in bondlab.items() if k != "analysis"}
+
+    # Foreign flow
+    foreign = data.get("foreign", {})
+    foreign_summary = {}
+    if foreign.get("flow"):
+        for ex, fl in foreign["flow"].items():
+            foreign_summary[ex] = {
+                "net_value": fl.get("net_value"),
+                "buy_value": fl.get("buy_value"),
+                "sell_value": fl.get("sell_value"),
+            }
+
+    asof = data.get("index_ohlcv", {}).get("asof", "")
+
+    return f"""Dựa trên DỮ LIỆU THỊ TRƯỜNG ngày {asof}, viết Research Memo phân tích mối quan hệ liên thị trường.
+
+DỮ LIỆU CHỈ SỐ CỔ PHIẾU (15 chỉ số):
+{json.dumps(index_summary, ensure_ascii=False, indent=2)}
+
+BREADTH:
+{json.dumps(breadth, ensure_ascii=False, indent=2)}
+
+DỮ LIỆU TRÁI PHIẾU & LIÊN NGÂN HÀNG (BondLab):
+{json.dumps(bondlab_clean, ensure_ascii=False, indent=2)}
+
+GIAO DỊCH NƯỚC NGOÀI:
+{json.dumps(foreign_summary, ensure_ascii=False, indent=2)}
+
+Trả về JSON hợp lệ với cấu trúc:
+{{
+  "summary": [
+    "Bullet 1: tổng quan xu hướng cổ phiếu gần đây (dùng perf_5d)",
+    "Bullet 2: tổng quan lãi suất TPCP và đường cong yield (spread 10y-2y)",
+    "Bullet 3: mức stress trái phiếu và áp lực chính"
+  ],
+  "alerts": [
+    "Bullet: cảnh báo truyền dẫn giá (price transmission) từ trái phiếu sang cổ phiếu - liệt kê chỉ số bị ảnh hưởng",
+    "Bullet: tín hiệu lead-lag giữa đường cong yield và lợi nhuận cổ phiếu",
+    "Bullet: truyền dẫn khối lượng (volume transmission) - trạng thái ok/caution/warn"
+  ],
+  "evidence": [
+    "Bullet: phân tích VAR/Granger - tác động cú sốc từ đường cong lợi suất đến giá cổ phiếu, p-value, mức tác động",
+    "Bullet: mối đồng pha (coherence) giữa đường cong và lợi nhuận cổ phiếu, độ trễ",
+    "Bullet: chỉ số stress trái phiếu trung bình, so với mức lịch sử, thành phần đóng góp"
+  ],
+  "market_context": [
+    "Bullet: bối cảnh đường cong yield cao trong môi trường lãi suất hiện tại, kỳ vọng chính sách",
+    "Bullet: môi trường risk-on/risk-off dựa trên stress trái phiếu + xu hướng cổ phiếu",
+    "Bullet: khả năng khuếch đại cú sốc từ thị trường vốn"
+  ],
+  "watchlist": [
+    "Bullet: điều kiện stress trái phiếu + đường cong → rủi ro cho nhóm nhạy cảm lãi suất",
+    "Bullet: nếu coherence mạnh hơn → tín hiệu truyền dẫn rủi ro sâu hơn",
+    "Bullet: thanh khoản cổ phiếu + stress thanh khoản trái phiếu → khả năng điều chỉnh mạnh"
+  ]
+}}
+
+CHỈ trả về JSON, KHÔNG có text nào khác trước hoặc sau JSON."""
+
+
+def generate_researchlab_memo(data):
+    """Tạo ResearchLab memo bằng AI dựa trên tất cả data đã thu thập."""
+    log.info("Generating RESEARCHLAB memo...")
+    import anthropic
+
+    api_key = os.environ.get("ANTHROPIC_API_KEY")
+    if not api_key:
+        log.warning("No API key, skipping researchlab memo")
+        return None
+
+    client = anthropic.Anthropic(api_key=api_key)
+    prompt = build_researchlab_prompt(data)
+
+    for attempt in range(3):
+        try:
+            message = client.messages.create(
+                model=CLAUDE_MODEL,
+                max_tokens=4096,
+                system=RESEARCHLAB_SYSTEM_PROMPT,
+                messages=[{"role": "user", "content": prompt}],
+            )
+            text = message.content[0].text.strip()
+
+            # Extract JSON from response (handle possible markdown wrapping)
+            if text.startswith("```"):
+                text = text.split("\n", 1)[1] if "\n" in text else text[3:]
+                if text.endswith("```"):
+                    text = text[:-3].strip()
+
+            memo = json.loads(text)
+            log.info("  RESEARCHLAB memo done")
+            return memo
+        except json.JSONDecodeError as e:
+            log.warning(f"  ResearchLab JSON parse error (attempt {attempt + 1}/3): {e}")
+            if attempt < 2:
+                time.sleep(4)
+        except Exception as e:
+            err_str = str(e).lower()
+            is_rate_limit = "rate" in err_str or "429" in err_str or "overloaded" in err_str
+            wait = min(2 ** (attempt + 2), 30) if is_rate_limit else 2 ** (attempt + 1)
+            log.warning(f"  ResearchLab API attempt {attempt + 1}/3: {e}")
+            if attempt < 2:
+                time.sleep(wait)
+
+    log.error("  RESEARCHLAB memo failed after 3 attempts")
+    return None
+
+
+# ============================================================================
 # GENERATE FULL REPORT
 # ============================================================================
 
@@ -798,6 +958,24 @@ def main():
             log.info("  BondLab analysis saved to bondlab_data.json")
         else:
             log.warning("  bondlab_data.json not found, cannot save analysis")
+
+    # 4) Generate ResearchLab memo (save to researchlab_data.json)
+    time.sleep(2)
+    rl_memo = generate_researchlab_memo(data)
+    if rl_memo:
+        asof = data["index_ohlcv"].get("asof", "")
+        rl_data = {
+            "asof": asof,
+            "summary": rl_memo.get("summary", []),
+            "alerts": rl_memo.get("alerts", []),
+            "evidence": rl_memo.get("evidence", []),
+            "market_context": rl_memo.get("market_context", []),
+            "watchlist": rl_memo.get("watchlist", []),
+        }
+        rl_path = CACHE_DIR / "researchlab_data.json"
+        with open(rl_path, "w", encoding="utf-8") as f:
+            json.dump(rl_data, f, ensure_ascii=False, default=str)
+        log.info(f"  ResearchLab memo saved to {rl_path}")
 
     # Assemble report
     full_report = assemble_report(overview_text, index_texts)
