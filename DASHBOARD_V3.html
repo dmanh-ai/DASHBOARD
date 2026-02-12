@@ -15,6 +15,7 @@
 							    <script src="researchlab_data.js"></script>
 							    <script src="commodities_data.js"></script>
 							    <script src="portfolio_data.js"></script>
+							    <script src="fund_data.js"></script>
 							    <script src="vendor/lightweight-charts.standalone.production.js"></script>
 							    <script src="scripts/content_formatter.js"></script>
 
@@ -3883,7 +3884,7 @@
 
 	        const UI_GLM_PUBLIC_BUILD = true;
 
-	        const UI_GLM_LITE_ALLOWED_INDICES = new Set(['overview', 'vnindex', 'vn30', 'vn100', 'vnmidcap', 'vnsml', 'vnreal', 'vnit', 'vnheal', 'vnfin', 'vnene', 'vncons', 'vnmat', 'vncond', 'vnfinselect', 'vndiamond', 'bondlab', 'researchlab', 'commodities', 'portfolio']);
+	        const UI_GLM_LITE_ALLOWED_INDICES = new Set(['overview', 'vnindex', 'vn30', 'vn100', 'vnmidcap', 'vnsml', 'vnreal', 'vnit', 'vnheal', 'vnfin', 'vnene', 'vncons', 'vnmat', 'vncond', 'vnfinselect', 'vndiamond', 'bondlab', 'researchlab', 'commodities', 'portfolio', 'fund']);
 	        const UI_GLM_LITE_HIDDEN_SECTIONS = new Set([].map(s => s.trim().toUpperCase()));
 
 	        function getPlanPreference() {
@@ -3990,6 +3991,7 @@
                 { key: 'researchlab', name: 'RESEARCHLAB' },
                 { key: 'commodities', name: 'HÀNG HOÁ' },
                 { key: 'portfolio', name: 'PORTFOLIO' },
+                { key: 'fund', name: 'QUỸ MỞ' },
             ];
 
             const indices = all.filter(i => isIndexAllowedForCurrentPlan(i.key));
@@ -4337,6 +4339,13 @@
 	                    sections.push({ title: '💡 Khuyến nghị', icon: '💡', content: cm.recommendation, alert: false, __uiType: 'commodities_recommendation' });
 	                }
 	                return sections;
+	            }
+
+	            // FUND: 1 section (bảng quỹ mở)
+	            if (indexKey === 'fund') {
+	                return [
+	                    { title: '📊 Danh sách quỹ mở', icon: '📊', content: '', alert: false, __uiType: 'fund_listing' },
+	                ];
 	            }
 
 	            // PORTFOLIO: 1 section (AI recommendation)
@@ -5314,6 +5323,101 @@
 	            }
 
 	            return html || '<div class="info-box"><p>Không có dữ liệu hàng hoá.</p></div>';
+	        }
+
+	        // ====================================================================
+	        // FUND LISTING
+	        // ====================================================================
+
+	        function renderFundListing() {
+	            const fd = window.UI_GLM_FUND || null;
+	            if (!fd || !Array.isArray(fd.funds) || fd.funds.length === 0) {
+	                return '<div class="info-box"><p>Không có dữ liệu quỹ mở.</p></div>';
+	            }
+
+	            const dateText = fd.asof ? ` (${fd.asof})` : '';
+	            const funds = fd.funds;
+
+	            // Group by fund_type
+	            const types = {};
+	            funds.forEach(f => {
+	                const t = f.fund_type || 'Khác';
+	                if (!types[t]) types[t] = [];
+	                types[t].push(f);
+	            });
+
+	            // Type labels and icons
+	            const typeInfo = {
+	                'Quy co phieu': { label: 'Quỹ cổ phiếu', icon: '📈' },
+	                'Quy trai phieu': { label: 'Quỹ trái phiếu', icon: '📉' },
+	                'Quy can bang': { label: 'Quỹ cân bằng', icon: '⚖️' },
+	            };
+
+	            const fmtPct = (v) => {
+	                if (v == null) return '<span style="color:#666;">-</span>';
+	                const color = v > 0 ? '#00c853' : v < 0 ? '#ff1744' : '#888';
+	                return `<span style="color:${color};font-weight:600;">${v >= 0 ? '+' : ''}${v.toFixed(2)}%</span>`;
+	            };
+
+	            let html = '';
+	            const typeOrder = ['Quy co phieu', 'Quy trai phieu', 'Quy can bang'];
+	            const allTypes = [...typeOrder.filter(t => types[t]), ...Object.keys(types).filter(t => !typeOrder.includes(t))];
+
+	            allTypes.forEach(type => {
+	                const list = types[type];
+	                const info = typeInfo[type] || { label: type, icon: '📊' };
+
+	                // Sort by 12m return desc
+	                list.sort((a, b) => (b.nav_change_12m || -999) - (a.nav_change_12m || -999));
+
+	                let rows = '';
+	                list.forEach((f, i) => {
+	                    const bg = i % 2 === 0 ? 'rgba(255,255,255,0.03)' : 'transparent';
+	                    const navStr = f.nav != null ? Number(f.nav).toLocaleString('vi-VN', {minimumFractionDigits: 0, maximumFractionDigits: 0}) : '-';
+	                    const feeStr = f.management_fee != null ? f.management_fee.toFixed(2) + '%' : '-';
+	                    rows += `
+	                        <tr style="background:${bg};">
+	                            <td style="padding:5px 8px;font-weight:600;white-space:nowrap;" title="${escapeHtml(f.name || '')}">${escapeHtml(f.short_name || '')}</td>
+	                            <td style="padding:5px 8px;text-align:right;">${navStr}</td>
+	                            <td style="padding:5px 8px;text-align:right;">${fmtPct(f.nav_change_prev)}</td>
+	                            <td style="padding:5px 8px;text-align:right;">${fmtPct(f.nav_change_1m)}</td>
+	                            <td style="padding:5px 8px;text-align:right;">${fmtPct(f.nav_change_3m)}</td>
+	                            <td style="padding:5px 8px;text-align:right;">${fmtPct(f.nav_change_6m)}</td>
+	                            <td style="padding:5px 8px;text-align:right;">${fmtPct(f.nav_change_12m)}</td>
+	                            <td style="padding:5px 8px;text-align:right;">${fmtPct(f.nav_change_ytd)}</td>
+	                            <td style="padding:5px 8px;text-align:right;color:#888;font-size:11px;">${feeStr}</td>
+	                            <td style="padding:5px 8px;color:#888;font-size:11px;max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${escapeHtml(f.owner || '')}">${escapeHtml(f.owner || '')}</td>
+	                        </tr>
+	                    `;
+	                });
+
+	                html += `
+	                    <div class="block" style="margin-bottom:14px;">
+	                        <div class="block-header">${info.icon} ${info.label} (${list.length} quỹ)${dateText}</div>
+	                        <div class="block-body" style="overflow-x:auto;">
+	                            <table style="width:100%;border-collapse:collapse;font-size:12px;">
+	                                <thead>
+	                                    <tr style="border-bottom:1px solid rgba(255,255,255,0.1);">
+	                                        <th style="padding:5px 8px;text-align:left;">Mã</th>
+	                                        <th style="padding:5px 8px;text-align:right;">NAV</th>
+	                                        <th style="padding:5px 8px;text-align:right;">1D</th>
+	                                        <th style="padding:5px 8px;text-align:right;">1T</th>
+	                                        <th style="padding:5px 8px;text-align:right;">3T</th>
+	                                        <th style="padding:5px 8px;text-align:right;">6T</th>
+	                                        <th style="padding:5px 8px;text-align:right;">12T</th>
+	                                        <th style="padding:5px 8px;text-align:right;">YTD</th>
+	                                        <th style="padding:5px 8px;text-align:right;">Phí</th>
+	                                        <th style="padding:5px 8px;text-align:left;">Quản lý</th>
+	                                    </tr>
+	                                </thead>
+	                                <tbody>${rows}</tbody>
+	                            </table>
+	                        </div>
+	                    </div>
+	                `;
+	            });
+
+	            return html || '<div class="info-box"><p>Không có dữ liệu quỹ mở.</p></div>';
 	        }
 
 		        function getIndexOhlcvPayload(indexKey) {
@@ -7246,6 +7350,26 @@
 	                return;
 	            }
 
+	            // FUND: no FULL_DATA entry
+	            if (indexKey === 'fund') {
+	                document.getElementById('sectionNavTitle').textContent = 'Quỹ mở';
+	                const sections = getSectionsForIndex('fund');
+	                const container = document.getElementById('sectionList');
+	                let html = '';
+	                sections.forEach((section, idx) => {
+	                    html += `
+	                        <div class="section-item"
+	                             onclick="selectSection(${idx})"
+	                             data-section="${idx}">
+	                            <span class="icon">${section.icon || '📊'}</span>
+	                            <span class="title">${section.title.replace(/\x60/g, '')}</span>
+	                        </div>
+	                    `;
+	                });
+	                container.innerHTML = html;
+	                return;
+	            }
+
 	            // PORTFOLIO: no FULL_DATA entry
 	            if (indexKey === 'portfolio') {
 	                document.getElementById('sectionNavTitle').textContent = 'Portfolio';
@@ -7464,6 +7588,15 @@
 	                        <div class="section-body">
 	                            ${holdingsHtml}
 	                            ${pfText ? formatter.format(pfText) : '<div class="info-box"><p>Chưa có dữ liệu portfolio hoặc khuyến nghị AI.</p></div>'}
+	                        </div>
+	                    </div>
+	                `;
+	            } else if (section.__uiType === 'fund_listing') {
+	                const fundHtml = renderFundListing();
+	                contentDiv.innerHTML = `
+	                    <div class="section-card">
+	                        <div class="section-body">
+	                            ${fundHtml}
 	                        </div>
 	                    </div>
 	                `;

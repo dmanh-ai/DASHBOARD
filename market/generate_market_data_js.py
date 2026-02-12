@@ -242,6 +242,20 @@ def generate_portfolio():
 
 
 # ============================================================================
+# 11. FUND DATA (Quỹ mở)
+# ============================================================================
+
+def generate_fund():
+    """Tạo fund_data.js - dữ liệu quỹ mở."""
+    data = load_json("fund_data.json")
+    if not data:
+        log.warning("No fund_data.json, skipping")
+        return
+
+    write_js("fund_data.js", "UI_GLM_FUND", data)
+
+
+# ============================================================================
 # MAIN
 # ============================================================================
 
@@ -260,6 +274,7 @@ def main():
     generate_researchlab()
     generate_commodities()
     generate_portfolio()
+    generate_fund()
 
     log.info("=" * 60)
     log.info("ALL JS FILES GENERATED!")
