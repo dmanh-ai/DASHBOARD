@@ -47,6 +47,7 @@ def load_all_data():
         "bondlab": load_json("bondlab_data.json"),
         "stock_snapshot": load_json("stock_snapshot.json"),
         "foreign": load_json("foreign_data.json"),
+        "commodities": load_json("commodities_data.json"),
     }
 
 
@@ -830,6 +831,106 @@ def generate_researchlab_memo(data):
 
 
 # ============================================================================
+# COMMODITIES AI RECOMMENDATION
+# ============================================================================
+
+COMMODITIES_SYSTEM_PROMPT = """Bạn là chuyên gia phân tích hàng hoá và tỷ giá Việt Nam.
+Viết khuyến nghị bằng tiếng Việt, chuyên nghiệp, ngắn gọn, có dẫn chứng số liệu.
+
+QUY TẮC:
+- KHÔNG dùng markdown formatting (**, ##). Viết plain text.
+- Dùng số liệu CỤ THỂ từ data.
+- Viết thực tế, tập trung vào tác động lên thị trường cổ phiếu VN."""
+
+
+def build_commodities_prompt(data):
+    """Prompt cho khuyến nghị hàng hoá."""
+    commodities = data.get("commodities", {})
+    bondlab = data.get("bondlab", {})
+    bondlab_clean = {k: v for k, v in bondlab.items() if k != "analysis"} if bondlab else {}
+
+    # Index summary for context
+    indices = data.get("index_ohlcv", {}).get("indices", {})
+    idx_brief = {}
+    for k in ["vnindex", "vnfin", "vnene", "vnmat", "vncons"]:
+        idx = indices.get(k, {})
+        latest = idx.get("latest", {})
+        if latest:
+            idx_brief[k] = {
+                "close": latest.get("close"),
+                "change_pct": latest.get("change_pct"),
+            }
+
+    asof = commodities.get("asof", data.get("index_ohlcv", {}).get("asof", ""))
+
+    return f"""Dựa trên dữ liệu hàng hoá và thị trường ngày {asof}, viết KHUYẾN NGHỊ ngắn gọn.
+
+DỮ LIỆU HÀNG HOÁ:
+{json.dumps(commodities, ensure_ascii=False, indent=2)}
+
+DỮ LIỆU TRÁI PHIẾU (tham khảo):
+{json.dumps(bondlab_clean, ensure_ascii=False, indent=2)}
+
+CHỈ SỐ CỔ PHIẾU LIÊN QUAN:
+{json.dumps(idx_brief, ensure_ascii=False, indent=2)}
+
+Viết khuyến nghị theo cấu trúc:
+
+TỔNG QUAN HÀNG HOÁ
+2-3 câu tổng kết biến động giá vàng (trong nước + thế giới), tỷ giá USD/VND, và các hàng hoá quan trọng.
+
+TÁC ĐỘNG LÊN CỔ PHIẾU
+2-3 câu phân tích giá hàng hoá ảnh hưởng thế nào đến các nhóm ngành: VNENE (năng lượng), VNMAT (vật liệu), VNCONS (tiêu dùng), VNFIN (tài chính - qua tỷ giá).
+
+KHUYẾN NGHỊ
+2-3 câu khuyến nghị cụ thể: nhóm ngành nào được hưởng lợi, nhóm nào chịu áp lực từ biến động hàng hoá. Nêu mức giá vàng/tỷ giá cần theo dõi.
+
+CẢNH BÁO
+1-2 câu cảnh báo rủi ro nếu có (biến động tỷ giá mạnh, giá vàng thế giới, giá dầu...)."""
+
+
+def generate_commodities_recommendation(data):
+    """Tạo khuyến nghị AI cho hàng hoá."""
+    commodities = data.get("commodities", {})
+    if not commodities:
+        log.warning("No commodities data, skipping AI recommendation")
+        return None
+
+    log.info("Generating COMMODITIES recommendation...")
+    import anthropic
+
+    api_key = os.environ.get("ANTHROPIC_API_KEY")
+    if not api_key:
+        log.warning("No API key, skipping commodities recommendation")
+        return None
+
+    client = anthropic.Anthropic(api_key=api_key)
+    prompt = build_commodities_prompt(data)
+
+    for attempt in range(3):
+        try:
+            message = client.messages.create(
+                model=CLAUDE_MODEL,
+                max_tokens=2048,
+                system=COMMODITIES_SYSTEM_PROMPT,
+                messages=[{"role": "user", "content": prompt}],
+            )
+            text = message.content[0].text
+            log.info("  COMMODITIES recommendation done")
+            return text
+        except Exception as e:
+            err_str = str(e).lower()
+            is_rate_limit = "rate" in err_str or "429" in err_str or "overloaded" in err_str
+            wait = min(2 ** (attempt + 2), 30) if is_rate_limit else 2 ** (attempt + 1)
+            log.warning(f"  Commodities API attempt {attempt + 1}/3: {e}")
+            if attempt < 2:
+                time.sleep(wait)
+
+    log.error("  COMMODITIES recommendation failed after 3 attempts")
+    return None
+
+
+# ============================================================================
 # GENERATE FULL REPORT
 # ============================================================================
 
@@ -976,6 +1077,21 @@ def main():
         with open(rl_path, "w", encoding="utf-8") as f:
             json.dump(rl_data, f, ensure_ascii=False, default=str)
         log.info(f"  ResearchLab memo saved to {rl_path}")
+
+    # 5) Generate Commodities AI recommendation (save to commodities_data.json)
+    time.sleep(2)
+    comm_text = generate_commodities_recommendation(data)
+    if comm_text:
+        comm_cache = CACHE_DIR / "commodities_data.json"
+        if comm_cache.exists():
+            with open(comm_cache, "r", encoding="utf-8") as f:
+                comm_json = json.load(f)
+            comm_json["recommendation"] = comm_text
+            with open(comm_cache, "w", encoding="utf-8") as f:
+                json.dump(comm_json, f, ensure_ascii=False, default=str)
+            log.info("  Commodities recommendation saved to commodities_data.json")
+        else:
+            log.warning("  commodities_data.json not found, cannot save recommendation")
 
     # Assemble report
     full_report = assemble_report(overview_text, index_texts)

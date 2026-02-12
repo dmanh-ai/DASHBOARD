@@ -565,6 +565,116 @@ def collect_bondlab_data(asof_date):
 
 
 # ============================================================================
+# 7. THU THẬP DỮ LIỆU HÀNG HOÁ
+# ============================================================================
+
+def _fetch_root_csv(filename, max_retries=3):
+    """Fetch CSV from vnstock repo root data/ folder."""
+    import time as _time
+    url = f"{GITHUB_STOCK_DATA_BASE}/{filename}"
+    log.info(f"  Fetching: {url}")
+
+    for attempt in range(max_retries):
+        try:
+            req = Request(url, headers={"User-Agent": "DASHBOARD-Pipeline/1.0"})
+            with urlopen(req, timeout=30) as resp:
+                text = resp.read().decode("utf-8-sig")
+            reader = csv.DictReader(io.StringIO(text))
+            rows = list(reader)
+            log.info(f"  OK: {filename} → {len(rows)} rows")
+            return rows
+        except URLError as e:
+            log.warning(f"  Attempt {attempt+1} failed: {e}")
+            if attempt < max_retries - 1:
+                _time.sleep(2 ** attempt)
+        except Exception as e:
+            log.error(f"  Error parsing {filename}: {e}")
+            return []
+
+    log.error(f"  FAILED to fetch {filename} after {max_retries} attempts")
+    return []
+
+
+def collect_commodities_data(asof_date):
+    """Thu thập dữ liệu hàng hoá: vàng, tỷ giá từ vnstock repo."""
+    log.info("=" * 60)
+    log.info(f"STEP 7: Thu thập Commodities Data cho ngày {asof_date}...")
+
+    result = {
+        "asof": asof_date,
+        "gold": [],
+        "exchange_rates": [],
+    }
+
+    # --- Gold: try daily btmc_gold.csv first (has world_price), fallback to root gold_prices.csv ---
+    btmc_rows = _fetch_stock_csv(asof_date, "btmc_gold.csv")
+    if btmc_rows:
+        seen = set()
+        for row in btmc_rows:
+            name = row.get("name", "").strip()
+            if not name or name in seen:
+                continue
+            seen.add(name)
+            item = {
+                "name": name,
+                "karat": row.get("karat", "").strip(),
+                "buy": parse_float(row.get("buy_price")),
+                "sell": parse_float(row.get("sell_price")),
+                "world_price": parse_float(row.get("world_price")),
+            }
+            result["gold"].append(item)
+        log.info(f"  Gold (BTMC): {len(result['gold'])} items")
+    else:
+        # Fallback: root gold_prices.csv (SJC only)
+        sjc_rows = _fetch_root_csv("gold_prices.csv")
+        if sjc_rows:
+            seen = set()
+            for row in sjc_rows:
+                name = row.get("name", "").strip()
+                branch = row.get("branch", "").strip()
+                key = f"{name}_{branch}"
+                if not name or key in seen:
+                    continue
+                seen.add(key)
+                item = {
+                    "name": f"{name} ({branch})" if branch else name,
+                    "buy": parse_float(row.get("buy_price")),
+                    "sell": parse_float(row.get("sell_price")),
+                }
+                result["gold"].append(item)
+            # Keep only first entry per name (representative)
+            result["gold"] = result["gold"][:5]
+            log.info(f"  Gold (SJC): {len(result['gold'])} items")
+
+    # --- Exchange rates: try daily first, fallback to root ---
+    fx_rows = _fetch_stock_csv(asof_date, "exchange_rate.csv")
+    if not fx_rows:
+        fx_rows = _fetch_root_csv("exchange_rates.csv")
+
+    if fx_rows:
+        for row in fx_rows:
+            code = row.get("currency_code", "").strip()
+            if not code:
+                continue
+            item = {
+                "code": code,
+                "name": row.get("currency_name", "").strip(),
+                "buy_cash": parse_float(row.get("buy_cash")),
+                "buy_transfer": parse_float(row.get("buy_transfer")),
+                "sell": parse_float(row.get("sell")),
+            }
+            result["exchange_rates"].append(item)
+        log.info(f"  Exchange rates: {len(result['exchange_rates'])} currencies")
+
+    if result["gold"] or result["exchange_rates"]:
+        save_json(result, "commodities_data.json")
+        return result
+
+    log.warning("  No commodities data found")
+    return None
+
+
+# ============================================================================
 # MAIN
 # ============================================================================
 
@@ -595,6 +705,9 @@ def main():
 
     # Step 6: BondLab data
     collect_bondlab_data(asof_date)
+
+    # Step 7: Commodities data (gold, exchange rates)
+    collect_commodities_data(asof_date)
 
     log.info("=" * 60)
     log.info(f"DATA COLLECTION COMPLETED! Indices: {list(index_data.keys())}")
