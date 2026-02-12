@@ -519,6 +519,52 @@ def collect_foreign_data(asof_date):
 
 
 # ============================================================================
+# 6. THU THẬP DỮ LIỆU BONDLAB
+# ============================================================================
+
+def _fetch_daily_json(asof_date, filename, max_retries=3):
+    """Fetch JSON file from vnstock repo daily folder."""
+    import time as _time
+    url = f"{GITHUB_STOCK_DATA_BASE}/{asof_date}/{filename}"
+    log.info(f"  Fetching: {url}")
+
+    for attempt in range(max_retries):
+        try:
+            req = Request(url, headers={"User-Agent": "DASHBOARD-Pipeline/1.0"})
+            with urlopen(req, timeout=30) as resp:
+                text = resp.read().decode("utf-8-sig")
+            data = json.loads(text)
+            log.info(f"  OK: {filename}")
+            return data
+        except URLError as e:
+            log.warning(f"  Attempt {attempt+1} failed: {e}")
+            if attempt < max_retries - 1:
+                _time.sleep(2 ** attempt)
+        except json.JSONDecodeError as e:
+            log.warning(f"  JSON parse error for {filename}: {e}")
+            return None
+
+    log.error(f"  FAILED to fetch {filename} after {max_retries} attempts")
+    return None
+
+
+def collect_bondlab_data(asof_date):
+    """Thu thập bond/interbank data từ vnstock repo."""
+    log.info("=" * 60)
+    log.info(f"STEP 6: Thu thập BondLab Data cho ngày {asof_date}...")
+
+    data = _fetch_daily_json(asof_date, "bondlab.json")
+    if not data:
+        log.warning("  bondlab.json not found, skipping BondLab")
+        return None
+
+    data["asof"] = asof_date
+    save_json(data, "bondlab_data.json")
+    log.info(f"  BondLab data saved: {list(data.keys())}")
+    return data
+
+
+# ============================================================================
 # MAIN
 # ============================================================================
 
@@ -546,6 +592,9 @@ def main():
 
     # Step 5: Foreign flow data
     collect_foreign_data(asof_date)
+
+    # Step 6: BondLab data
+    collect_bondlab_data(asof_date)
 
     log.info("=" * 60)
     log.info(f"DATA COLLECTION COMPLETED! Indices: {list(index_data.keys())}")

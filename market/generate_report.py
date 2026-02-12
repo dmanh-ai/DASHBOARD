@@ -44,6 +44,7 @@ def load_all_data():
     return {
         "index_ohlcv": load_json("index_ohlcv.json"),
         "breadth": load_json("breadth_snapshot.json"),
+        "bondlab": load_json("bondlab_data.json"),
     }
 
 
@@ -567,6 +568,108 @@ def call_claude(prompt, max_retries=5):
 
 
 # ============================================================================
+# BONDLAB AI ANALYSIS
+# ============================================================================
+
+BONDLAB_SYSTEM_PROMPT = """Bạn là chuyên gia phân tích thị trường trái phiếu và lãi suất Việt Nam.
+Viết phân tích bằng tiếng Việt, chuyên nghiệp, chi tiết với dẫn chứng số liệu cụ thể.
+
+QUY TẮC VIẾT:
+- Dùng số liệu CỤ THỂ từ data (lãi suất, bps thay đổi, spread, xác suất...)
+- KHÔNG dùng markdown formatting (**, ##, -, •). Viết plain text.
+- Dùng dấu phẩy phân cách hàng nghìn: 1,856 (không phải 1.856)
+- Viết dạng đoạn văn tự nhiên, mạch lạc, chuyên sâu."""
+
+
+def build_bondlab_prompt(bondlab_data):
+    """Prompt cho phần BondLab AI analysis."""
+    asof = bondlab_data.get("asof", "")
+
+    return f"""Dựa trên dữ liệu trái phiếu và liên ngân hàng ngày {asof}, viết phân tích diễn giải toàn diện.
+
+DỮ LIỆU:
+{json.dumps(bondlab_data, ensure_ascii=False, indent=2)}
+
+Viết phân tích theo CẤU TRÚC sau (viết liền mạch, KHÔNG đánh số phần):
+
+TÓM TẮT
+1-2 câu tổng kết tình hình lãi suất và thanh khoản liên ngân hàng hôm nay.
+
+MÔI TRƯỜNG LÃI SUẤT
+Phân tích lãi suất TPCP các kỳ hạn (2Y, 5Y, 10Y), so sánh thay đổi bps.
+Đánh giá spread 10Y-2Y và ý nghĩa: đường cong yield đang dốc lên/phẳng/đảo ngược.
+So sánh với lãi suất huy động và cho vay.
+
+ODDS (XÁC SUẤT PHIÊN KẾ TIẾP)
+Phân tích odds tăng/giảm/đi ngang cho interbank và TPCP.
+Nhận xét kỳ vọng thay đổi (E[Δ]) có ý nghĩa gì.
+Mức độ tin cậy của dự báo.
+
+XU HƯỚNG 20 PHIÊN
+Nhận xét xu hướng lãi suất 20 phiên gần nhất (nếu có dữ liệu).
+So sánh với xu hướng ngắn hạn (5 phiên).
+
+YIELD CURVE
+Phân tích hình dạng đường cong yield: normal/flat/inverted.
+So sánh spread giữa các kỳ hạn. Ý nghĩa cho kinh tế và thị trường cổ phiếu.
+
+INTERBANK & THANH KHOẢN
+Phân tích lãi suất liên ngân hàng ON, 1W, 1M, 3M.
+Đánh giá thanh khoản hệ thống: dồi dào hay căng thẳng.
+Tác động đến thị trường cổ phiếu.
+
+STRESS & ALERTS
+Nhận xét các cảnh báo (alerts) nếu có.
+Đánh giá mức stress của thị trường trái phiếu.
+Kênh truyền dẫn từ bond sang equity.
+
+WATCHLIST NGÀY MAI
+2-3 yếu tố quan trọng cần theo dõi phiên kế tiếp.
+Kịch bản lãi suất có thể ảnh hưởng thị trường cổ phiếu."""
+
+
+def generate_bondlab_analysis(data):
+    """Tạo phân tích AI cho BondLab."""
+    bondlab = data.get("bondlab", {})
+    if not bondlab:
+        log.warning("No bondlab data, skipping AI analysis")
+        return None
+
+    log.info("Generating BONDLAB analysis...")
+    import anthropic
+
+    api_key = os.environ.get("ANTHROPIC_API_KEY")
+    if not api_key:
+        log.warning("No API key, skipping bondlab analysis")
+        return None
+
+    client = anthropic.Anthropic(api_key=api_key)
+    prompt = build_bondlab_prompt(bondlab)
+
+    for attempt in range(3):
+        try:
+            message = client.messages.create(
+                model=CLAUDE_MODEL,
+                max_tokens=4096,
+                system=BONDLAB_SYSTEM_PROMPT,
+                messages=[{"role": "user", "content": prompt}],
+            )
+            text = message.content[0].text
+            log.info("  BONDLAB analysis done")
+            return text
+        except Exception as e:
+            err_str = str(e).lower()
+            is_rate_limit = "rate" in err_str or "429" in err_str or "overloaded" in err_str
+            wait = min(2 ** (attempt + 2), 30) if is_rate_limit else 2 ** (attempt + 1)
+            log.warning(f"  BondLab API attempt {attempt + 1}/3: {e}")
+            if attempt < 2:
+                time.sleep(wait)
+
+    log.error("  BONDLAB analysis failed after 3 attempts")
+    return None
+
+
+# ============================================================================
 # GENERATE FULL REPORT
 # ============================================================================
 
@@ -680,6 +783,21 @@ def main():
             log.info(f"  [{i}/{len(REPORT_INDICES)}] {INDICES[key][1]} done")
         else:
             log.warning(f"  [{i}/{len(REPORT_INDICES)}] {INDICES[key][1]} FAILED")
+
+    # 3) Generate BondLab AI analysis (save to bondlab_data.json)
+    time.sleep(2)
+    bondlab_text = generate_bondlab_analysis(data)
+    if bondlab_text:
+        bondlab_cache = CACHE_DIR / "bondlab_data.json"
+        if bondlab_cache.exists():
+            with open(bondlab_cache, "r", encoding="utf-8") as f:
+                bondlab_json = json.load(f)
+            bondlab_json["analysis"] = bondlab_text
+            with open(bondlab_cache, "w", encoding="utf-8") as f:
+                json.dump(bondlab_json, f, ensure_ascii=False, default=str)
+            log.info("  BondLab analysis saved to bondlab_data.json")
+        else:
+            log.warning("  bondlab_data.json not found, cannot save analysis")
 
     # Assemble report
     full_report = assemble_report(overview_text, index_texts)

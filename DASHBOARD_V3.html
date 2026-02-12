@@ -11,6 +11,7 @@
 							    <script src="vnindex_heatmap_data.js"></script>
 							    <script src="index_heatmap_data.js"></script>
 							    <script src="foreign_flow_data.js"></script>
+							    <script src="bondlab_data.js"></script>
 							    <script src="vendor/lightweight-charts.standalone.production.js"></script>
 							    <script src="scripts/content_formatter.js"></script>
 
@@ -3879,7 +3880,7 @@
 
 	        const UI_GLM_PUBLIC_BUILD = true;
 
-	        const UI_GLM_LITE_ALLOWED_INDICES = new Set(['overview', 'vnindex', 'vn30', 'vn100', 'vnmidcap', 'vnsml', 'vnreal', 'vnit', 'vnheal', 'vnfin', 'vnene', 'vncons', 'vnmat', 'vncond', 'vnfinselect', 'vndiamond']);
+	        const UI_GLM_LITE_ALLOWED_INDICES = new Set(['overview', 'vnindex', 'vn30', 'vn100', 'vnmidcap', 'vnsml', 'vnreal', 'vnit', 'vnheal', 'vnfin', 'vnene', 'vncons', 'vnmat', 'vncond', 'vnfinselect', 'vndiamond', 'bondlab']);
 	        const UI_GLM_LITE_HIDDEN_SECTIONS = new Set([].map(s => s.trim().toUpperCase()));
 
 	        function getPlanPreference() {
@@ -3981,7 +3982,8 @@
                 { key: 'vnindex', name: 'VNINDEX' },
                 { key: 'vn30', name: 'VN30' },
                 { key: 'vn100', name: 'VN100' },
-                { key: 'vnmidcap', name: 'VNMIDCAP' }
+                { key: 'vnmidcap', name: 'VNMIDCAP' },
+                { key: 'bondlab', name: 'BONDLAB' },
             ];
 
             const indices = all.filter(i => isIndexAllowedForCurrentPlan(i.key));
@@ -4295,6 +4297,23 @@
 	        }
 
 	        function getSectionsForIndex(indexKey) {
+	            // BONDLAB: 5 data-driven sections (no FULL_DATA dependency)
+	            if (indexKey === 'bondlab') {
+	                const bl = window.UI_GLM_BONDLAB || null;
+	                const sections = [
+	                    { title: '📌 Snapshot nhanh', icon: '📌', content: '', alert: false, __uiType: 'bondlab_snapshot' },
+	                    { title: '🔮 Odds (phiên kế tiếp)', icon: '🔮', content: '', alert: false, __uiType: 'bondlab_odds' },
+	                    { title: '💧 Interbank', icon: '💧', content: '', alert: false, __uiType: 'bondlab_interbank' },
+	                ];
+	                // AI analysis section (only if analysis text exists)
+	                if (bl && bl.analysis) {
+	                    sections.push({ title: '🧠 Diễn giải', icon: '🧠', content: bl.analysis, alert: false, __uiType: 'bondlab_analysis' });
+	                }
+	                // Alerts section
+	                sections.push({ title: '🚨 Alerts', icon: '🚨', content: '', alert: true, __uiType: 'bondlab_alerts' });
+	                return sections;
+	            }
+
 	            const indexData = data[indexKey];
 	            const base = filterSectionsForCurrentPlan(processSections(indexData));
 	            let out = base;
@@ -4726,6 +4745,316 @@
 	                                    <th style="padding:6px 8px;text-align:right;">Giá</th>
 	                                    <th style="padding:6px 8px;text-align:right;">KL ròng</th>
 	                                    <th style="padding:6px 8px;text-align:right;">GT ròng</th>
+	                                </tr>
+	                            </thead>
+	                            <tbody>${rows}</tbody>
+	                        </table>
+	                    </div>
+	                </div>
+	            `;
+	        }
+
+	        // ====================================================================
+	        // BONDLAB RENDERING
+	        // ====================================================================
+
+	        function renderBondlabSection(uiType, section) {
+	            const bl = window.UI_GLM_BONDLAB || null;
+	            if (!bl) return '<div class="info-box"><p>Không có dữ liệu BondLab.</p></div>';
+
+	            switch (uiType) {
+	                case 'bondlab_snapshot': return renderBondlabSnapshot(bl);
+	                case 'bondlab_odds': return renderBondlabOdds(bl);
+	                case 'bondlab_interbank': return renderBondlabInterbank(bl);
+	                case 'bondlab_analysis': return renderBondlabAnalysis(bl, section);
+	                case 'bondlab_alerts': return renderBondlabAlerts(bl);
+	                default: return '<div class="info-box"><p>Section không xác định.</p></div>';
+	            }
+	        }
+
+	        function _blVal(v, suffix) {
+	            if (v == null || v === '') return 'N/A';
+	            return typeof v === 'number' ? v.toFixed(2) + (suffix || '') : String(v) + (suffix || '');
+	        }
+
+	        function _blBpsColor(bps) {
+	            if (bps == null || bps === 0) return '#888';
+	            return bps > 0 ? '#ff1744' : '#00c853';
+	        }
+
+	        function _blBpsText(bps) {
+	            if (bps == null) return 'N/A';
+	            const sign = bps > 0 ? '+' : '';
+	            return sign + bps + ' bps';
+	        }
+
+	        function _blDirection(dir) {
+	            if (!dir) return '→';
+	            if (dir === 'up' || dir === '↑') return '↑';
+	            if (dir === 'down' || dir === '↓') return '↓';
+	            return '→';
+	        }
+
+	        function renderBondlabSnapshot(bl) {
+	            const snap = bl.snapshot || {};
+	            const dateText = bl.asof ? ` (${bl.asof})` : '';
+
+	            // Build rows from snapshot data dynamically
+	            const items = [
+	                { label: 'TPCP 2Y', key: 'tpcp_2y' },
+	                { label: 'TPCP 5Y', key: 'tpcp_5y' },
+	                { label: 'TPCP 10Y', key: 'tpcp_10y' },
+	                { label: 'Spread 10Y-2Y', key: 'spread_10y_2y' },
+	                { label: 'Interbank ON', key: 'interbank_on' },
+	                { label: 'Deposit avg 12M', key: 'deposit_12m' },
+	                { label: 'Loan avg', key: 'loan_avg' },
+	                { label: 'BondY Stress', key: 'bondy_stress' },
+	            ];
+
+	            let rows = '';
+	            items.forEach((item, i) => {
+	                const d = snap[item.key] || {};
+	                const rate = d.rate != null ? d.rate : d.value;
+	                const bps = d.change_bps;
+	                const bg = i % 2 === 0 ? 'rgba(255,255,255,0.03)' : 'transparent';
+	                rows += `
+	                    <tr style="background:${bg};">
+	                        <td style="padding:6px 10px;font-weight:600;">${escapeHtml(item.label)}</td>
+	                        <td style="padding:6px 10px;text-align:right;">${_blVal(rate, '%')}</td>
+	                        <td style="padding:6px 10px;text-align:right;color:${_blBpsColor(bps)};">${_blBpsText(bps)}</td>
+	                    </tr>
+	                `;
+	            });
+
+	            // If snapshot has extra keys not in predefined list, render them too
+	            const knownKeys = new Set(items.map(i => i.key));
+	            Object.keys(snap).forEach((k, i) => {
+	                if (knownKeys.has(k)) return;
+	                const d = snap[k];
+	                if (typeof d !== 'object' || d == null) return;
+	                const rate = d.rate != null ? d.rate : d.value;
+	                const bps = d.change_bps;
+	                rows += `
+	                    <tr style="background:${(items.length + i) % 2 === 0 ? 'rgba(255,255,255,0.03)' : 'transparent'};">
+	                        <td style="padding:6px 10px;font-weight:600;">${escapeHtml(k)}</td>
+	                        <td style="padding:6px 10px;text-align:right;">${_blVal(rate, '%')}</td>
+	                        <td style="padding:6px 10px;text-align:right;color:${_blBpsColor(bps)};">${_blBpsText(bps)}</td>
+	                    </tr>
+	                `;
+	            });
+
+	            return `
+	                <div class="block" style="margin-bottom:12px;">
+	                    <div class="block-header">📌 Snapshot nhanh${dateText}</div>
+	                    <div class="block-body" style="overflow-x:auto;">
+	                        <table style="width:100%;border-collapse:collapse;font-size:13px;">
+	                            <thead>
+	                                <tr style="border-bottom:1px solid rgba(255,255,255,0.1);">
+	                                    <th style="padding:6px 10px;text-align:left;">Chỉ tiêu</th>
+	                                    <th style="padding:6px 10px;text-align:right;">Lãi suất</th>
+	                                    <th style="padding:6px 10px;text-align:right;">Thay đổi</th>
+	                                </tr>
+	                            </thead>
+	                            <tbody>${rows}</tbody>
+	                        </table>
+	                    </div>
+	                </div>
+	            `;
+	        }
+
+	        function renderBondlabOdds(bl) {
+	            const odds = bl.odds || {};
+	            const dateText = bl.asof ? ` (${bl.asof})` : '';
+
+	            const items = [
+	                { label: 'Interbank ON', key: 'interbank_on' },
+	                { label: 'Interbank 1W', key: 'interbank_1w' },
+	                { label: 'Interbank 1M', key: 'interbank_1m' },
+	                { label: 'Interbank 3M', key: 'interbank_3m' },
+	                { label: 'TPCP 2Y', key: 'tpcp_2y' },
+	                { label: 'TPCP 5Y', key: 'tpcp_5y' },
+	                { label: 'TPCP 10Y', key: 'tpcp_10y' },
+	            ];
+
+	            let rows = '';
+	            items.forEach((item, i) => {
+	                const d = odds[item.key] || {};
+	                const up = d.up != null ? d.up + '%' : 'N/A';
+	                const down = d.down != null ? d.down + '%' : 'N/A';
+	                const flat = d.flat != null ? d.flat + '%' : 'N/A';
+	                const eDelta = d.expected_delta != null ? (d.expected_delta > 0 ? '+' : '') + d.expected_delta + ' bps' : 'N/A';
+	                const bg = i % 2 === 0 ? 'rgba(255,255,255,0.03)' : 'transparent';
+	                rows += `
+	                    <tr style="background:${bg};">
+	                        <td style="padding:6px 10px;font-weight:600;">${escapeHtml(item.label)}</td>
+	                        <td style="padding:6px 10px;text-align:center;color:#ff1744;">${up}</td>
+	                        <td style="padding:6px 10px;text-align:center;color:#00c853;">${down}</td>
+	                        <td style="padding:6px 10px;text-align:center;color:#888;">${flat}</td>
+	                        <td style="padding:6px 10px;text-align:right;font-weight:600;">${eDelta}</td>
+	                    </tr>
+	                `;
+	            });
+
+	            // Render any extra keys
+	            const knownKeys = new Set(items.map(i => i.key));
+	            Object.keys(odds).forEach((k, i) => {
+	                if (knownKeys.has(k)) return;
+	                const d = odds[k];
+	                if (typeof d !== 'object' || d == null) return;
+	                const up = d.up != null ? d.up + '%' : 'N/A';
+	                const down = d.down != null ? d.down + '%' : 'N/A';
+	                const flat = d.flat != null ? d.flat + '%' : 'N/A';
+	                const eDelta = d.expected_delta != null ? (d.expected_delta > 0 ? '+' : '') + d.expected_delta + ' bps' : 'N/A';
+	                rows += `
+	                    <tr style="background:${(items.length + i) % 2 === 0 ? 'rgba(255,255,255,0.03)' : 'transparent'};">
+	                        <td style="padding:6px 10px;font-weight:600;">${escapeHtml(k)}</td>
+	                        <td style="padding:6px 10px;text-align:center;color:#ff1744;">${up}</td>
+	                        <td style="padding:6px 10px;text-align:center;color:#00c853;">${down}</td>
+	                        <td style="padding:6px 10px;text-align:center;color:#888;">${flat}</td>
+	                        <td style="padding:6px 10px;text-align:right;font-weight:600;">${eDelta}</td>
+	                    </tr>
+	                `;
+	            });
+
+	            return `
+	                <div class="block" style="margin-bottom:12px;">
+	                    <div class="block-header">🔮 Odds phiên kế tiếp${dateText}</div>
+	                    <div class="block-body" style="overflow-x:auto;">
+	                        <table style="width:100%;border-collapse:collapse;font-size:13px;">
+	                            <thead>
+	                                <tr style="border-bottom:1px solid rgba(255,255,255,0.1);">
+	                                    <th style="padding:6px 10px;text-align:left;">Chỉ tiêu</th>
+	                                    <th style="padding:6px 10px;text-align:center;">↑ Tăng</th>
+	                                    <th style="padding:6px 10px;text-align:center;">↓ Giảm</th>
+	                                    <th style="padding:6px 10px;text-align:center;">→ Ngang</th>
+	                                    <th style="padding:6px 10px;text-align:right;">E[Δ]</th>
+	                                </tr>
+	                            </thead>
+	                            <tbody>${rows}</tbody>
+	                        </table>
+	                    </div>
+	                </div>
+	            `;
+	        }
+
+	        function renderBondlabInterbank(bl) {
+	            const ib = bl.interbank || {};
+	            const dateText = bl.asof ? ` (${bl.asof})` : '';
+
+	            const items = [
+	                { label: 'Overnight (ON)', key: 'on' },
+	                { label: '1 tuần (1W)', key: '1w' },
+	                { label: '1 tháng (1M)', key: '1m' },
+	                { label: '3 tháng (3M)', key: '3m' },
+	            ];
+
+	            let rows = '';
+	            items.forEach((item, i) => {
+	                const d = ib[item.key] || {};
+	                const current = d.current != null ? d.current.toFixed(2) + '%' : 'N/A';
+	                const prev = d.prev != null ? d.prev.toFixed(2) + '%' : 'N/A';
+	                const bps = d.change_bps;
+	                const dir = _blDirection(d.direction);
+	                const bg = i % 2 === 0 ? 'rgba(255,255,255,0.03)' : 'transparent';
+	                rows += `
+	                    <tr style="background:${bg};">
+	                        <td style="padding:6px 10px;font-weight:600;">${escapeHtml(item.label)}</td>
+	                        <td style="padding:6px 10px;text-align:right;">${current}</td>
+	                        <td style="padding:6px 10px;text-align:right;color:#888;">${prev}</td>
+	                        <td style="padding:6px 10px;text-align:right;color:${_blBpsColor(bps)};">${_blBpsText(bps)}</td>
+	                        <td style="padding:6px 10px;text-align:center;font-size:16px;">${dir}</td>
+	                    </tr>
+	                `;
+	            });
+
+	            // Render any extra keys
+	            const knownKeys = new Set(items.map(i => i.key));
+	            Object.keys(ib).forEach((k, i) => {
+	                if (knownKeys.has(k)) return;
+	                const d = ib[k];
+	                if (typeof d !== 'object' || d == null) return;
+	                const current = d.current != null ? d.current.toFixed(2) + '%' : 'N/A';
+	                const prev = d.prev != null ? d.prev.toFixed(2) + '%' : 'N/A';
+	                const bps = d.change_bps;
+	                const dir = _blDirection(d.direction);
+	                rows += `
+	                    <tr style="background:${(items.length + i) % 2 === 0 ? 'rgba(255,255,255,0.03)' : 'transparent'};">
+	                        <td style="padding:6px 10px;font-weight:600;">${escapeHtml(k)}</td>
+	                        <td style="padding:6px 10px;text-align:right;">${current}</td>
+	                        <td style="padding:6px 10px;text-align:right;color:#888;">${prev}</td>
+	                        <td style="padding:6px 10px;text-align:right;color:${_blBpsColor(bps)};">${_blBpsText(bps)}</td>
+	                        <td style="padding:6px 10px;text-align:center;font-size:16px;">${dir}</td>
+	                    </tr>
+	                `;
+	            });
+
+	            return `
+	                <div class="block" style="margin-bottom:12px;">
+	                    <div class="block-header">💧 Lãi suất liên ngân hàng${dateText}</div>
+	                    <div class="block-body" style="overflow-x:auto;">
+	                        <table style="width:100%;border-collapse:collapse;font-size:13px;">
+	                            <thead>
+	                                <tr style="border-bottom:1px solid rgba(255,255,255,0.1);">
+	                                    <th style="padding:6px 10px;text-align:left;">Kỳ hạn</th>
+	                                    <th style="padding:6px 10px;text-align:right;">Hiện tại</th>
+	                                    <th style="padding:6px 10px;text-align:right;">Hôm trước</th>
+	                                    <th style="padding:6px 10px;text-align:right;">Thay đổi</th>
+	                                    <th style="padding:6px 10px;text-align:center;">Xu hướng</th>
+	                                </tr>
+	                            </thead>
+	                            <tbody>${rows}</tbody>
+	                        </table>
+	                    </div>
+	                </div>
+	            `;
+	        }
+
+	        function renderBondlabAnalysis(bl, section) {
+	            const text = (section && section.content) || bl.analysis || '';
+	            if (!text) return '<div class="info-box"><p>Chưa có phân tích AI cho BondLab.</p></div>';
+
+	            const formatter = new ContentFormatter();
+	            const cleanContent = text
+	                .replace(/\\n/g, '\n')
+	                .replace(/\\t/g, '')
+	                .replace(/\s+/g, ' ')
+	                .trim();
+
+	            return formatter.format(cleanContent);
+	        }
+
+	        function renderBondlabAlerts(bl) {
+	            const alerts = bl.alerts || [];
+	            const dateText = bl.asof ? ` (${bl.asof})` : '';
+
+	            if (!Array.isArray(alerts) || alerts.length === 0) {
+	                return '<div class="info-box"><p>Không có cảnh báo.</p></div>';
+	            }
+
+	            let rows = '';
+	            alerts.forEach((a, i) => {
+	                const sev = (a.severity || 'INFO').toUpperCase();
+	                const sevColor = sev === 'HIGH' ? '#ff1744' : (sev === 'MEDIUM' ? '#ffab00' : '#888');
+	                const bg = i % 2 === 0 ? 'rgba(255,255,255,0.03)' : 'transparent';
+	                rows += `
+	                    <tr style="background:${bg};">
+	                        <td style="padding:6px 10px;color:${sevColor};font-weight:700;">${escapeHtml(sev)}</td>
+	                        <td style="padding:6px 10px;font-weight:600;">${escapeHtml(a.code || '')}</td>
+	                        <td style="padding:6px 10px;">${escapeHtml(a.message || '')}</td>
+	                    </tr>
+	                `;
+	            });
+
+	            return `
+	                <div class="block" style="margin-bottom:12px;">
+	                    <div class="block-header">🚨 Alerts${dateText}</div>
+	                    <div class="block-body" style="overflow-x:auto;">
+	                        <table style="width:100%;border-collapse:collapse;font-size:13px;">
+	                            <thead>
+	                                <tr style="border-bottom:1px solid rgba(255,255,255,0.1);">
+	                                    <th style="padding:6px 10px;text-align:left;">Mức độ</th>
+	                                    <th style="padding:6px 10px;text-align:left;">Mã</th>
+	                                    <th style="padding:6px 10px;text-align:left;">Nội dung</th>
 	                                </tr>
 	                            </thead>
 	                            <tbody>${rows}</tbody>
@@ -6605,6 +6934,26 @@
 
 	        // Render section list in middle column
 	        function renderSectionList(indexKey) {
+	            // BONDLAB: no FULL_DATA entry, sections come from getSectionsForIndex
+	            if (indexKey === 'bondlab') {
+	                document.getElementById('sectionNavTitle').textContent = 'BONDLAB';
+	                const sections = getSectionsForIndex('bondlab');
+	                const container = document.getElementById('sectionList');
+	                let html = '';
+	                sections.forEach((section, idx) => {
+	                    html += `
+	                        <div class="section-item"
+	                             onclick="selectSection(${idx})"
+	                             data-section="${idx}">
+	                            <span class="icon">${section.icon || '📊'}</span>
+	                            <span class="title">${section.title.replace(/`/g, '')}</span>
+	                        </div>
+	                    `;
+	                });
+	                container.innerHTML = html;
+	                return;
+	            }
+
 	            const index = data[indexKey];
 	            if (!index || !index.sections) {
 	                document.getElementById('sectionList').innerHTML = '<div class="no-sections">Không có dữ liệu</div>';
@@ -6719,6 +7068,15 @@
 	                    <div class="section-card">
 	                        <div class="section-body">
 	                            ${renderForeignTopSection()}
+	                        </div>
+	                    </div>
+	                `;
+	            } else if (section.__uiType && section.__uiType.startsWith('bondlab_')) {
+	                const bondlabHtml = renderBondlabSection(section.__uiType, section);
+	                contentDiv.innerHTML = `
+	                    <div class="section-card ${section.alert ? 'alert' : ''}">
+	                        <div class="section-body">
+	                            ${bondlabHtml}
 	                        </div>
 	                    </div>
 	                `;
