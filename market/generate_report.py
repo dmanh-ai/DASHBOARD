@@ -44,6 +44,11 @@ def load_all_data():
     return {
         "index_ohlcv": load_json("index_ohlcv.json"),
         "breadth": load_json("breadth_snapshot.json"),
+        "bondlab": load_json("bondlab_data.json"),
+        "stock_snapshot": load_json("stock_snapshot.json"),
+        "foreign": load_json("foreign_data.json"),
+        "commodities": load_json("commodities_data.json"),
+        "portfolio": load_json("portfolio_data.json"),
     }
 
 
@@ -567,6 +572,595 @@ def call_claude(prompt, max_retries=5):
 
 
 # ============================================================================
+# BONDLAB AI ANALYSIS
+# ============================================================================
+
+BONDLAB_SYSTEM_PROMPT = """Bạn là chuyên gia phân tích thị trường trái phiếu và lãi suất Việt Nam.
+Viết phân tích bằng tiếng Việt, chuyên nghiệp, chi tiết với dẫn chứng số liệu cụ thể.
+
+QUY TẮC VIẾT:
+- Dùng số liệu CỤ THỂ từ data (lãi suất, bps thay đổi, spread, xác suất...)
+- KHÔNG dùng markdown formatting (**, ##, -, •). Viết plain text.
+- Dùng dấu phẩy phân cách hàng nghìn: 1,856 (không phải 1.856)
+- Viết dạng đoạn văn tự nhiên, mạch lạc, chuyên sâu."""
+
+
+def build_bondlab_prompt(bondlab_data):
+    """Prompt cho phần BondLab AI analysis."""
+    asof = bondlab_data.get("asof", "")
+
+    return f"""Dựa trên dữ liệu trái phiếu và liên ngân hàng ngày {asof}, viết phân tích diễn giải toàn diện.
+
+DỮ LIỆU:
+{json.dumps(bondlab_data, ensure_ascii=False, indent=2)}
+
+Viết phân tích theo CẤU TRÚC sau (viết liền mạch, KHÔNG đánh số phần):
+
+TÓM TẮT
+1-2 câu tổng kết tình hình lãi suất và thanh khoản liên ngân hàng hôm nay.
+
+MÔI TRƯỜNG LÃI SUẤT
+Phân tích lãi suất TPCP các kỳ hạn (2Y, 5Y, 10Y), so sánh thay đổi bps.
+Đánh giá spread 10Y-2Y và ý nghĩa: đường cong yield đang dốc lên/phẳng/đảo ngược.
+So sánh với lãi suất huy động và cho vay.
+
+ODDS (XÁC SUẤT PHIÊN KẾ TIẾP)
+Phân tích odds tăng/giảm/đi ngang cho interbank và TPCP.
+Nhận xét kỳ vọng thay đổi (E[Δ]) có ý nghĩa gì.
+Mức độ tin cậy của dự báo.
+
+XU HƯỚNG 20 PHIÊN
+Nhận xét xu hướng lãi suất 20 phiên gần nhất (nếu có dữ liệu).
+So sánh với xu hướng ngắn hạn (5 phiên).
+
+YIELD CURVE
+Phân tích hình dạng đường cong yield: normal/flat/inverted.
+So sánh spread giữa các kỳ hạn. Ý nghĩa cho kinh tế và thị trường cổ phiếu.
+
+INTERBANK & THANH KHOẢN
+Phân tích lãi suất liên ngân hàng ON, 1W, 1M, 3M.
+Đánh giá thanh khoản hệ thống: dồi dào hay căng thẳng.
+Tác động đến thị trường cổ phiếu.
+
+STRESS & ALERTS
+Nhận xét các cảnh báo (alerts) nếu có.
+Đánh giá mức stress của thị trường trái phiếu.
+Kênh truyền dẫn từ bond sang equity.
+
+WATCHLIST NGÀY MAI
+2-3 yếu tố quan trọng cần theo dõi phiên kế tiếp.
+Kịch bản lãi suất có thể ảnh hưởng thị trường cổ phiếu."""
+
+
+def generate_bondlab_analysis(data):
+    """Tạo phân tích AI cho BondLab."""
+    bondlab = data.get("bondlab", {})
+    if not bondlab:
+        log.warning("No bondlab data, skipping AI analysis")
+        return None
+
+    log.info("Generating BONDLAB analysis...")
+    import anthropic
+
+    api_key = os.environ.get("ANTHROPIC_API_KEY")
+    if not api_key:
+        log.warning("No API key, skipping bondlab analysis")
+        return None
+
+    client = anthropic.Anthropic(api_key=api_key)
+    prompt = build_bondlab_prompt(bondlab)
+
+    for attempt in range(3):
+        try:
+            message = client.messages.create(
+                model=CLAUDE_MODEL,
+                max_tokens=4096,
+                system=BONDLAB_SYSTEM_PROMPT,
+                messages=[{"role": "user", "content": prompt}],
+            )
+            text = message.content[0].text
+            log.info("  BONDLAB analysis done")
+            return text
+        except Exception as e:
+            err_str = str(e).lower()
+            is_rate_limit = "rate" in err_str or "429" in err_str or "overloaded" in err_str
+            wait = min(2 ** (attempt + 2), 30) if is_rate_limit else 2 ** (attempt + 1)
+            log.warning(f"  BondLab API attempt {attempt + 1}/3: {e}")
+            if attempt < 2:
+                time.sleep(wait)
+
+    log.error("  BONDLAB analysis failed after 3 attempts")
+    return None
+
+
+# ============================================================================
+# RESEARCHLAB AI MEMO
+# ============================================================================
+
+RESEARCHLAB_SYSTEM_PROMPT = """Bạn là chuyên gia nghiên cứu vĩ mô và liên thị trường (cross-asset) Việt Nam.
+Nhiệm vụ: viết Research Memo tổng hợp mối quan hệ giữa thị trường trái phiếu, lãi suất và thị trường cổ phiếu.
+
+QUY TẮC FORMAT BẮT BUỘC:
+- Output PHẢI là JSON hợp lệ với 5 key: summary, alerts, evidence, market_context, watchlist
+- Mỗi key là một array of strings, mỗi string là 1 bullet point
+- KHÔNG dùng markdown. Viết plain text tiếng Việt.
+- Dùng số liệu CỤ THỂ từ data.
+- Mỗi phần 2-4 bullet points."""
+
+
+def build_researchlab_prompt(data):
+    """Prompt cho ResearchLab memo dựa trên tất cả data đã thu thập."""
+    # Tóm tắt index performance
+    indices = data.get("index_ohlcv", {}).get("indices", {})
+    index_summary = {}
+    for key, idx in indices.items():
+        latest = idx.get("latest", {})
+        bars = idx.get("bars", [])
+        perf_5d = None
+        if len(bars) >= 6:
+            c5 = bars[-6].get("c", 0)
+            c0 = bars[-1].get("c", 0)
+            if c5 and c5 > 0:
+                perf_5d = round((c0 / c5 - 1) * 100, 2)
+        perf_20d = None
+        if len(bars) >= 21:
+            c20 = bars[-21].get("c", 0)
+            c0 = bars[-1].get("c", 0)
+            if c20 and c20 > 0:
+                perf_20d = round((c0 / c20 - 1) * 100, 2)
+        index_summary[key] = {
+            "name": idx.get("name", key),
+            "close": latest.get("close"),
+            "change_pct": latest.get("change_pct"),
+            "perf_5d": perf_5d,
+            "perf_20d": perf_20d,
+        }
+
+    # Breadth
+    breadth = data.get("breadth", {})
+
+    # BondLab
+    bondlab = data.get("bondlab", {})
+    # Remove analysis text to keep prompt focused on numbers
+    bondlab_clean = {k: v for k, v in bondlab.items() if k != "analysis"}
+
+    # Foreign flow
+    foreign = data.get("foreign", {})
+    foreign_summary = {}
+    if foreign.get("flow"):
+        for ex, fl in foreign["flow"].items():
+            foreign_summary[ex] = {
+                "net_value": fl.get("net_value"),
+                "buy_value": fl.get("buy_value"),
+                "sell_value": fl.get("sell_value"),
+            }
+
+    asof = data.get("index_ohlcv", {}).get("asof", "")
+
+    return f"""Dựa trên DỮ LIỆU THỊ TRƯỜNG ngày {asof}, viết Research Memo phân tích mối quan hệ liên thị trường.
+
+DỮ LIỆU CHỈ SỐ CỔ PHIẾU (15 chỉ số):
+{json.dumps(index_summary, ensure_ascii=False, indent=2)}
+
+BREADTH:
+{json.dumps(breadth, ensure_ascii=False, indent=2)}
+
+DỮ LIỆU TRÁI PHIẾU & LIÊN NGÂN HÀNG (BondLab):
+{json.dumps(bondlab_clean, ensure_ascii=False, indent=2)}
+
+GIAO DỊCH NƯỚC NGOÀI:
+{json.dumps(foreign_summary, ensure_ascii=False, indent=2)}
+
+Trả về JSON hợp lệ với cấu trúc:
+{{
+  "summary": [
+    "Bullet 1: tổng quan xu hướng cổ phiếu gần đây (dùng perf_5d)",
+    "Bullet 2: tổng quan lãi suất TPCP và đường cong yield (spread 10y-2y)",
+    "Bullet 3: mức stress trái phiếu và áp lực chính"
+  ],
+  "alerts": [
+    "Bullet: cảnh báo truyền dẫn giá (price transmission) từ trái phiếu sang cổ phiếu - liệt kê chỉ số bị ảnh hưởng",
+    "Bullet: tín hiệu lead-lag giữa đường cong yield và lợi nhuận cổ phiếu",
+    "Bullet: truyền dẫn khối lượng (volume transmission) - trạng thái ok/caution/warn"
+  ],
+  "evidence": [
+    "Bullet: phân tích VAR/Granger - tác động cú sốc từ đường cong lợi suất đến giá cổ phiếu, p-value, mức tác động",
+    "Bullet: mối đồng pha (coherence) giữa đường cong và lợi nhuận cổ phiếu, độ trễ",
+    "Bullet: chỉ số stress trái phiếu trung bình, so với mức lịch sử, thành phần đóng góp"
+  ],
+  "market_context": [
+    "Bullet: bối cảnh đường cong yield cao trong môi trường lãi suất hiện tại, kỳ vọng chính sách",
+    "Bullet: môi trường risk-on/risk-off dựa trên stress trái phiếu + xu hướng cổ phiếu",
+    "Bullet: khả năng khuếch đại cú sốc từ thị trường vốn"
+  ],
+  "watchlist": [
+    "Bullet: điều kiện stress trái phiếu + đường cong → rủi ro cho nhóm nhạy cảm lãi suất",
+    "Bullet: nếu coherence mạnh hơn → tín hiệu truyền dẫn rủi ro sâu hơn",
+    "Bullet: thanh khoản cổ phiếu + stress thanh khoản trái phiếu → khả năng điều chỉnh mạnh"
+  ]
+}}
+
+CHỈ trả về JSON, KHÔNG có text nào khác trước hoặc sau JSON."""
+
+
+def generate_researchlab_memo(data):
+    """Tạo ResearchLab memo bằng AI dựa trên tất cả data đã thu thập."""
+    log.info("Generating RESEARCHLAB memo...")
+    import anthropic
+
+    api_key = os.environ.get("ANTHROPIC_API_KEY")
+    if not api_key:
+        log.warning("No API key, skipping researchlab memo")
+        return None
+
+    client = anthropic.Anthropic(api_key=api_key)
+    prompt = build_researchlab_prompt(data)
+
+    for attempt in range(3):
+        try:
+            message = client.messages.create(
+                model=CLAUDE_MODEL,
+                max_tokens=4096,
+                system=RESEARCHLAB_SYSTEM_PROMPT,
+                messages=[{"role": "user", "content": prompt}],
+            )
+            text = message.content[0].text.strip()
+
+            # Extract JSON from response (handle possible markdown wrapping)
+            if text.startswith("```"):
+                text = text.split("\n", 1)[1] if "\n" in text else text[3:]
+                if text.endswith("```"):
+                    text = text[:-3].strip()
+
+            memo = json.loads(text)
+            log.info("  RESEARCHLAB memo done")
+            return memo
+        except json.JSONDecodeError as e:
+            log.warning(f"  ResearchLab JSON parse error (attempt {attempt + 1}/3): {e}")
+            if attempt < 2:
+                time.sleep(4)
+        except Exception as e:
+            err_str = str(e).lower()
+            is_rate_limit = "rate" in err_str or "429" in err_str or "overloaded" in err_str
+            wait = min(2 ** (attempt + 2), 30) if is_rate_limit else 2 ** (attempt + 1)
+            log.warning(f"  ResearchLab API attempt {attempt + 1}/3: {e}")
+            if attempt < 2:
+                time.sleep(wait)
+
+    log.error("  RESEARCHLAB memo failed after 3 attempts")
+    return None
+
+
+# ============================================================================
+# COMMODITIES AI RECOMMENDATION
+# ============================================================================
+
+COMMODITIES_SYSTEM_PROMPT = """Bạn là chuyên gia phân tích hàng hoá thế giới và tác động đến thị trường Việt Nam.
+Viết khuyến nghị bằng tiếng Việt, chuyên nghiệp, ngắn gọn, có dẫn chứng số liệu cụ thể.
+
+QUY TẮC:
+- KHÔNG dùng markdown formatting (**, ##). Viết plain text.
+- Dùng số liệu CỤ THỂ từ data hàng hoá (giá, % thay đổi, đơn vị).
+- Tập trung phân tích xu hướng hàng hoá (dầu, thép, sắt, vàng, nông sản...) và tác động kinh tế.
+- Viết thực tế, tập trung vào tác động lên nền kinh tế và thị trường cổ phiếu VN."""
+
+
+def build_commodities_prompt(data):
+    """Prompt cho khuyến nghị hàng hoá dựa trên dữ liệu commodity thực tế."""
+    commodities = data.get("commodities", {})
+
+    # Tóm tắt world_commodities cho prompt
+    world_comm = commodities.get("world_commodities", [])
+    comm_summary = []
+    for c in world_comm:
+        name = c.get("name", "")
+        close = c.get("close")
+        change_pct = c.get("change_pct")
+        unit = c.get("unit", "")
+        if close is not None:
+            pct_str = f"{change_pct:+.2f}%" if change_pct is not None else "N/A"
+            comm_summary.append(f"- {name}: {close} {unit} ({pct_str})")
+
+    comm_text = "\n".join(comm_summary) if comm_summary else "Không có dữ liệu"
+
+    # Gold VN summary
+    gold = commodities.get("gold", [])
+    gold_text = ""
+    if gold:
+        gold_lines = []
+        for g in gold[:5]:
+            name = g.get("name", "")
+            buy = g.get("buy")
+            sell = g.get("sell")
+            if buy and sell:
+                gold_lines.append(f"- {name}: Mua {buy:,.0f} / Bán {sell:,.0f} VND")
+        gold_text = "\n".join(gold_lines)
+
+    # Exchange rates summary
+    fx = commodities.get("exchange_rates", [])
+    fx_text = ""
+    if fx:
+        fx_lines = []
+        for r in fx[:5]:
+            code = r.get("code", "")
+            sell = r.get("sell")
+            if sell:
+                fx_lines.append(f"- {code}: Bán {sell:,.0f} VND")
+        fx_text = "\n".join(fx_lines)
+
+    asof = commodities.get("asof", data.get("index_ohlcv", {}).get("asof", ""))
+
+    return f"""Dựa trên dữ liệu hàng hoá thế giới ngày {asof}, viết KHUYẾN NGHỊ ngắn gọn.
+
+HÀNG HOÁ THẾ GIỚI (giá mới nhất):
+{comm_text}
+
+GIÁ VÀNG VIỆT NAM:
+{gold_text or "Không có dữ liệu"}
+
+TỶ GIÁ:
+{fx_text or "Không có dữ liệu"}
+
+Viết khuyến nghị theo cấu trúc:
+
+TỔNG QUAN HÀNG HOÁ
+3-4 câu tổng kết xu hướng hàng hoá thế giới: nhóm năng lượng (dầu thô, khí tự nhiên), nhóm kim loại (thép, sắt, than cốc), nhóm nông sản (đậu nành, ngô, đường), vàng. Nêu giá và % thay đổi cụ thể.
+
+TÁC ĐỘNG LÊN KINH TẾ & CỔ PHIẾU VIỆT NAM
+3-4 câu phân tích tác động của giá hàng hoá lên:
+- Nhóm năng lượng (dầu khí, điện): giá dầu thô tăng/giảm ảnh hưởng thế nào
+- Nhóm vật liệu xây dựng (thép, xi măng): giá thép, sắt, than cốc tác động gì
+- Nhóm phân bón, nông nghiệp: giá phân Urê, đậu nành, ngô ảnh hưởng đầu vào
+- Nhóm tài chính: tỷ giá, giá vàng → dòng vốn ngoại
+
+KHUYẾN NGHỊ
+3-4 câu khuyến nghị cụ thể dựa trên xu hướng hàng hoá:
+- Nhóm nào hưởng lợi từ giá hàng hoá hiện tại
+- Nhóm nào chịu áp lực chi phí đầu vào tăng
+- Mức giá hàng hoá nào cần theo dõi (dầu > X USD/thùng, thép > Y USD/tấn, vàng > Z USD/oz)
+
+CẢNH BÁO
+1-2 câu cảnh báo rủi ro: biến động dầu/vàng bất ngờ, áp lực tỷ giá, rủi ro supply chain."""
+
+
+def generate_commodities_recommendation(data):
+    """Tạo khuyến nghị AI cho hàng hoá."""
+    commodities = data.get("commodities", {})
+    if not commodities:
+        log.warning("No commodities data, skipping AI recommendation")
+        return None
+
+    log.info("Generating COMMODITIES recommendation...")
+    import anthropic
+
+    api_key = os.environ.get("ANTHROPIC_API_KEY")
+    if not api_key:
+        log.warning("No API key, skipping commodities recommendation")
+        return None
+
+    client = anthropic.Anthropic(api_key=api_key)
+    prompt = build_commodities_prompt(data)
+
+    for attempt in range(3):
+        try:
+            message = client.messages.create(
+                model=CLAUDE_MODEL,
+                max_tokens=2048,
+                system=COMMODITIES_SYSTEM_PROMPT,
+                messages=[{"role": "user", "content": prompt}],
+            )
+            text = message.content[0].text
+            log.info("  COMMODITIES recommendation done")
+            return text
+        except Exception as e:
+            err_str = str(e).lower()
+            is_rate_limit = "rate" in err_str or "429" in err_str or "overloaded" in err_str
+            wait = min(2 ** (attempt + 2), 30) if is_rate_limit else 2 ** (attempt + 1)
+            log.warning(f"  Commodities API attempt {attempt + 1}/3: {e}")
+            if attempt < 2:
+                time.sleep(wait)
+
+    log.error("  COMMODITIES recommendation failed after 3 attempts")
+    return None
+
+
+# ============================================================================
+# PORTFOLIO AI RECOMMENDATION
+# ============================================================================
+
+PORTFOLIO_SYSTEM_PROMPT = """Bạn là chuyên gia tư vấn đầu tư cá nhân chứng khoán Việt Nam.
+Nhiệm vụ: Dựa trên danh mục cổ phiếu của nhà đầu tư và TOÀN BỘ dữ liệu thị trường đã thu thập,
+đưa ra nhận định và khuyến nghị cá nhân hóa.
+
+QUY TẮC:
+- KHÔNG dùng markdown formatting (**, ##). Viết plain text.
+- Dùng số liệu CỤ THỂ từ data (giá, %, RSI, MA, breadth, hàng hoá, trái phiếu...).
+- Phân tích phải liên kết chặt chẽ giữa danh mục cá nhân và bối cảnh thị trường.
+- Viết tiếng Việt chuyên nghiệp, thẳng thắn, có chiều sâu."""
+
+
+def build_portfolio_prompt(data):
+    """Prompt cho khuyến nghị portfolio dựa trên tất cả data."""
+    portfolio = data.get("portfolio", {})
+
+    # Portfolio holdings
+    holdings = portfolio.get("holdings", [])
+    holdings_text = ""
+    if holdings:
+        lines = []
+        for h in holdings:
+            symbol = h.get("symbol", "")
+            qty = h.get("quantity", 0)
+            avg_price = h.get("avg_price", 0)
+            weight = h.get("weight_pct", "")
+            sector = h.get("sector", "")
+            line = f"- {symbol}: {qty} CP, giá vốn {avg_price:,.0f}" if avg_price else f"- {symbol}: {qty} CP"
+            if weight:
+                line += f", tỷ trọng {weight}%"
+            if sector:
+                line += f" ({sector})"
+            lines.append(line)
+        holdings_text = "\n".join(lines)
+    else:
+        holdings_text = "Chưa có dữ liệu danh mục"
+
+    # Portfolio metadata
+    capital_info = ""
+    equity_ratio = portfolio.get("equity_ratio")
+    margin_ratio = portfolio.get("margin_ratio")
+    total_value = portfolio.get("total_value")
+    cash = portfolio.get("cash")
+    if equity_ratio is not None:
+        capital_info += f"- Vốn chủ: {equity_ratio}%\n"
+    if margin_ratio is not None:
+        capital_info += f"- Margin: {margin_ratio}%\n"
+    if total_value is not None:
+        capital_info += f"- Tổng giá trị: {total_value:,.0f} VND\n"
+    if cash is not None:
+        capital_info += f"- Tiền mặt: {cash:,.0f} VND\n"
+
+    # Index summary
+    indices = data.get("index_ohlcv", {}).get("indices", {})
+    idx_brief = {}
+    for key in ["vnindex", "vn30", "vnfin", "vnreal", "vnit", "vnene", "vnmat", "vncons", "vnheal"]:
+        idx = indices.get(key, {})
+        latest = idx.get("latest", {})
+        ind = idx.get("indicators", {})
+        if latest:
+            idx_brief[key] = {
+                "close": latest.get("close"),
+                "change_pct": latest.get("change_pct"),
+                "rsi14": ind.get("rsi_14") or ind.get("rsi14"),
+                "above_ma20": ind.get("above_ma20"),
+            }
+
+    # Breadth
+    breadth = data.get("breadth", {})
+
+    # Foreign flow
+    foreign = data.get("foreign", {})
+    foreign_summary = {}
+    if foreign.get("flow"):
+        for ex, fl in foreign["flow"].items():
+            foreign_summary[ex] = {"net_value": fl.get("net_value")}
+
+    # Commodities summary
+    commodities = data.get("commodities", {})
+    world_comm = commodities.get("world_commodities", [])
+    comm_lines = []
+    for c in world_comm[:6]:
+        name = c.get("name", "")
+        close = c.get("close")
+        pct = c.get("change_pct")
+        if close is not None:
+            pct_str = f"{pct:+.2f}%" if pct is not None else ""
+            comm_lines.append(f"- {name}: {close} ({pct_str})")
+    comm_text = "\n".join(comm_lines) if comm_lines else "N/A"
+
+    # BondLab summary
+    bondlab = data.get("bondlab", {})
+    bondlab_clean = {}
+    for k in ["yield_curve", "interbank", "odds", "alerts"]:
+        if k in bondlab:
+            bondlab_clean[k] = bondlab[k]
+
+    asof = data.get("index_ohlcv", {}).get("asof", portfolio.get("asof", ""))
+
+    return f"""Dựa trên danh mục đầu tư cá nhân và dữ liệu thị trường ngày {asof}, viết KHUYẾN NGHỊ chi tiết.
+
+DANH MỤC ĐẦU TƯ:
+{holdings_text}
+
+THÔNG TIN VỐN:
+{capital_info or "Không có dữ liệu"}
+
+CHỈ SỐ THỊ TRƯỜNG:
+{json.dumps(idx_brief, ensure_ascii=False, indent=2)}
+
+BREADTH:
+Tăng {breadth.get('advancing', 'N/A')}, Giảm {breadth.get('declining', 'N/A')}, Đứng {breadth.get('unchanged', 'N/A')}
+
+GIAO DỊCH NƯỚC NGOÀI:
+{json.dumps(foreign_summary, ensure_ascii=False)}
+
+HÀNG HOÁ THẾ GIỚI:
+{comm_text}
+
+TRÁI PHIẾU (tóm tắt):
+{json.dumps(bondlab_clean, ensure_ascii=False, indent=2) if bondlab_clean else "N/A"}
+
+Viết khuyến nghị theo cấu trúc:
+
+ĐÁNH GIÁ DANH MỤC
+3-5 câu đánh giá tổng quan danh mục: tỷ trọng ngành, mức độ tập trung/phân tán, rủi ro margin (nếu có).
+Đánh giá từng cổ phiếu chính trong danh mục: ngành của nó đang mạnh hay yếu (dựa trên chỉ số ngành), giá hiện tại vs giá vốn, RSI ngành, vị trí so với MA20.
+
+PHÂN TÍCH BỐI CẢNH
+3-4 câu phân tích bối cảnh thị trường ảnh hưởng thế nào đến danh mục:
+- Breadth thị trường (tăng/giảm) ảnh hưởng nhóm nào trong danh mục
+- Xu hướng dòng vốn ngoại (mua/bán ròng) tác động nhóm nào
+- Giá hàng hoá thế giới (dầu, thép, vàng...) ảnh hưởng cổ phiếu nào trong danh mục
+- Lãi suất trái phiếu (nếu có data) tác động tài chính ra sao
+
+KHUYẾN NGHỊ HÀNH ĐỘNG
+4-6 câu khuyến nghị CỤ THỂ cho từng vị thế:
+- Cổ phiếu nào nên GIỮ (lý do: ngành mạnh, RSI chưa quá mua, trên MA20)
+- Cổ phiếu nào nên CẮT GIẢM/CHỐT LỜI (lý do: ngành yếu, RSI quá mua, dưới MA20, áp lực ngoại)
+- Cổ phiếu nào nên TĂNG TỶ TRỌNG/MUA THÊM (lý do: ngành đang hưởng lợi từ hàng hoá, ngoại mua ròng)
+- Gợi ý điều chỉnh tỷ trọng tiền mặt/margin dựa trên mức độ rủi ro thị trường
+
+CẢNH BÁO RỦI RO
+2-3 câu cảnh báo rủi ro cụ thể cho danh mục:
+- Rủi ro margin call nếu thị trường giảm thêm X%
+- Rủi ro tập trung ngành (nếu quá nhiều 1 ngành)
+- Mức giá cần theo dõi: stoploss cho từng cổ phiếu chính, trigger cắt margin
+
+THEO DÕI PHIÊN TỚI
+2-3 yếu tố cần theo dõi phiên kế tiếp liên quan đến danh mục."""
+
+
+def generate_portfolio_recommendation(data):
+    """Tạo khuyến nghị AI cho portfolio."""
+    portfolio = data.get("portfolio", {})
+    if not portfolio or not portfolio.get("holdings"):
+        log.warning("No portfolio data or empty holdings, skipping AI recommendation")
+        return None
+
+    log.info("Generating PORTFOLIO recommendation...")
+    import anthropic
+
+    api_key = os.environ.get("ANTHROPIC_API_KEY")
+    if not api_key:
+        log.warning("No API key, skipping portfolio recommendation")
+        return None
+
+    client = anthropic.Anthropic(api_key=api_key)
+    prompt = build_portfolio_prompt(data)
+
+    for attempt in range(3):
+        try:
+            message = client.messages.create(
+                model=CLAUDE_MODEL,
+                max_tokens=4096,
+                system=PORTFOLIO_SYSTEM_PROMPT,
+                messages=[{"role": "user", "content": prompt}],
+            )
+            text = message.content[0].text
+            log.info("  PORTFOLIO recommendation done")
+            return text
+        except Exception as e:
+            err_str = str(e).lower()
+            is_rate_limit = "rate" in err_str or "429" in err_str or "overloaded" in err_str
+            wait = min(2 ** (attempt + 2), 30) if is_rate_limit else 2 ** (attempt + 1)
+            log.warning(f"  Portfolio API attempt {attempt + 1}/3: {e}")
+            if attempt < 2:
+                time.sleep(wait)
+
+    log.error("  PORTFOLIO recommendation failed after 3 attempts")
+    return None
+
+
+# ============================================================================
 # GENERATE FULL REPORT
 # ============================================================================
 
@@ -680,6 +1274,76 @@ def main():
             log.info(f"  [{i}/{len(REPORT_INDICES)}] {INDICES[key][1]} done")
         else:
             log.warning(f"  [{i}/{len(REPORT_INDICES)}] {INDICES[key][1]} FAILED")
+
+    # 3) Generate BondLab AI analysis (save to bondlab_data.json)
+    time.sleep(2)
+    bondlab_text = generate_bondlab_analysis(data)
+    if bondlab_text:
+        bondlab_cache = CACHE_DIR / "bondlab_data.json"
+        if bondlab_cache.exists():
+            with open(bondlab_cache, "r", encoding="utf-8") as f:
+                bondlab_json = json.load(f)
+            bondlab_json["analysis"] = bondlab_text
+            with open(bondlab_cache, "w", encoding="utf-8") as f:
+                json.dump(bondlab_json, f, ensure_ascii=False, default=str)
+            log.info("  BondLab analysis saved to bondlab_data.json")
+        else:
+            log.warning("  bondlab_data.json not found, cannot save analysis")
+
+    # 4) Generate ResearchLab memo (save to researchlab_data.json)
+    time.sleep(2)
+    rl_memo = generate_researchlab_memo(data)
+    if rl_memo:
+        asof = data["index_ohlcv"].get("asof", "")
+        rl_data = {
+            "asof": asof,
+            "summary": rl_memo.get("summary", []),
+            "alerts": rl_memo.get("alerts", []),
+            "evidence": rl_memo.get("evidence", []),
+            "market_context": rl_memo.get("market_context", []),
+            "watchlist": rl_memo.get("watchlist", []),
+        }
+        rl_path = CACHE_DIR / "researchlab_data.json"
+        with open(rl_path, "w", encoding="utf-8") as f:
+            json.dump(rl_data, f, ensure_ascii=False, default=str)
+        log.info(f"  ResearchLab memo saved to {rl_path}")
+
+    # 5) Generate Commodities AI recommendation (save to commodities_data.json)
+    time.sleep(2)
+    comm_text = generate_commodities_recommendation(data)
+    if comm_text:
+        comm_cache = CACHE_DIR / "commodities_data.json"
+        if comm_cache.exists():
+            with open(comm_cache, "r", encoding="utf-8") as f:
+                comm_json = json.load(f)
+            comm_json["recommendation"] = comm_text
+            with open(comm_cache, "w", encoding="utf-8") as f:
+                json.dump(comm_json, f, ensure_ascii=False, default=str)
+            log.info("  Commodities recommendation saved to commodities_data.json")
+        else:
+            log.warning("  commodities_data.json not found, cannot save recommendation")
+
+    # 6) Generate Portfolio AI recommendation (save to portfolio_data.json)
+    time.sleep(2)
+    portfolio_text = generate_portfolio_recommendation(data)
+    if portfolio_text:
+        portfolio_cache = CACHE_DIR / "portfolio_data.json"
+        if portfolio_cache.exists():
+            with open(portfolio_cache, "r", encoding="utf-8") as f:
+                portfolio_json = json.load(f)
+            portfolio_json["recommendation"] = portfolio_text
+            with open(portfolio_cache, "w", encoding="utf-8") as f:
+                json.dump(portfolio_json, f, ensure_ascii=False, default=str)
+            log.info("  Portfolio recommendation saved to portfolio_data.json")
+        else:
+            # Create new file with just recommendation
+            portfolio_json = {
+                "asof": data["index_ohlcv"].get("asof", ""),
+                "recommendation": portfolio_text,
+            }
+            with open(portfolio_cache, "w", encoding="utf-8") as f:
+                json.dump(portfolio_json, f, ensure_ascii=False, default=str)
+            log.info("  Portfolio recommendation saved (new file)")
 
     # Assemble report
     full_report = assemble_report(overview_text, index_texts)

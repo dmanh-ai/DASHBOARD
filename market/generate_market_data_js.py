@@ -186,17 +186,73 @@ def generate_foreign_flow():
 
 
 # ============================================================================
-# 7. EXTRA DATA (commodities, FX, gold, bonds, funds, portfolio)
+# 7. BONDLAB DATA
 # ============================================================================
 
-def generate_extra_data():
-    """Tạo extra_data.js từ extra_data.json (commodities, FX, gold, bonds, funds, portfolio)."""
-    data = load_json("extra_data.json")
+def generate_bondlab():
+    """Tạo bondlab_data.js - dữ liệu trái phiếu và liên ngân hàng."""
+    data = load_json("bondlab_data.json")
     if not data:
-        log.warning("No extra_data.json, skipping extra data JS")
+        log.warning("No bondlab_data.json, skipping")
         return
 
-    write_js("extra_data.js", "UI_GLM_EXTRA_DATA", data)
+    write_js("bondlab_data.js", "UI_GLM_BONDLAB", data)
+
+
+# ============================================================================
+# 8. RESEARCHLAB DATA
+# ============================================================================
+
+def generate_researchlab():
+    """Tạo researchlab_data.js - ResearchLab memo data."""
+    data = load_json("researchlab_data.json")
+    if not data:
+        log.warning("No researchlab_data.json, skipping")
+        return
+
+    write_js("researchlab_data.js", "UI_GLM_RESEARCHLAB", data)
+
+
+# ============================================================================
+# 9. COMMODITIES DATA
+# ============================================================================
+
+def generate_commodities():
+    """Tạo commodities_data.js - dữ liệu hàng hoá thế giới."""
+    data = load_json("commodities_data.json")
+    if not data:
+        log.warning("No commodities_data.json, skipping")
+        return
+
+    write_js("commodities_data.js", "UI_GLM_COMMODITIES", data)
+
+
+# ============================================================================
+# 10. PORTFOLIO DATA
+# ============================================================================
+
+def generate_portfolio():
+    """Tạo portfolio_data.js - dữ liệu danh mục + khuyến nghị AI."""
+    data = load_json("portfolio_data.json")
+    if not data:
+        log.warning("No portfolio_data.json, skipping")
+        return
+
+    write_js("portfolio_data.js", "UI_GLM_PORTFOLIO", data)
+
+
+# ============================================================================
+# 11. FUND DATA (Quỹ mở)
+# ============================================================================
+
+def generate_fund():
+    """Tạo fund_data.js - dữ liệu quỹ mở."""
+    data = load_json("fund_data.json")
+    if not data:
+        log.warning("No fund_data.json, skipping")
+        return
+
+    write_js("fund_data.js", "UI_GLM_FUND", data)
 
 
 # ============================================================================
@@ -214,7 +270,11 @@ def main():
     generate_vnindex_heatmap()
     generate_index_heatmaps()
     generate_foreign_flow()
-    generate_extra_data()
+    generate_bondlab()
+    generate_researchlab()
+    generate_commodities()
+    generate_portfolio()
+    generate_fund()
 
     log.info("=" * 60)
     log.info("ALL JS FILES GENERATED!")

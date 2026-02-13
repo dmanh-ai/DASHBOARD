@@ -11,7 +11,11 @@
 							    <script src="vnindex_heatmap_data.js"></script>
 							    <script src="index_heatmap_data.js"></script>
 							    <script src="foreign_flow_data.js"></script>
-							    <script src="extra_data.js"></script>
+							    <script src="bondlab_data.js"></script>
+							    <script src="researchlab_data.js"></script>
+							    <script src="commodities_data.js"></script>
+							    <script src="portfolio_data.js"></script>
+							    <script src="fund_data.js"></script>
 							    <script src="vendor/lightweight-charts.standalone.production.js"></script>
 							    <script src="scripts/content_formatter.js"></script>
 
@@ -3905,7 +3909,7 @@
 
 	        const UI_GLM_PUBLIC_BUILD = true;
 
-	        const UI_GLM_LITE_ALLOWED_INDICES = new Set(['overview', 'vnindex', 'vn30', 'vn100', 'vnmidcap', 'vnsml', 'vnreal', 'vnit', 'vnheal', 'vnfin', 'vnene', 'vncons', 'vnmat', 'vncond', 'vnfinselect', 'vndiamond', '__commodities', '__bondlab', '__portfolio', '__funds']);
+	        const UI_GLM_LITE_ALLOWED_INDICES = new Set(['overview', 'vnindex', 'vn30', 'vn100', 'vnmidcap', 'vnsml', 'vnreal', 'vnit', 'vnheal', 'vnfin', 'vnene', 'vncons', 'vnmat', 'vncond', 'vnfinselect', 'vndiamond', 'bondlab', 'researchlab', 'commodities', 'portfolio', 'fund']);
 	        const UI_GLM_LITE_HIDDEN_SECTIONS = new Set([].map(s => s.trim().toUpperCase()));
 
 	        function getPlanPreference() {
@@ -4007,7 +4011,12 @@
                 { key: 'vnindex', name: 'VNINDEX' },
                 { key: 'vn30', name: 'VN30' },
                 { key: 'vn100', name: 'VN100' },
-                { key: 'vnmidcap', name: 'VNMIDCAP' }
+                { key: 'vnmidcap', name: 'VNMIDCAP' },
+                { key: 'bondlab', name: 'BONDLAB' },
+                { key: 'researchlab', name: 'RESEARCHLAB' },
+                { key: 'commodities', name: 'HÀNG HOÁ' },
+                { key: 'portfolio', name: 'PORTFOLIO' },
+                { key: 'fund', name: 'QUỸ MỞ' },
             ];
 
             const extraItems = [
@@ -4342,6 +4351,61 @@
 	        }
 
 	        function getSectionsForIndex(indexKey) {
+	            // BONDLAB: 5 data-driven sections (no FULL_DATA dependency)
+	            if (indexKey === 'bondlab') {
+	                const bl = window.UI_GLM_BONDLAB || null;
+	                const sections = [
+	                    { title: '📌 Snapshot nhanh', icon: '📌', content: '', alert: false, __uiType: 'bondlab_snapshot' },
+	                    { title: '🔮 Odds (phiên kế tiếp)', icon: '🔮', content: '', alert: false, __uiType: 'bondlab_odds' },
+	                    { title: '💧 Interbank', icon: '💧', content: '', alert: false, __uiType: 'bondlab_interbank' },
+	                ];
+	                // AI analysis section (only if analysis text exists)
+	                if (bl && bl.analysis) {
+	                    sections.push({ title: '🧠 Diễn giải', icon: '🧠', content: bl.analysis, alert: false, __uiType: 'bondlab_analysis' });
+	                }
+	                // Alerts section
+	                sections.push({ title: '🚨 Alerts', icon: '🚨', content: '', alert: true, __uiType: 'bondlab_alerts' });
+	                return sections;
+	            }
+
+	            // RESEARCHLAB: single "Alert Memo (AI)" section
+	            if (indexKey === 'researchlab') {
+	                return [
+	                    { title: '🏛 Alert Memo (AI)', icon: '🏛', content: '', alert: false, __uiType: 'researchlab_memo' },
+	                ];
+	            }
+
+	            // COMMODITIES: 2 sections (data table + AI recommendation)
+	            if (indexKey === 'commodities') {
+	                const cm = window.UI_GLM_COMMODITIES || null;
+	                const sections = [
+	                    { title: '🌍 Hàng hoá thế giới', icon: '🌍', content: '', alert: false, __uiType: 'commodities_table' },
+	                ];
+	                if (cm && cm.recommendation) {
+	                    sections.push({ title: '💡 Khuyến nghị', icon: '💡', content: cm.recommendation, alert: false, __uiType: 'commodities_recommendation' });
+	                }
+	                return sections;
+	            }
+
+	            // FUND: 1 section (bảng quỹ mở)
+	            if (indexKey === 'fund') {
+	                return [
+	                    { title: '📊 Danh sách quỹ mở', icon: '📊', content: '', alert: false, __uiType: 'fund_listing' },
+	                ];
+	            }
+
+	            // PORTFOLIO: 1 section (AI recommendation)
+	            if (indexKey === 'portfolio') {
+	                const pf = window.UI_GLM_PORTFOLIO || null;
+	                const sections = [];
+	                if (pf && pf.recommendation) {
+	                    sections.push({ title: '🤖 Khuyến nghị AI', icon: '🤖', content: pf.recommendation, alert: false, __uiType: 'portfolio_recommendation' });
+	                } else {
+	                    sections.push({ title: '🤖 Khuyến nghị AI', icon: '🤖', content: '', alert: false, __uiType: 'portfolio_recommendation' });
+	                }
+	                return sections;
+	            }
+
 	            const indexData = data[indexKey];
 	            const base = filterSectionsForCurrentPlan(processSections(indexData));
 	            let out = base;
@@ -4791,6 +4855,626 @@
 	                    </div>
 	                </div>
 	            `;
+	        }
+
+	        // ====================================================================
+	        // BONDLAB RENDERING
+	        // ====================================================================
+
+	        function renderBondlabSection(uiType, section) {
+	            const bl = window.UI_GLM_BONDLAB || null;
+	            if (!bl) return '<div class="info-box"><p>Không có dữ liệu BondLab.</p></div>';
+
+	            switch (uiType) {
+	                case 'bondlab_snapshot': return renderBondlabSnapshot(bl);
+	                case 'bondlab_odds': return renderBondlabOdds(bl);
+	                case 'bondlab_interbank': return renderBondlabInterbank(bl);
+	                case 'bondlab_analysis': return renderBondlabAnalysis(bl, section);
+	                case 'bondlab_alerts': return renderBondlabAlerts(bl);
+	                default: return '<div class="info-box"><p>Section không xác định.</p></div>';
+	            }
+	        }
+
+	        function _blVal(v, suffix) {
+	            if (v == null || v === '') return 'N/A';
+	            return typeof v === 'number' ? v.toFixed(2) + (suffix || '') : String(v) + (suffix || '');
+	        }
+
+	        function _blBpsColor(bps) {
+	            if (bps == null || bps === 0) return '#888';
+	            return bps > 0 ? '#ff1744' : '#00c853';
+	        }
+
+	        function _blBpsText(bps) {
+	            if (bps == null) return 'N/A';
+	            const sign = bps > 0 ? '+' : '';
+	            return sign + bps + ' bps';
+	        }
+
+	        function _blDirection(dir) {
+	            if (!dir) return '→';
+	            if (dir === 'up' || dir === '↑') return '↑';
+	            if (dir === 'down' || dir === '↓') return '↓';
+	            return '→';
+	        }
+
+	        function renderBondlabSnapshot(bl) {
+	            const snap = bl.snapshot || {};
+	            const dateText = bl.asof ? ` (${bl.asof})` : '';
+
+	            // Build rows from snapshot data dynamically
+	            const items = [
+	                { label: 'TPCP 2Y', key: 'tpcp_2y' },
+	                { label: 'TPCP 5Y', key: 'tpcp_5y' },
+	                { label: 'TPCP 10Y', key: 'tpcp_10y' },
+	                { label: 'Spread 10Y-2Y', key: 'spread_10y_2y' },
+	                { label: 'Interbank ON', key: 'interbank_on' },
+	                { label: 'Deposit avg 12M', key: 'deposit_12m' },
+	                { label: 'Loan avg', key: 'loan_avg' },
+	                { label: 'BondY Stress', key: 'bondy_stress' },
+	            ];
+
+	            let rows = '';
+	            items.forEach((item, i) => {
+	                const d = snap[item.key] || {};
+	                const rate = d.rate != null ? d.rate : d.value;
+	                const bps = d.change_bps;
+	                const bg = i % 2 === 0 ? 'rgba(255,255,255,0.03)' : 'transparent';
+	                rows += `
+	                    <tr style="background:${bg};">
+	                        <td style="padding:6px 10px;font-weight:600;">${escapeHtml(item.label)}</td>
+	                        <td style="padding:6px 10px;text-align:right;">${_blVal(rate, '%')}</td>
+	                        <td style="padding:6px 10px;text-align:right;color:${_blBpsColor(bps)};">${_blBpsText(bps)}</td>
+	                    </tr>
+	                `;
+	            });
+
+	            // If snapshot has extra keys not in predefined list, render them too
+	            const knownKeys = new Set(items.map(i => i.key));
+	            Object.keys(snap).forEach((k, i) => {
+	                if (knownKeys.has(k)) return;
+	                const d = snap[k];
+	                if (typeof d !== 'object' || d == null) return;
+	                const rate = d.rate != null ? d.rate : d.value;
+	                const bps = d.change_bps;
+	                rows += `
+	                    <tr style="background:${(items.length + i) % 2 === 0 ? 'rgba(255,255,255,0.03)' : 'transparent'};">
+	                        <td style="padding:6px 10px;font-weight:600;">${escapeHtml(k)}</td>
+	                        <td style="padding:6px 10px;text-align:right;">${_blVal(rate, '%')}</td>
+	                        <td style="padding:6px 10px;text-align:right;color:${_blBpsColor(bps)};">${_blBpsText(bps)}</td>
+	                    </tr>
+	                `;
+	            });
+
+	            return `
+	                <div class="block" style="margin-bottom:12px;">
+	                    <div class="block-header">📌 Snapshot nhanh${dateText}</div>
+	                    <div class="block-body" style="overflow-x:auto;">
+	                        <table style="width:100%;border-collapse:collapse;font-size:13px;">
+	                            <thead>
+	                                <tr style="border-bottom:1px solid rgba(255,255,255,0.1);">
+	                                    <th style="padding:6px 10px;text-align:left;">Chỉ tiêu</th>
+	                                    <th style="padding:6px 10px;text-align:right;">Lãi suất</th>
+	                                    <th style="padding:6px 10px;text-align:right;">Thay đổi</th>
+	                                </tr>
+	                            </thead>
+	                            <tbody>${rows}</tbody>
+	                        </table>
+	                    </div>
+	                </div>
+	            `;
+	        }
+
+	        function renderBondlabOdds(bl) {
+	            const odds = bl.odds || {};
+	            const dateText = bl.asof ? ` (${bl.asof})` : '';
+
+	            const items = [
+	                { label: 'Interbank ON', key: 'interbank_on' },
+	                { label: 'Interbank 1W', key: 'interbank_1w' },
+	                { label: 'Interbank 1M', key: 'interbank_1m' },
+	                { label: 'Interbank 3M', key: 'interbank_3m' },
+	                { label: 'TPCP 2Y', key: 'tpcp_2y' },
+	                { label: 'TPCP 5Y', key: 'tpcp_5y' },
+	                { label: 'TPCP 10Y', key: 'tpcp_10y' },
+	            ];
+
+	            let rows = '';
+	            items.forEach((item, i) => {
+	                const d = odds[item.key] || {};
+	                const up = d.up != null ? d.up + '%' : 'N/A';
+	                const down = d.down != null ? d.down + '%' : 'N/A';
+	                const flat = d.flat != null ? d.flat + '%' : 'N/A';
+	                const eDelta = d.expected_delta != null ? (d.expected_delta > 0 ? '+' : '') + d.expected_delta + ' bps' : 'N/A';
+	                const bg = i % 2 === 0 ? 'rgba(255,255,255,0.03)' : 'transparent';
+	                rows += `
+	                    <tr style="background:${bg};">
+	                        <td style="padding:6px 10px;font-weight:600;">${escapeHtml(item.label)}</td>
+	                        <td style="padding:6px 10px;text-align:center;color:#ff1744;">${up}</td>
+	                        <td style="padding:6px 10px;text-align:center;color:#00c853;">${down}</td>
+	                        <td style="padding:6px 10px;text-align:center;color:#888;">${flat}</td>
+	                        <td style="padding:6px 10px;text-align:right;font-weight:600;">${eDelta}</td>
+	                    </tr>
+	                `;
+	            });
+
+	            // Render any extra keys
+	            const knownKeys = new Set(items.map(i => i.key));
+	            Object.keys(odds).forEach((k, i) => {
+	                if (knownKeys.has(k)) return;
+	                const d = odds[k];
+	                if (typeof d !== 'object' || d == null) return;
+	                const up = d.up != null ? d.up + '%' : 'N/A';
+	                const down = d.down != null ? d.down + '%' : 'N/A';
+	                const flat = d.flat != null ? d.flat + '%' : 'N/A';
+	                const eDelta = d.expected_delta != null ? (d.expected_delta > 0 ? '+' : '') + d.expected_delta + ' bps' : 'N/A';
+	                rows += `
+	                    <tr style="background:${(items.length + i) % 2 === 0 ? 'rgba(255,255,255,0.03)' : 'transparent'};">
+	                        <td style="padding:6px 10px;font-weight:600;">${escapeHtml(k)}</td>
+	                        <td style="padding:6px 10px;text-align:center;color:#ff1744;">${up}</td>
+	                        <td style="padding:6px 10px;text-align:center;color:#00c853;">${down}</td>
+	                        <td style="padding:6px 10px;text-align:center;color:#888;">${flat}</td>
+	                        <td style="padding:6px 10px;text-align:right;font-weight:600;">${eDelta}</td>
+	                    </tr>
+	                `;
+	            });
+
+	            return `
+	                <div class="block" style="margin-bottom:12px;">
+	                    <div class="block-header">🔮 Odds phiên kế tiếp${dateText}</div>
+	                    <div class="block-body" style="overflow-x:auto;">
+	                        <table style="width:100%;border-collapse:collapse;font-size:13px;">
+	                            <thead>
+	                                <tr style="border-bottom:1px solid rgba(255,255,255,0.1);">
+	                                    <th style="padding:6px 10px;text-align:left;">Chỉ tiêu</th>
+	                                    <th style="padding:6px 10px;text-align:center;">↑ Tăng</th>
+	                                    <th style="padding:6px 10px;text-align:center;">↓ Giảm</th>
+	                                    <th style="padding:6px 10px;text-align:center;">→ Ngang</th>
+	                                    <th style="padding:6px 10px;text-align:right;">E[Δ]</th>
+	                                </tr>
+	                            </thead>
+	                            <tbody>${rows}</tbody>
+	                        </table>
+	                    </div>
+	                </div>
+	            `;
+	        }
+
+	        function renderBondlabInterbank(bl) {
+	            const ib = bl.interbank || {};
+	            const dateText = bl.asof ? ` (${bl.asof})` : '';
+
+	            const items = [
+	                { label: 'Overnight (ON)', key: 'on' },
+	                { label: '1 tuần (1W)', key: '1w' },
+	                { label: '1 tháng (1M)', key: '1m' },
+	                { label: '3 tháng (3M)', key: '3m' },
+	            ];
+
+	            let rows = '';
+	            items.forEach((item, i) => {
+	                const d = ib[item.key] || {};
+	                const current = d.current != null ? d.current.toFixed(2) + '%' : 'N/A';
+	                const prev = d.prev != null ? d.prev.toFixed(2) + '%' : 'N/A';
+	                const bps = d.change_bps;
+	                const dir = _blDirection(d.direction);
+	                const bg = i % 2 === 0 ? 'rgba(255,255,255,0.03)' : 'transparent';
+	                rows += `
+	                    <tr style="background:${bg};">
+	                        <td style="padding:6px 10px;font-weight:600;">${escapeHtml(item.label)}</td>
+	                        <td style="padding:6px 10px;text-align:right;">${current}</td>
+	                        <td style="padding:6px 10px;text-align:right;color:#888;">${prev}</td>
+	                        <td style="padding:6px 10px;text-align:right;color:${_blBpsColor(bps)};">${_blBpsText(bps)}</td>
+	                        <td style="padding:6px 10px;text-align:center;font-size:16px;">${dir}</td>
+	                    </tr>
+	                `;
+	            });
+
+	            // Render any extra keys
+	            const knownKeys = new Set(items.map(i => i.key));
+	            Object.keys(ib).forEach((k, i) => {
+	                if (knownKeys.has(k)) return;
+	                const d = ib[k];
+	                if (typeof d !== 'object' || d == null) return;
+	                const current = d.current != null ? d.current.toFixed(2) + '%' : 'N/A';
+	                const prev = d.prev != null ? d.prev.toFixed(2) + '%' : 'N/A';
+	                const bps = d.change_bps;
+	                const dir = _blDirection(d.direction);
+	                rows += `
+	                    <tr style="background:${(items.length + i) % 2 === 0 ? 'rgba(255,255,255,0.03)' : 'transparent'};">
+	                        <td style="padding:6px 10px;font-weight:600;">${escapeHtml(k)}</td>
+	                        <td style="padding:6px 10px;text-align:right;">${current}</td>
+	                        <td style="padding:6px 10px;text-align:right;color:#888;">${prev}</td>
+	                        <td style="padding:6px 10px;text-align:right;color:${_blBpsColor(bps)};">${_blBpsText(bps)}</td>
+	                        <td style="padding:6px 10px;text-align:center;font-size:16px;">${dir}</td>
+	                    </tr>
+	                `;
+	            });
+
+	            return `
+	                <div class="block" style="margin-bottom:12px;">
+	                    <div class="block-header">💧 Lãi suất liên ngân hàng${dateText}</div>
+	                    <div class="block-body" style="overflow-x:auto;">
+	                        <table style="width:100%;border-collapse:collapse;font-size:13px;">
+	                            <thead>
+	                                <tr style="border-bottom:1px solid rgba(255,255,255,0.1);">
+	                                    <th style="padding:6px 10px;text-align:left;">Kỳ hạn</th>
+	                                    <th style="padding:6px 10px;text-align:right;">Hiện tại</th>
+	                                    <th style="padding:6px 10px;text-align:right;">Hôm trước</th>
+	                                    <th style="padding:6px 10px;text-align:right;">Thay đổi</th>
+	                                    <th style="padding:6px 10px;text-align:center;">Xu hướng</th>
+	                                </tr>
+	                            </thead>
+	                            <tbody>${rows}</tbody>
+	                        </table>
+	                    </div>
+	                </div>
+	            `;
+	        }
+
+	        function renderBondlabAnalysis(bl, section) {
+	            const text = (section && section.content) || bl.analysis || '';
+	            if (!text) return '<div class="info-box"><p>Chưa có phân tích AI cho BondLab.</p></div>';
+
+	            const formatter = new ContentFormatter();
+	            const cleanContent = text
+	                .replace(/\\n/g, '\n')
+	                .replace(/\\t/g, '')
+	                .replace(/\s+/g, ' ')
+	                .trim();
+
+	            return formatter.format(cleanContent);
+	        }
+
+	        function renderBondlabAlerts(bl) {
+	            const alerts = bl.alerts || [];
+	            const dateText = bl.asof ? ` (${bl.asof})` : '';
+
+	            if (!Array.isArray(alerts) || alerts.length === 0) {
+	                return '<div class="info-box"><p>Không có cảnh báo.</p></div>';
+	            }
+
+	            let rows = '';
+	            alerts.forEach((a, i) => {
+	                const sev = (a.severity || 'INFO').toUpperCase();
+	                const sevColor = sev === 'HIGH' ? '#ff1744' : (sev === 'MEDIUM' ? '#ffab00' : '#888');
+	                const bg = i % 2 === 0 ? 'rgba(255,255,255,0.03)' : 'transparent';
+	                rows += `
+	                    <tr style="background:${bg};">
+	                        <td style="padding:6px 10px;color:${sevColor};font-weight:700;">${escapeHtml(sev)}</td>
+	                        <td style="padding:6px 10px;font-weight:600;">${escapeHtml(a.code || '')}</td>
+	                        <td style="padding:6px 10px;">${escapeHtml(a.message || '')}</td>
+	                    </tr>
+	                `;
+	            });
+
+	            return `
+	                <div class="block" style="margin-bottom:12px;">
+	                    <div class="block-header">🚨 Alerts${dateText}</div>
+	                    <div class="block-body" style="overflow-x:auto;">
+	                        <table style="width:100%;border-collapse:collapse;font-size:13px;">
+	                            <thead>
+	                                <tr style="border-bottom:1px solid rgba(255,255,255,0.1);">
+	                                    <th style="padding:6px 10px;text-align:left;">Mức độ</th>
+	                                    <th style="padding:6px 10px;text-align:left;">Mã</th>
+	                                    <th style="padding:6px 10px;text-align:left;">Nội dung</th>
+	                                </tr>
+	                            </thead>
+	                            <tbody>${rows}</tbody>
+	                        </table>
+	                    </div>
+	                </div>
+	            `;
+	        }
+
+	        // ====================================================================
+	        // RESEARCHLAB RENDERING
+	        // ====================================================================
+
+	        function renderResearchlabMemo() {
+	            const rl = window.UI_GLM_RESEARCHLAB || null;
+	            if (!rl) return '<div class="info-box"><p>Không có dữ liệu ResearchLab.</p></div>';
+
+	            const dateText = rl.asof ? `Cập nhật: ${rl.asof}` : '';
+
+	            // Section mapping: key → display header
+	            const sectionDefs = [
+	                { key: 'summary', header: 'RESEARCHLAB_MEMO: SUMMARY:' },
+	                { key: 'alerts', header: 'ALERTS:' },
+	                { key: 'evidence', header: 'EVIDENCE:' },
+	                { key: 'market_context', header: 'MARKET_CONTEXT:' },
+	                { key: 'watchlist', header: 'WATCHLIST:' },
+	            ];
+
+	            let html = '';
+
+	            if (dateText) {
+	                html += `<div style="color:#888;font-size:12px;margin-bottom:16px;">${escapeHtml(dateText)}</div>`;
+	            }
+
+	            // Try structured data first (object with arrays)
+	            let hasStructured = false;
+	            sectionDefs.forEach(def => {
+	                const items = rl[def.key];
+	                if (Array.isArray(items) && items.length > 0) {
+	                    hasStructured = true;
+	                    html += `<div style="margin-bottom:20px;">`;
+	                    html += `<div style="font-weight:700;font-size:15px;margin-bottom:10px;color:var(--text-primary, #e0e0e0);">${escapeHtml(def.header)}</div>`;
+	                    html += `<ul style="margin:0;padding-left:20px;list-style-type:disc;">`;
+	                    items.forEach(item => {
+	                        html += `<li style="margin-bottom:8px;line-height:1.6;color:var(--text-secondary, #b0b0b0);">${escapeHtml(String(item))}</li>`;
+	                    });
+	                    html += `</ul></div>`;
+	                }
+	            });
+
+	            // Fallback: if data has a "memo" or "content" text field, render as formatted text
+	            if (!hasStructured) {
+	                const text = rl.memo || rl.content || rl.text || '';
+	                if (text) {
+	                    const formatter = new ContentFormatter();
+	                    const cleanContent = text
+	                        .replace(/\\n/g, '\n')
+	                        .replace(/\\t/g, '')
+	                        .trim();
+	                    html += formatter.format(cleanContent);
+	                } else {
+	                    // Try rendering all non-meta keys as sections
+	                    const metaKeys = new Set(['asof', 'updated_at', 'source']);
+	                    Object.keys(rl).forEach(k => {
+	                        if (metaKeys.has(k)) return;
+	                        const val = rl[k];
+	                        if (Array.isArray(val) && val.length > 0) {
+	                            html += `<div style="margin-bottom:20px;">`;
+	                            html += `<div style="font-weight:700;font-size:15px;margin-bottom:10px;color:var(--text-primary, #e0e0e0);">${escapeHtml(k.toUpperCase())}:</div>`;
+	                            html += `<ul style="margin:0;padding-left:20px;list-style-type:disc;">`;
+	                            val.forEach(item => {
+	                                html += `<li style="margin-bottom:8px;line-height:1.6;color:var(--text-secondary, #b0b0b0);">${escapeHtml(String(item))}</li>`;
+	                            });
+	                            html += `</ul></div>`;
+	                        } else if (typeof val === 'string' && val.length > 0) {
+	                            html += `<div style="margin-bottom:20px;">`;
+	                            html += `<div style="font-weight:700;font-size:15px;margin-bottom:10px;">${escapeHtml(k.toUpperCase())}:</div>`;
+	                            html += `<div style="line-height:1.6;color:var(--text-secondary, #b0b0b0);">${escapeHtml(val)}</div>`;
+	                            html += `</div>`;
+	                        }
+	                    });
+	                }
+	            }
+
+	            return html || '<div class="info-box"><p>Không có dữ liệu ResearchLab.</p></div>';
+	        }
+
+	        // ====================================================================
+	        // COMMODITIES RENDERING
+	        // ====================================================================
+
+	        function renderCommoditiesTable() {
+	            const cm = window.UI_GLM_COMMODITIES || null;
+	            if (!cm) return '<div class="info-box"><p>Không có dữ liệu hàng hoá.</p></div>';
+
+	            const dateText = cm.asof ? ` (${cm.asof})` : '';
+	            let html = '';
+
+	            // World commodities table
+	            const wc = Array.isArray(cm.world_commodities) ? cm.world_commodities : [];
+	            if (wc.length > 0) {
+	                let wcRows = '';
+	                wc.forEach((c, i) => {
+	                    const bg = i % 2 === 0 ? 'rgba(255,255,255,0.03)' : 'transparent';
+	                    const closeStr = c.close != null ? Number(c.close).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2}) : 'N/A';
+	                    const changeStr = c.change != null ? (c.change >= 0 ? '+' : '') + Number(c.change).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2}) : '';
+	                    const pctStr = c.change_pct != null ? (c.change_pct >= 0 ? '+' : '') + c.change_pct.toFixed(2) + '%' : '';
+	                    const pctColor = c.change_pct > 0 ? '#00c853' : c.change_pct < 0 ? '#ff1744' : '#888';
+	                    const unitStr = c.unit ? `<span style="color:#888;font-size:11px;"> ${escapeHtml(c.unit)}</span>` : '';
+	                    wcRows += `
+	                        <tr style="background:${bg};">
+	                            <td style="padding:6px 10px;font-weight:600;">${escapeHtml(c.name || '')}</td>
+	                            <td style="padding:6px 10px;text-align:right;">${closeStr}${unitStr}</td>
+	                            <td style="padding:6px 10px;text-align:right;color:${pctColor};">${changeStr}</td>
+	                            <td style="padding:6px 10px;text-align:right;color:${pctColor};font-weight:600;">${pctStr}</td>
+	                        </tr>
+	                    `;
+	                });
+
+	                html += `
+	                    <div class="block" style="margin-bottom:12px;">
+	                        <div class="block-header">🌍 Hàng hoá thế giới${dateText}</div>
+	                        <div class="block-body" style="overflow-x:auto;">
+	                            <table style="width:100%;border-collapse:collapse;font-size:13px;">
+	                                <thead>
+	                                    <tr style="border-bottom:1px solid rgba(255,255,255,0.1);">
+	                                        <th style="padding:6px 10px;text-align:left;">Hàng hoá</th>
+	                                        <th style="padding:6px 10px;text-align:right;">Giá</th>
+	                                        <th style="padding:6px 10px;text-align:right;">Thay đổi</th>
+	                                        <th style="padding:6px 10px;text-align:right;">%</th>
+	                                    </tr>
+	                                </thead>
+	                                <tbody>${wcRows}</tbody>
+	                            </table>
+	                        </div>
+	                    </div>
+	                `;
+	            }
+
+	            // Gold table
+	            const gold = Array.isArray(cm.gold) ? cm.gold : [];
+	            if (gold.length > 0) {
+	                let goldRows = '';
+	                gold.forEach((g, i) => {
+	                    const bg = i % 2 === 0 ? 'rgba(255,255,255,0.03)' : 'transparent';
+	                    const buyStr = g.buy != null ? Number(g.buy).toLocaleString('vi-VN') : 'N/A';
+	                    const sellStr = g.sell != null ? Number(g.sell).toLocaleString('vi-VN') : 'N/A';
+	                    const worldStr = g.world_price != null ? Number(g.world_price).toLocaleString('en-US') : '';
+	                    const karatStr = g.karat ? `<span style="color:#888;font-size:11px;"> (${escapeHtml(g.karat)})</span>` : '';
+	                    goldRows += `
+	                        <tr style="background:${bg};">
+	                            <td style="padding:6px 10px;font-weight:600;">${escapeHtml(g.name || '')}${karatStr}</td>
+	                            <td style="padding:6px 10px;text-align:right;color:#00c853;">${buyStr}</td>
+	                            <td style="padding:6px 10px;text-align:right;color:#ff1744;">${sellStr}</td>
+	                            ${worldStr ? `<td style="padding:6px 10px;text-align:right;color:#ffab00;">${worldStr}</td>` : ''}
+	                        </tr>
+	                    `;
+	                });
+
+	                const hasWorld = gold.some(g => g.world_price != null);
+	                html += `
+	                    <div class="block" style="margin-bottom:12px;">
+	                        <div class="block-header">🥇 Giá vàng${dateText}</div>
+	                        <div class="block-body" style="overflow-x:auto;">
+	                            <table style="width:100%;border-collapse:collapse;font-size:13px;">
+	                                <thead>
+	                                    <tr style="border-bottom:1px solid rgba(255,255,255,0.1);">
+	                                        <th style="padding:6px 10px;text-align:left;">Loại</th>
+	                                        <th style="padding:6px 10px;text-align:right;">Mua</th>
+	                                        <th style="padding:6px 10px;text-align:right;">Bán</th>
+	                                        ${hasWorld ? '<th style="padding:6px 10px;text-align:right;">Thế giới</th>' : ''}
+	                                    </tr>
+	                                </thead>
+	                                <tbody>${goldRows}</tbody>
+	                            </table>
+	                        </div>
+	                    </div>
+	                `;
+	            }
+
+	            // Exchange rates table
+	            const fx = Array.isArray(cm.exchange_rates) ? cm.exchange_rates : [];
+	            if (fx.length > 0) {
+	                let fxRows = '';
+	                fx.forEach((r, i) => {
+	                    const bg = i % 2 === 0 ? 'rgba(255,255,255,0.03)' : 'transparent';
+	                    const buyC = r.buy_cash != null ? Number(r.buy_cash).toLocaleString('vi-VN') : 'N/A';
+	                    const buyT = r.buy_transfer != null ? Number(r.buy_transfer).toLocaleString('vi-VN') : 'N/A';
+	                    const sellStr = r.sell != null ? Number(r.sell).toLocaleString('vi-VN') : 'N/A';
+	                    fxRows += `
+	                        <tr style="background:${bg};">
+	                            <td style="padding:6px 10px;font-weight:600;">${escapeHtml(r.code || '')}</td>
+	                            <td style="padding:6px 10px;color:#888;">${escapeHtml(r.name || '')}</td>
+	                            <td style="padding:6px 10px;text-align:right;">${buyC}</td>
+	                            <td style="padding:6px 10px;text-align:right;">${buyT}</td>
+	                            <td style="padding:6px 10px;text-align:right;font-weight:600;">${sellStr}</td>
+	                        </tr>
+	                    `;
+	                });
+
+	                html += `
+	                    <div class="block" style="margin-bottom:12px;">
+	                        <div class="block-header">💱 Tỷ giá${dateText}</div>
+	                        <div class="block-body" style="overflow-x:auto;">
+	                            <table style="width:100%;border-collapse:collapse;font-size:13px;">
+	                                <thead>
+	                                    <tr style="border-bottom:1px solid rgba(255,255,255,0.1);">
+	                                        <th style="padding:6px 10px;text-align:left;">Mã</th>
+	                                        <th style="padding:6px 10px;text-align:left;">Tiền tệ</th>
+	                                        <th style="padding:6px 10px;text-align:right;">Mua TM</th>
+	                                        <th style="padding:6px 10px;text-align:right;">Mua CK</th>
+	                                        <th style="padding:6px 10px;text-align:right;">Bán</th>
+	                                    </tr>
+	                                </thead>
+	                                <tbody>${fxRows}</tbody>
+	                            </table>
+	                        </div>
+	                    </div>
+	                `;
+	            }
+
+	            return html || '<div class="info-box"><p>Không có dữ liệu hàng hoá.</p></div>';
+	        }
+
+	        // ====================================================================
+	        // FUND LISTING
+	        // ====================================================================
+
+	        function renderFundListing() {
+	            const fd = window.UI_GLM_FUND || null;
+	            if (!fd || !Array.isArray(fd.funds) || fd.funds.length === 0) {
+	                return '<div class="info-box"><p>Không có dữ liệu quỹ mở.</p></div>';
+	            }
+
+	            const dateText = fd.asof ? ` (${fd.asof})` : '';
+	            const funds = fd.funds;
+
+	            // Group by fund_type
+	            const types = {};
+	            funds.forEach(f => {
+	                const t = f.fund_type || 'Khác';
+	                if (!types[t]) types[t] = [];
+	                types[t].push(f);
+	            });
+
+	            // Type labels and icons
+	            const typeInfo = {
+	                'Quy co phieu': { label: 'Quỹ cổ phiếu', icon: '📈' },
+	                'Quy trai phieu': { label: 'Quỹ trái phiếu', icon: '📉' },
+	                'Quy can bang': { label: 'Quỹ cân bằng', icon: '⚖️' },
+	            };
+
+	            const fmtPct = (v) => {
+	                if (v == null) return '<span style="color:#666;">-</span>';
+	                const color = v > 0 ? '#00c853' : v < 0 ? '#ff1744' : '#888';
+	                return `<span style="color:${color};font-weight:600;">${v >= 0 ? '+' : ''}${v.toFixed(2)}%</span>`;
+	            };
+
+	            let html = '';
+	            const typeOrder = ['Quy co phieu', 'Quy trai phieu', 'Quy can bang'];
+	            const allTypes = [...typeOrder.filter(t => types[t]), ...Object.keys(types).filter(t => !typeOrder.includes(t))];
+
+	            allTypes.forEach(type => {
+	                const list = types[type];
+	                const info = typeInfo[type] || { label: type, icon: '📊' };
+
+	                // Sort by 12m return desc
+	                list.sort((a, b) => (b.nav_change_12m || -999) - (a.nav_change_12m || -999));
+
+	                let rows = '';
+	                list.forEach((f, i) => {
+	                    const bg = i % 2 === 0 ? 'rgba(255,255,255,0.03)' : 'transparent';
+	                    const navStr = f.nav != null ? Number(f.nav).toLocaleString('vi-VN', {minimumFractionDigits: 0, maximumFractionDigits: 0}) : '-';
+	                    const feeStr = f.management_fee != null ? f.management_fee.toFixed(2) + '%' : '-';
+	                    rows += `
+	                        <tr style="background:${bg};">
+	                            <td style="padding:5px 8px;font-weight:600;white-space:nowrap;" title="${escapeHtml(f.name || '')}">${escapeHtml(f.short_name || '')}</td>
+	                            <td style="padding:5px 8px;text-align:right;">${navStr}</td>
+	                            <td style="padding:5px 8px;text-align:right;">${fmtPct(f.nav_change_prev)}</td>
+	                            <td style="padding:5px 8px;text-align:right;">${fmtPct(f.nav_change_1m)}</td>
+	                            <td style="padding:5px 8px;text-align:right;">${fmtPct(f.nav_change_3m)}</td>
+	                            <td style="padding:5px 8px;text-align:right;">${fmtPct(f.nav_change_6m)}</td>
+	                            <td style="padding:5px 8px;text-align:right;">${fmtPct(f.nav_change_12m)}</td>
+	                            <td style="padding:5px 8px;text-align:right;">${fmtPct(f.nav_change_ytd)}</td>
+	                            <td style="padding:5px 8px;text-align:right;color:#888;font-size:11px;">${feeStr}</td>
+	                            <td style="padding:5px 8px;color:#888;font-size:11px;max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${escapeHtml(f.owner || '')}">${escapeHtml(f.owner || '')}</td>
+	                        </tr>
+	                    `;
+	                });
+
+	                html += `
+	                    <div class="block" style="margin-bottom:14px;">
+	                        <div class="block-header">${info.icon} ${info.label} (${list.length} quỹ)${dateText}</div>
+	                        <div class="block-body" style="overflow-x:auto;">
+	                            <table style="width:100%;border-collapse:collapse;font-size:12px;">
+	                                <thead>
+	                                    <tr style="border-bottom:1px solid rgba(255,255,255,0.1);">
+	                                        <th style="padding:5px 8px;text-align:left;">Mã</th>
+	                                        <th style="padding:5px 8px;text-align:right;">NAV</th>
+	                                        <th style="padding:5px 8px;text-align:right;">1D</th>
+	                                        <th style="padding:5px 8px;text-align:right;">1T</th>
+	                                        <th style="padding:5px 8px;text-align:right;">3T</th>
+	                                        <th style="padding:5px 8px;text-align:right;">6T</th>
+	                                        <th style="padding:5px 8px;text-align:right;">12T</th>
+	                                        <th style="padding:5px 8px;text-align:right;">YTD</th>
+	                                        <th style="padding:5px 8px;text-align:right;">Phí</th>
+	                                        <th style="padding:5px 8px;text-align:left;">Quản lý</th>
+	                                    </tr>
+	                                </thead>
+	                                <tbody>${rows}</tbody>
+	                            </table>
+	                        </div>
+	                    </div>
+	                `;
+	            });
+
+	            return html || '<div class="info-box"><p>Không có dữ liệu quỹ mở.</p></div>';
 	        }
 
 		        function getIndexOhlcvPayload(indexKey) {
@@ -6880,23 +7564,103 @@
 
 	        // Render section list in middle column
 	        function renderSectionList(indexKey) {
-	            // Handle extra section pages (full-page render, no sub-sections)
-	            if (EXTRA_SECTION_KEYS.has(indexKey)) {
-	                const titles = {
-	                    '__commodities': 'Hàng hoá & Tỷ giá',
-	                    '__bondlab': 'Bondlab',
-	                    '__portfolio': 'Portfolio',
-	                    '__funds': 'Quỹ mở',
-	                };
-	                document.getElementById('sectionNavTitle').textContent = titles[indexKey] || '';
-	                document.getElementById('sectionList').innerHTML = '<div class="no-sections">Xem nội dung ở giữa</div>';
+	            // BONDLAB: no FULL_DATA entry, sections come from getSectionsForIndex
+	            if (indexKey === 'bondlab') {
+	                document.getElementById('sectionNavTitle').textContent = 'BONDLAB';
+	                const sections = getSectionsForIndex('bondlab');
+	                const container = document.getElementById('sectionList');
+	                let html = '';
+	                sections.forEach((section, idx) => {
+	                    html += `
+	                        <div class="section-item"
+	                             onclick="selectSection(${idx})"
+	                             data-section="${idx}">
+	                            <span class="icon">${section.icon || '📊'}</span>
+	                            <span class="title">${section.title.replace(/`/g, '')}</span>
+	                        </div>
+	                    `;
+	                });
+	                container.innerHTML = html;
+	                return;
+	            }
 
-	                // Render full content immediately
-	                const contentDiv = document.getElementById('singleSectionContent');
-	                document.getElementById('pageTitle').textContent = titles[indexKey] || '';
-	                contentDiv.innerHTML = `<div class="section-card"><div class="section-content">${renderExtraSectionContent(indexKey)}</div></div>`;
-	                contentDiv.style.display = 'block';
-	                document.getElementById('emptyState').style.display = 'none';
+	            // RESEARCHLAB: no FULL_DATA entry
+	            if (indexKey === 'researchlab') {
+	                document.getElementById('sectionNavTitle').textContent = 'ResearchLab';
+	                const sections = getSectionsForIndex('researchlab');
+	                const container = document.getElementById('sectionList');
+	                let html = '';
+	                sections.forEach((section, idx) => {
+	                    html += `
+	                        <div class="section-item"
+	                             onclick="selectSection(${idx})"
+	                             data-section="${idx}">
+	                            <span class="icon">${section.icon || '📊'}</span>
+	                            <span class="title">${section.title.replace(/`/g, '')}</span>
+	                        </div>
+	                    `;
+	                });
+	                container.innerHTML = html;
+	                return;
+	            }
+
+	            // COMMODITIES: no FULL_DATA entry
+	            if (indexKey === 'commodities') {
+	                document.getElementById('sectionNavTitle').textContent = 'Hàng hoá';
+	                const sections = getSectionsForIndex('commodities');
+	                const container = document.getElementById('sectionList');
+	                let html = '';
+	                sections.forEach((section, idx) => {
+	                    html += `
+	                        <div class="section-item"
+	                             onclick="selectSection(${idx})"
+	                             data-section="${idx}">
+	                            <span class="icon">${section.icon || '📊'}</span>
+	                            <span class="title">${section.title.replace(/`/g, '')}</span>
+	                        </div>
+	                    `;
+	                });
+	                container.innerHTML = html;
+	                return;
+	            }
+
+	            // FUND: no FULL_DATA entry
+	            if (indexKey === 'fund') {
+	                document.getElementById('sectionNavTitle').textContent = 'Quỹ mở';
+	                const sections = getSectionsForIndex('fund');
+	                const container = document.getElementById('sectionList');
+	                let html = '';
+	                sections.forEach((section, idx) => {
+	                    html += `
+	                        <div class="section-item"
+	                             onclick="selectSection(${idx})"
+	                             data-section="${idx}">
+	                            <span class="icon">${section.icon || '📊'}</span>
+	                            <span class="title">${section.title.replace(/\x60/g, '')}</span>
+	                        </div>
+	                    `;
+	                });
+	                container.innerHTML = html;
+	                return;
+	            }
+
+	            // PORTFOLIO: no FULL_DATA entry
+	            if (indexKey === 'portfolio') {
+	                document.getElementById('sectionNavTitle').textContent = 'Portfolio';
+	                const sections = getSectionsForIndex('portfolio');
+	                const container = document.getElementById('sectionList');
+	                let html = '';
+	                sections.forEach((section, idx) => {
+	                    html += `
+	                        <div class="section-item"
+	                             onclick="selectSection(${idx})"
+	                             data-section="${idx}">
+	                            <span class="icon">${section.icon || '📊'}</span>
+	                            <span class="title">${section.title.replace(/`/g, '')}</span>
+	                        </div>
+	                    `;
+	                });
+	                container.innerHTML = html;
 	                return;
 	            }
 
@@ -7014,6 +7778,108 @@
 	                    <div class="section-card">
 	                        <div class="section-body">
 	                            ${renderForeignTopSection()}
+	                        </div>
+	                    </div>
+	                `;
+	            } else if (section.__uiType === 'researchlab_memo') {
+	                const rlHtml = renderResearchlabMemo();
+	                contentDiv.innerHTML = `
+	                    <div class="section-card">
+	                        <div class="section-body">
+	                            ${rlHtml}
+	                        </div>
+	                    </div>
+	                `;
+	            } else if (section.__uiType === 'commodities_table') {
+	                contentDiv.innerHTML = `
+	                    <div class="section-card">
+	                        <div class="section-body">
+	                            ${renderCommoditiesTable()}
+	                        </div>
+	                    </div>
+	                `;
+	            } else if (section.__uiType === 'commodities_recommendation') {
+	                const formatter = new ContentFormatter();
+	                const recText = (section.content || '')
+	                    .replace(/\\n/g, '\n').replace(/\\t/g, '').replace(/\s+/g, ' ').trim();
+	                contentDiv.innerHTML = `
+	                    <div class="section-card">
+	                        <div class="section-body">
+	                            ${formatter.format(recText)}
+	                        </div>
+	                    </div>
+	                `;
+	            } else if (section.__uiType === 'portfolio_recommendation') {
+	                const formatter = new ContentFormatter();
+	                const pfText = (section.content || '')
+	                    .replace(/\\n/g, '\n').replace(/\\t/g, '').replace(/\s+/g, ' ').trim();
+	                const pf = window.UI_GLM_PORTFOLIO || {};
+	                const holdings = Array.isArray(pf.holdings) ? pf.holdings : [];
+	                let holdingsHtml = '';
+	                if (holdings.length > 0) {
+	                    let hRows = '';
+	                    holdings.forEach((h, i) => {
+	                        const bg = i % 2 === 0 ? 'rgba(255,255,255,0.03)' : 'transparent';
+	                        const symbol = escapeHtml(h.symbol || '');
+	                        const qty = h.quantity != null ? Number(h.quantity).toLocaleString('vi-VN') : '';
+	                        const avgP = h.avg_price != null ? Number(h.avg_price).toLocaleString('vi-VN') : '';
+	                        const weight = h.weight_pct != null ? h.weight_pct + '%' : '';
+	                        const sector = escapeHtml(h.sector || '');
+	                        hRows += `<tr style="background:${bg};">
+	                            <td style="padding:6px 10px;font-weight:600;">${symbol}</td>
+	                            <td style="padding:6px 10px;text-align:right;">${qty}</td>
+	                            <td style="padding:6px 10px;text-align:right;">${avgP}</td>
+	                            <td style="padding:6px 10px;text-align:right;">${weight}</td>
+	                            <td style="padding:6px 10px;color:#888;">${sector}</td>
+	                        </tr>`;
+	                    });
+	                    const eqRatio = pf.equity_ratio != null ? `Vốn chủ: ${pf.equity_ratio}%` : '';
+	                    const mgRatio = pf.margin_ratio != null ? ` | Margin: ${pf.margin_ratio}%` : '';
+	                    const metaText = (eqRatio || mgRatio) ? `<div style="margin-bottom:8px;color:#aaa;font-size:12px;">${eqRatio}${mgRatio}</div>` : '';
+	                    holdingsHtml = `
+	                        <div class="block" style="margin-bottom:12px;">
+	                            <div class="block-header">📋 Danh mục hiện tại${pf.asof ? ' (' + pf.asof + ')' : ''}</div>
+	                            <div class="block-body" style="overflow-x:auto;">
+	                                ${metaText}
+	                                <table style="width:100%;border-collapse:collapse;font-size:13px;">
+	                                    <thead>
+	                                        <tr style="border-bottom:1px solid rgba(255,255,255,0.1);">
+	                                            <th style="padding:6px 10px;text-align:left;">Mã</th>
+	                                            <th style="padding:6px 10px;text-align:right;">SL</th>
+	                                            <th style="padding:6px 10px;text-align:right;">Giá vốn</th>
+	                                            <th style="padding:6px 10px;text-align:right;">Tỷ trọng</th>
+	                                            <th style="padding:6px 10px;text-align:left;">Ngành</th>
+	                                        </tr>
+	                                    </thead>
+	                                    <tbody>${hRows}</tbody>
+	                                </table>
+	                            </div>
+	                        </div>
+	                    `;
+	                }
+	                contentDiv.innerHTML = `
+	                    <div class="section-card">
+	                        <div class="section-body">
+	                            ${holdingsHtml}
+	                            ${pfText ? formatter.format(pfText) : '<div class="info-box"><p>Chưa có dữ liệu portfolio hoặc khuyến nghị AI.</p></div>'}
+	                        </div>
+	                    </div>
+	                `;
+	            } else if (section.__uiType === 'fund_listing') {
+	                const fundHtml = renderFundListing();
+	                contentDiv.innerHTML = `
+	                    <div class="section-card">
+	                        <div class="section-body">
+	                            ${fundHtml}
+	                        </div>
+	                    </div>
+	                `;
+	            } else if (section.__uiType && section.__uiType.startsWith('bondlab_')) {
+	                const bondlabHtml = renderBondlabSection(section.__uiType, section);
+	                contentDiv.innerHTML = `
+	                    <div class="section-card ${section.alert ? 'alert' : ''}">
+	                        <div class="section-body">
+	                            ${bondlabHtml}
 	                        </div>
 	                    </div>
 	                `;

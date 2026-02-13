@@ -519,6 +519,370 @@ def collect_foreign_data(asof_date):
 
 
 # ============================================================================
+# 6. THU THẬP DỮ LIỆU BONDLAB
+# ============================================================================
+
+def _fetch_daily_json(asof_date, filename, max_retries=3):
+    """Fetch JSON file from vnstock repo daily folder."""
+    import time as _time
+    url = f"{GITHUB_STOCK_DATA_BASE}/{asof_date}/{filename}"
+    log.info(f"  Fetching: {url}")
+
+    for attempt in range(max_retries):
+        try:
+            req = Request(url, headers={"User-Agent": "DASHBOARD-Pipeline/1.0"})
+            with urlopen(req, timeout=30) as resp:
+                text = resp.read().decode("utf-8-sig")
+            data = json.loads(text)
+            log.info(f"  OK: {filename}")
+            return data
+        except URLError as e:
+            log.warning(f"  Attempt {attempt+1} failed: {e}")
+            if attempt < max_retries - 1:
+                _time.sleep(2 ** attempt)
+        except json.JSONDecodeError as e:
+            log.warning(f"  JSON parse error for {filename}: {e}")
+            return None
+
+    log.error(f"  FAILED to fetch {filename} after {max_retries} attempts")
+    return None
+
+
+def collect_bondlab_data(asof_date):
+    """Thu thập bond/interbank data từ vnstock repo."""
+    log.info("=" * 60)
+    log.info(f"STEP 6: Thu thập BondLab Data cho ngày {asof_date}...")
+
+    data = _fetch_daily_json(asof_date, "bondlab.json")
+    if not data:
+        log.warning("  bondlab.json not found, skipping BondLab")
+        return None
+
+    data["asof"] = asof_date
+    save_json(data, "bondlab_data.json")
+    log.info(f"  BondLab data saved: {list(data.keys())}")
+    return data
+
+
+# ============================================================================
+# 7. THU THẬP DỮ LIỆU HÀNG HOÁ
+# ============================================================================
+
+def _fetch_root_csv(filename, max_retries=3):
+    """Fetch CSV from vnstock repo root data/ folder."""
+    import time as _time
+    url = f"{GITHUB_STOCK_DATA_BASE}/{filename}"
+    log.info(f"  Fetching: {url}")
+
+    for attempt in range(max_retries):
+        try:
+            req = Request(url, headers={"User-Agent": "DASHBOARD-Pipeline/1.0"})
+            with urlopen(req, timeout=30) as resp:
+                text = resp.read().decode("utf-8-sig")
+            reader = csv.DictReader(io.StringIO(text))
+            rows = list(reader)
+            log.info(f"  OK: {filename} → {len(rows)} rows")
+            return rows
+        except URLError as e:
+            log.warning(f"  Attempt {attempt+1} failed: {e}")
+            if attempt < max_retries - 1:
+                _time.sleep(2 ** attempt)
+        except Exception as e:
+            log.error(f"  Error parsing {filename}: {e}")
+            return []
+
+    log.error(f"  FAILED to fetch {filename} after {max_retries} attempts")
+    return []
+
+
+def _fetch_commodity_csv(filename, max_retries=2):
+    """Fetch CSV from vnstock repo data/commodity/ folder."""
+    import time as _time
+    url = f"{GITHUB_STOCK_DATA_BASE}/commodity/{filename}"
+    log.info(f"  Fetching: {url}")
+
+    for attempt in range(max_retries):
+        try:
+            req = Request(url, headers={"User-Agent": "DASHBOARD-Pipeline/1.0"})
+            with urlopen(req, timeout=20) as resp:
+                text = resp.read().decode("utf-8-sig")
+            reader = csv.DictReader(io.StringIO(text))
+            rows = list(reader)
+            log.info(f"  OK: commodity/{filename} → {len(rows)} rows")
+            return rows
+        except URLError:
+            if attempt < max_retries - 1:
+                _time.sleep(1)
+        except Exception as e:
+            log.warning(f"  Error parsing commodity/{filename}: {e}")
+            return []
+
+    return []
+
+
+def _extract_latest_ohlcv(rows):
+    """Trích xuất giá mới nhất từ OHLCV CSV rows."""
+    if not rows:
+        return None
+    last = rows[-1]
+    prev = rows[-2] if len(rows) > 1 else last
+
+    close = parse_float(last.get("close") or last.get("price") or last.get("sell_price"))
+    prev_close = parse_float(prev.get("close") or prev.get("price") or prev.get("sell_price"))
+
+    change = None
+    change_pct = None
+    if close is not None and prev_close is not None and prev_close != 0:
+        change = round(close - prev_close, 2)
+        change_pct = round(change / prev_close * 100, 2)
+
+    return {
+        "date": str(last.get("date") or last.get("time", ""))[:10],
+        "close": close,
+        "open": parse_float(last.get("open")),
+        "high": parse_float(last.get("high")),
+        "low": parse_float(last.get("low")),
+        "prev_close": prev_close,
+        "change": change,
+        "change_pct": change_pct,
+    }
+
+
+def collect_commodities_data(asof_date):
+    """Thu thập dữ liệu hàng hoá: vàng, tỷ giá, nguyên vật liệu thế giới."""
+    log.info("=" * 60)
+    log.info(f"STEP 7: Thu thập Commodities Data cho ngày {asof_date}...")
+
+    result = {
+        "asof": asof_date,
+        "gold": [],
+        "exchange_rates": [],
+        "world_commodities": [],
+    }
+
+    # --- 1. World commodities from data/commodity/ ---
+    COMMODITY_FILES = [
+        ("gold_global.csv", "Vàng thế giới", "USD/oz"),
+        ("oil_crude.csv", "Dầu thô WTI", "USD/thùng"),
+        ("gas_natural.csv", "Khí tự nhiên", "USD/MMBtu"),
+        ("iron_ore.csv", "Quặng sắt", "USD/tấn"),
+        ("steel_hrc.csv", "Thép HRC", "USD/tấn"),
+        ("steel_d10.csv", "Thép D10", "VND/kg"),
+        ("coke.csv", "Than cốc", "USD/tấn"),
+        ("fertilizer_ure.csv", "Phân Urê", "USD/tấn"),
+        ("soybean.csv", "Đậu nành", "USD/bushel"),
+        ("corn.csv", "Ngô", "USD/bushel"),
+        ("sugar.csv", "Đường", "USD/lb"),
+    ]
+
+    for csv_file, display_name, unit in COMMODITY_FILES:
+        rows = _fetch_commodity_csv(csv_file)
+        if rows:
+            latest = _extract_latest_ohlcv(rows)
+            if latest and latest["close"] is not None:
+                latest["name"] = display_name
+                latest["unit"] = unit
+                result["world_commodities"].append(latest)
+
+    log.info(f"  World commodities: {len(result['world_commodities'])} items")
+
+    # --- 2. Also try commodities.json from daily folder ---
+    daily_comm = _fetch_daily_json(asof_date, "commodities.json")
+    if daily_comm:
+        # Merge any extra data from daily JSON
+        if "commodities" in daily_comm and isinstance(daily_comm["commodities"], list):
+            existing_names = {c["name"] for c in result["world_commodities"]}
+            for item in daily_comm["commodities"]:
+                if item.get("name") and item["name"] not in existing_names:
+                    result["world_commodities"].append(item)
+        log.info(f"  Daily commodities.json merged")
+
+    # --- 3. Gold VN: try daily btmc_gold.csv first, fallback to root ---
+    btmc_rows = _fetch_stock_csv(asof_date, "btmc_gold.csv")
+    if btmc_rows:
+        seen = set()
+        for row in btmc_rows:
+            name = row.get("name", "").strip()
+            if not name or name in seen:
+                continue
+            seen.add(name)
+            result["gold"].append({
+                "name": name,
+                "karat": row.get("karat", "").strip(),
+                "buy": parse_float(row.get("buy_price")),
+                "sell": parse_float(row.get("sell_price")),
+                "world_price": parse_float(row.get("world_price")),
+            })
+        log.info(f"  Gold (BTMC): {len(result['gold'])} items")
+    else:
+        sjc_rows = _fetch_root_csv("gold_prices.csv")
+        if sjc_rows:
+            seen = set()
+            for row in sjc_rows:
+                name = row.get("name", "").strip()
+                branch = row.get("branch", "").strip()
+                key = f"{name}_{branch}"
+                if not name or key in seen:
+                    continue
+                seen.add(key)
+                result["gold"].append({
+                    "name": f"{name} ({branch})" if branch else name,
+                    "buy": parse_float(row.get("buy_price")),
+                    "sell": parse_float(row.get("sell_price")),
+                })
+            result["gold"] = result["gold"][:5]
+            log.info(f"  Gold (SJC): {len(result['gold'])} items")
+
+    # --- 4. Exchange rates ---
+    fx_rows = _fetch_stock_csv(asof_date, "exchange_rate.csv")
+    if not fx_rows:
+        fx_rows = _fetch_root_csv("exchange_rates.csv")
+
+    if fx_rows:
+        for row in fx_rows:
+            code = row.get("currency_code", "").strip()
+            if not code:
+                continue
+            result["exchange_rates"].append({
+                "code": code,
+                "name": row.get("currency_name", "").strip(),
+                "buy_cash": parse_float(row.get("buy_cash")),
+                "buy_transfer": parse_float(row.get("buy_transfer")),
+                "sell": parse_float(row.get("sell")),
+            })
+        log.info(f"  Exchange rates: {len(result['exchange_rates'])} currencies")
+
+    if result["gold"] or result["exchange_rates"] or result["world_commodities"]:
+        save_json(result, "commodities_data.json")
+        return result
+
+    log.warning("  No commodities data found")
+    return None
+
+
+# ============================================================================
+# 8. THU THẬP DỮ LIỆU PORTFOLIO
+# ============================================================================
+
+def collect_portfolio_data(asof_date):
+    """Thu thập dữ liệu portfolio: đọc local portfolio.json trước, fallback vnstock repo."""
+    log.info("=" * 60)
+    log.info(f"STEP 8: Thu thập Portfolio Data cho ngày {asof_date}...")
+
+    data = None
+
+    # 1. Try local portfolio.json (root of DASHBOARD repo)
+    local_path = PROJECT_ROOT / "portfolio.json"
+    if local_path.exists():
+        try:
+            with open(local_path, "r", encoding="utf-8") as f:
+                data = json.load(f)
+            log.info(f"  OK: portfolio.json from local ({local_path})")
+        except Exception as e:
+            log.warning(f"  Error reading local portfolio.json: {e}")
+
+    # 2. Fallback: try vnstock repo daily folder
+    if not data:
+        data = _fetch_daily_json(asof_date, "portfolio.json")
+
+    # 3. Fallback: try vnstock repo root data/portfolio.json
+    if not data:
+        import time as _time
+        url = f"{GITHUB_STOCK_DATA_BASE}/portfolio.json"
+        log.info(f"  Fetching: {url}")
+        for attempt in range(2):
+            try:
+                req = Request(url, headers={"User-Agent": "DASHBOARD-Pipeline/1.0"})
+                with urlopen(req, timeout=20) as resp:
+                    text = resp.read().decode("utf-8-sig")
+                data = json.loads(text)
+                log.info(f"  OK: portfolio.json from repo root")
+                break
+            except (URLError, json.JSONDecodeError) as e:
+                log.warning(f"  Attempt {attempt+1} failed: {e}")
+                if attempt < 1:
+                    _time.sleep(2)
+
+    if not data:
+        log.warning("  portfolio.json not found, skipping Portfolio")
+        return None
+
+    data["asof"] = asof_date
+    save_json(data, "portfolio_data.json")
+    log.info(f"  Portfolio data saved: {len(data.get('holdings', []))} holdings")
+    return data
+
+
+# ============================================================================
+# 9. THU THẬP DỮ LIỆU QUỸ MỞ
+# ============================================================================
+
+def collect_fund_data(asof_date):
+    """Thu thập dữ liệu quỹ mở từ vnstock repo data/funds/fund_listing.csv."""
+    log.info("=" * 60)
+    log.info(f"STEP 9: Thu thập Fund Data cho ngày {asof_date}...")
+
+    import time as _time
+    url = f"{GITHUB_STOCK_DATA_BASE}/funds/fund_listing.csv"
+    log.info(f"  Fetching: {url}")
+
+    rows = []
+    for attempt in range(3):
+        try:
+            req = Request(url, headers={"User-Agent": "DASHBOARD-Pipeline/1.0"})
+            with urlopen(req, timeout=30) as resp:
+                text = resp.read().decode("utf-8-sig")
+            reader = csv.DictReader(io.StringIO(text))
+            rows = list(reader)
+            log.info(f"  OK: fund_listing.csv → {len(rows)} funds")
+            break
+        except URLError as e:
+            log.warning(f"  Attempt {attempt+1} failed: {e}")
+            if attempt < 2:
+                _time.sleep(2 ** (attempt + 1))
+        except Exception as e:
+            log.error(f"  Error parsing fund_listing.csv: {e}")
+            break
+
+    if not rows:
+        log.warning("  fund_listing.csv not found, skipping Fund")
+        return None
+
+    funds = []
+    for row in rows:
+        short_name = (row.get("short_name") or "").strip()
+        if not short_name:
+            continue
+        funds.append({
+            "short_name": short_name,
+            "name": (row.get("name") or "").strip(),
+            "fund_type": (row.get("fund_type") or "").strip(),
+            "owner": (row.get("fund_owner_name") or "").strip(),
+            "management_fee": parse_float(row.get("management_fee")),
+            "nav": parse_float(row.get("nav")),
+            "nav_change_prev": parse_float(row.get("nav_change_previous")),
+            "nav_change_ytd": parse_float(row.get("nav_change_last_year")),
+            "nav_change_1m": parse_float(row.get("nav_change_1m")),
+            "nav_change_3m": parse_float(row.get("nav_change_3m")),
+            "nav_change_6m": parse_float(row.get("nav_change_6m")),
+            "nav_change_12m": parse_float(row.get("nav_change_12m")),
+            "nav_change_24m": parse_float(row.get("nav_change_24m")),
+            "nav_change_36m": parse_float(row.get("nav_change_36m")),
+            "inception_date": (row.get("inception_date") or "").strip()[:10],
+            "nav_update_at": (row.get("nav_update_at") or "").strip()[:10],
+        })
+
+    result = {
+        "asof": asof_date,
+        "funds": funds,
+    }
+
+    save_json(result, "fund_data.json")
+    log.info(f"  Fund data saved: {len(funds)} funds")
+    return result
+
+
+# ============================================================================
 # MAIN
 # ============================================================================
 
@@ -546,6 +910,18 @@ def main():
 
     # Step 5: Foreign flow data
     collect_foreign_data(asof_date)
+
+    # Step 6: BondLab data
+    collect_bondlab_data(asof_date)
+
+    # Step 7: Commodities data (gold, exchange rates)
+    collect_commodities_data(asof_date)
+
+    # Step 8: Portfolio data
+    collect_portfolio_data(asof_date)
+
+    # Step 9: Fund data (quỹ mở)
+    collect_fund_data(asof_date)
 
     log.info("=" * 60)
     log.info(f"DATA COLLECTION COMPLETED! Indices: {list(index_data.keys())}")
