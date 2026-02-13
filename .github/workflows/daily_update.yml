@@ -99,6 +99,9 @@ jobs:
       - name: Collect market data from dmanh-ai/vnstock
         run: python3 market/collect_data.py
 
+      - name: Collect extra data (commodities, FX, gold, bonds, funds)
+        run: python3 market/collect_extra_data.py
+
       # ====================================================================
       # STEP 2: AI VIẾT BÁO CÁO
       # ====================================================================

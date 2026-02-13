@@ -94,6 +94,9 @@ local/
 *.tmp
 *.temp
 
+# Portfolio (personal data - keep private)
+market/portfolio.json
+
 # Environment & secrets
 .env
 .env.local
