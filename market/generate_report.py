@@ -229,12 +229,12 @@ Tập trung vào VNINDEX và VN30, phân tích CHI TIẾT các chỉ báo kỹ t
 5. XẾP HẠNG
 Xếp hạng dựa trên HIỆU SUẤT 20 NGÀY (perf_20d) và mức độ chịu đựng trong phiên.
 Mở đầu bằng 1 câu tổng quan: nhóm nào mạnh nhất, nhóm nào yếu nhất xét 20 ngày.
-Sau đó viết DANH SÁCH ĐÁNH SỐ (1, 2, 3, 4...) xếp hạng từ mạnh đến yếu, mỗi mục gồm:
-- Số thứ tự. TÊN CHỈ SỐ (Tên ngành tiếng Việt): mô tả hiệu suất 20 ngày (%), % thay đổi phiên, RSI, nhận xét.
+Sau đó viết DANH SÁCH ĐÁNH SỐ (1, 2, 3, 4...) xếp hạng TẤT CẢ 14 CHỈ SỐ từ mạnh đến yếu, mỗi mục gồm:
+- Số thứ tự. TÊN CHỈ SỐ (Tên ngành tiếng Việt): mô tả hiệu suất 20 ngày (%), % thay đổi phiên, RSI, nhận xét ngắn.
 Ví dụ:
 "1. VNENE (Năng lượng) Dẫn đầu với mức tăng 20 ngày +17.35%, bất chấp thị trường giảm mạnh."
 "2. VNHEAL (Chăm sóc sức khỏe) Hiệu suất 20 ngày +7.1%, RSI 78.5 cảnh báo quá mua dài hạn."
-Chọn 4-6 chỉ số đáng chú ý nhất (mạnh nhất + yếu nhất), KHÔNG cần liệt kê hết 14.
+BẮT BUỘC liệt kê ĐẦY ĐỦ tất cả 14 chỉ số (trừ VNINDEX vì đã phân tích ở phần Tổng quan).
 KHÔNG dùng box đặc biệt.
 
 6. PHÂN TÍCH NGÀNH
