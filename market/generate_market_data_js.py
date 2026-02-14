@@ -256,6 +256,27 @@ def generate_fund():
 
 
 # ============================================================================
+# 12. HISTORY DATA
+# ============================================================================
+
+def generate_history():
+    """Tạo history_data.js từ history_data.json (accumulated daily snapshots)."""
+    path = PROJECT_ROOT / "history_data.json"
+    if not path.exists():
+        log.warning("No history_data.json, skipping")
+        return
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            data = json.load(f)
+        if not data:
+            log.warning("Empty history_data.json, skipping")
+            return
+        write_js("history_data.js", "UI_GLM_HISTORY", data)
+    except Exception as e:
+        log.warning(f"Error reading history_data.json: {e}")
+
+
+# ============================================================================
 # MAIN
 # ============================================================================
 
@@ -275,6 +296,7 @@ def main():
     generate_commodities()
     generate_portfolio()
     generate_fund()
+    generate_history()
 
     log.info("=" * 60)
     log.info("ALL JS FILES GENERATED!")

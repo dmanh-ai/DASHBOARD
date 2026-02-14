@@ -16,6 +16,7 @@
 							    <script src="commodities_data.js"></script>
 							    <script src="portfolio_data.js"></script>
 							    <script src="fund_data.js"></script>
+							    <script src="history_data.js"></script>
 							    <script src="vendor/lightweight-charts.standalone.production.js"></script>
 							    <script src="scripts/content_formatter.js"></script>
 
@@ -3909,7 +3910,7 @@
 
 	        const UI_GLM_PUBLIC_BUILD = true;
 
-	        const UI_GLM_LITE_ALLOWED_INDICES = new Set(['overview', 'vnindex', 'vn30', 'vn100', 'vnmidcap', 'vnsml', 'vnreal', 'vnit', 'vnheal', 'vnfin', 'vnene', 'vncons', 'vnmat', 'vncond', 'vnfinselect', 'vndiamond', 'bondlab', 'researchlab', 'commodities', 'portfolio', 'fund']);
+	        const UI_GLM_LITE_ALLOWED_INDICES = new Set(['overview', 'vnindex', 'vn30', 'vn100', 'vnmidcap', 'vnsml', 'vnreal', 'vnit', 'vnheal', 'vnfin', 'vnene', 'vncons', 'vnmat', 'vncond', 'vnfinselect', 'vndiamond', 'bondlab', 'researchlab', 'commodities', 'portfolio', 'fund', 'history']);
 	        const UI_GLM_LITE_HIDDEN_SECTIONS = new Set([].map(s => s.trim().toUpperCase()));
 
 	        function getPlanPreference() {
@@ -4017,6 +4018,7 @@
                 { key: 'commodities', name: 'HÀNG HOÁ' },
                 { key: 'portfolio', name: 'PORTFOLIO' },
                 { key: 'fund', name: 'QUỸ MỞ' },
+                { key: 'history', name: 'LỊCH SỬ' },
             ];
 
             const extraItems = [
@@ -4392,6 +4394,15 @@
 	                return [
 	                    { title: '📊 Danh sách quỹ mở', icon: '📊', content: '', alert: false, __uiType: 'fund_listing' },
 	                    { title: '🔀 Phân bổ cổ phiếu theo quỹ', icon: '🔀', content: '', alert: false, __uiType: 'fund_holdings_crosstab' },
+	                ];
+	            }
+
+	            // HISTORY: daily snapshots for analysis
+	            if (indexKey === 'history') {
+	                return [
+	                    { title: '📈 Biến động chỉ số', icon: '📈', content: '', alert: false, __uiType: 'history_indices' },
+	                    { title: '💼 Lịch sử Portfolio', icon: '💼', content: '', alert: false, __uiType: 'history_portfolio' },
+	                    { title: '📊 Breadth & Ngoại', icon: '📊', content: '', alert: false, __uiType: 'history_breadth' },
 	                ];
 	            }
 
@@ -5543,6 +5554,189 @@
 	                            <thead>
 	                                <tr style="border-bottom:1px solid rgba(255,255,255,0.15);">
 	                                    ${headerCells}
+	                                </tr>
+	                            </thead>
+	                            <tbody>${rows}</tbody>
+	                        </table>
+	                    </div>
+	                </div>
+	            `;
+	        }
+
+	        // ================================================================
+	        // HISTORY RENDERING
+	        // ================================================================
+	        function renderHistorySection(uiType) {
+	            const history = window.UI_GLM_HISTORY || null;
+	            if (!history || !Array.isArray(history) || history.length === 0) {
+	                return '<div class="info-box"><p>Chưa có dữ liệu lịch sử. Dữ liệu sẽ được tích lũy mỗi ngày giao dịch.</p></div>';
+	            }
+
+	            const fmtPct = (v) => {
+	                if (v == null) return '-';
+	                const c = v > 0 ? '#00c853' : v < 0 ? '#ff1744' : '#888';
+	                return `<span style="color:${c};font-weight:600;">${v >= 0 ? '+' : ''}${Number(v).toFixed(2)}%</span>`;
+	            };
+	            const fmtNum = (v) => v != null ? Number(v).toLocaleString('vi-VN') : '-';
+
+	            if (uiType === 'history_indices') {
+	                return renderHistoryIndices(history, fmtPct, fmtNum);
+	            } else if (uiType === 'history_portfolio') {
+	                return renderHistoryPortfolio(history, fmtPct, fmtNum);
+	            } else if (uiType === 'history_breadth') {
+	                return renderHistoryBreadth(history, fmtPct, fmtNum);
+	            }
+	            return '<div class="info-box"><p>Không tìm thấy loại dữ liệu.</p></div>';
+	        }
+
+	        function renderHistoryIndices(history, fmtPct, fmtNum) {
+	            // Show index price table over time
+	            const keys = ['vnindex', 'vn30', 'vn100', 'vnmidcap', 'vnfin', 'vnreal', 'vnit', 'vnheal', 'vnene', 'vncons', 'vnmat', 'vncond', 'vnsml', 'vnfinselect', 'vndiamond'];
+	            const labels = { vnindex: 'VNINDEX', vn30: 'VN30', vn100: 'VN100', vnmidcap: 'VNMIDCAP', vnfin: 'VNFIN', vnreal: 'VNREAL', vnit: 'VNIT', vnheal: 'VNHEAL', vnene: 'VNENE', vncons: 'VNCONS', vnmat: 'VNMAT', vncond: 'VNCOND', vnsml: 'VNSML', vnfinselect: 'VNFINSEL', vndiamond: 'VNDIAMOND' };
+
+	            // Date headers (last 20 days max)
+	            const recent = history.slice(-20);
+	            let headerCells = '<th style="padding:4px 6px;text-align:left;position:sticky;left:0;background:#1e1e1e;z-index:2;">Chỉ số</th>';
+	            recent.forEach(r => {
+	                const d = (r.date || '').slice(5); // MM-DD
+	                headerCells += `<th style="padding:4px 4px;text-align:center;font-size:10px;white-space:nowrap;">${d}</th>`;
+	            });
+
+	            let rows = '';
+	            keys.forEach((key, ki) => {
+	                const bg = ki % 2 === 0 ? 'rgba(255,255,255,0.03)' : 'transparent';
+	                let cells = `<td style="padding:4px 6px;font-weight:700;position:sticky;left:0;background:${bg === 'transparent' ? '#1a1a1a' : '#1e1e1e'};z-index:1;white-space:nowrap;font-size:11px;">${labels[key] || key}</td>`;
+	                recent.forEach(r => {
+	                    const idx = (r.indices || {})[key];
+	                    if (idx && idx.close != null) {
+	                        const pct = idx.change_pct;
+	                        const color = pct > 0 ? '#00c853' : pct < 0 ? '#ff1744' : '#ccc';
+	                        cells += `<td style="padding:3px 2px;text-align:center;font-size:10px;color:${color};" title="${labels[key]} ${r.date}: ${idx.close}">${Number(idx.close).toFixed(0)}</td>`;
+	                    } else {
+	                        cells += '<td style="padding:3px 2px;text-align:center;font-size:10px;color:#444;">-</td>';
+	                    }
+	                });
+	                rows += `<tr style="background:${bg};">${cells}</tr>`;
+	            });
+
+	            // Also show VNINDEX sparkline as simple bar chart
+	            let sparkHtml = '';
+	            const vnidxData = recent.map(r => ((r.indices || {}).vnindex || {}).change_pct).filter(v => v != null);
+	            if (vnidxData.length > 1) {
+	                const maxAbs = Math.max(...vnidxData.map(v => Math.abs(v)), 0.1);
+	                sparkHtml = '<div style="display:flex;align-items:end;gap:2px;height:60px;margin-top:8px;">';
+	                vnidxData.forEach(v => {
+	                    const h = Math.max(Math.abs(v) / maxAbs * 50, 2);
+	                    const color = v >= 0 ? '#00c853' : '#ff1744';
+	                    sparkHtml += `<div style="width:12px;height:${h}px;background:${color};border-radius:2px;" title="${v >= 0 ? '+' : ''}${v.toFixed(2)}%"></div>`;
+	                });
+	                sparkHtml += '</div><div style="font-size:10px;color:#888;margin-top:2px;">VNINDEX %thay đổi hàng ngày</div>';
+	            }
+
+	            return `
+	                <div class="block" style="margin-bottom:12px;">
+	                    <div class="block-header">📈 Giá đóng cửa (${recent.length} phiên gần nhất)</div>
+	                    <div class="block-body" style="overflow-x:auto;">
+	                        ${sparkHtml}
+	                        <table style="border-collapse:collapse;font-size:11px;width:max-content;margin-top:10px;">
+	                            <thead><tr style="border-bottom:1px solid rgba(255,255,255,0.15);">${headerCells}</tr></thead>
+	                            <tbody>${rows}</tbody>
+	                        </table>
+	                    </div>
+	                </div>
+	            `;
+	        }
+
+	        function renderHistoryPortfolio(history, fmtPct, fmtNum) {
+	            const records = history.filter(r => r.portfolio && r.portfolio.total_value);
+	            if (records.length === 0) {
+	                return '<div class="info-box"><p>Chưa có dữ liệu portfolio lịch sử.</p></div>';
+	            }
+
+	            let rows = '';
+	            records.forEach((r, i) => {
+	                const bg = i % 2 === 0 ? 'rgba(255,255,255,0.03)' : 'transparent';
+	                const p = r.portfolio;
+	                const pnlColor = (p.pnl_pct || 0) >= 0 ? '#00c853' : '#ff1744';
+	                let holdingsStr = (p.holdings || []).map(h => `${h.symbol}: ${h.pnl_pct >= 0 ? '+' : ''}${h.pnl_pct}%`).join(', ');
+	                rows += `
+	                    <tr style="background:${bg};">
+	                        <td style="padding:5px 8px;font-weight:600;">${r.date || ''}</td>
+	                        <td style="padding:5px 8px;text-align:right;">${fmtNum(p.total_value)}</td>
+	                        <td style="padding:5px 8px;text-align:right;">${fmtNum(p.total_cost)}</td>
+	                        <td style="padding:5px 8px;text-align:right;color:${pnlColor};font-weight:600;">${fmtPct(p.pnl_pct)}</td>
+	                        <td style="padding:5px 8px;font-size:11px;color:#aaa;">${holdingsStr}</td>
+	                    </tr>
+	                `;
+	            });
+
+	            return `
+	                <div class="block" style="margin-bottom:12px;">
+	                    <div class="block-header">💼 Lịch sử Portfolio (${records.length} phiên)</div>
+	                    <div class="block-body" style="overflow-x:auto;">
+	                        <table style="width:100%;border-collapse:collapse;font-size:12px;">
+	                            <thead>
+	                                <tr style="border-bottom:1px solid rgba(255,255,255,0.1);">
+	                                    <th style="padding:5px 8px;text-align:left;">Ngày</th>
+	                                    <th style="padding:5px 8px;text-align:right;">Giá trị</th>
+	                                    <th style="padding:5px 8px;text-align:right;">Vốn</th>
+	                                    <th style="padding:5px 8px;text-align:right;">PnL</th>
+	                                    <th style="padding:5px 8px;text-align:left;">Chi tiết</th>
+	                                </tr>
+	                            </thead>
+	                            <tbody>${rows}</tbody>
+	                        </table>
+	                    </div>
+	                </div>
+	            `;
+	        }
+
+	        function renderHistoryBreadth(history, fmtPct, fmtNum) {
+	            const recent = history.slice(-20);
+
+	            let rows = '';
+	            recent.forEach((r, i) => {
+	                const bg = i % 2 === 0 ? 'rgba(255,255,255,0.03)' : 'transparent';
+	                const b = r.breadth || {};
+	                const adv = b.advancing || 0;
+	                const dec = b.declining || 0;
+	                const total = adv + dec + (b.unchanged || 0);
+	                const ratio = total > 0 ? (adv / total * 100).toFixed(1) : '-';
+	                const ratioColor = adv > dec ? '#00c853' : adv < dec ? '#ff1744' : '#888';
+
+	                // Foreign flow summary
+	                const f = r.foreign || {};
+	                let netStr = '-';
+	                let netColor = '#888';
+	                const hose = f.HOSE || f.hose || {};
+	                if (hose.net != null) {
+	                    netStr = (hose.net >= 0 ? '+' : '') + fmtNum(Math.round(hose.net / 1e6)) + ' tr';
+	                    netColor = hose.net >= 0 ? '#00c853' : '#ff1744';
+	                }
+
+	                rows += `
+	                    <tr style="background:${bg};">
+	                        <td style="padding:5px 8px;font-weight:600;">${r.date || ''}</td>
+	                        <td style="padding:5px 8px;text-align:center;color:#00c853;">${adv}</td>
+	                        <td style="padding:5px 8px;text-align:center;color:#ff1744;">${dec}</td>
+	                        <td style="padding:5px 8px;text-align:center;color:${ratioColor};font-weight:600;">${ratio}%</td>
+	                        <td style="padding:5px 8px;text-align:right;color:${netColor};font-weight:600;">${netStr}</td>
+	                    </tr>
+	                `;
+	            });
+
+	            return `
+	                <div class="block" style="margin-bottom:12px;">
+	                    <div class="block-header">📊 Breadth & Giao dịch nước ngoài (${recent.length} phiên)</div>
+	                    <div class="block-body" style="overflow-x:auto;">
+	                        <table style="width:100%;border-collapse:collapse;font-size:12px;">
+	                            <thead>
+	                                <tr style="border-bottom:1px solid rgba(255,255,255,0.1);">
+	                                    <th style="padding:5px 8px;text-align:left;">Ngày</th>
+	                                    <th style="padding:5px 8px;text-align:center;">Tăng</th>
+	                                    <th style="padding:5px 8px;text-align:center;">Giảm</th>
+	                                    <th style="padding:5px 8px;text-align:center;">%Tăng</th>
+	                                    <th style="padding:5px 8px;text-align:right;">NN ròng (HOSE)</th>
 	                                </tr>
 	                            </thead>
 	                            <tbody>${rows}</tbody>
@@ -7739,6 +7933,26 @@
 	                return;
 	            }
 
+	            // HISTORY: daily snapshots
+	            if (indexKey === 'history') {
+	                document.getElementById('sectionNavTitle').textContent = 'Lịch sử';
+	                const sections = getSectionsForIndex('history');
+	                const container = document.getElementById('sectionList');
+	                let html = '';
+	                sections.forEach((section, idx) => {
+	                    html += `
+	                        <div class="section-item"
+	                             onclick="selectSection(${idx})"
+	                             data-section="${idx}">
+	                            <span class="icon">${section.icon || '📊'}</span>
+	                            <span class="title">${section.title.replace(/\x60/g, '')}</span>
+	                        </div>
+	                    `;
+	                });
+	                container.innerHTML = html;
+	                return;
+	            }
+
 	            const index = data[indexKey];
 	            if (!index || !index.sections) {
 	                document.getElementById('sectionList').innerHTML = '<div class="no-sections">Không có dữ liệu</div>';
@@ -7955,6 +8169,15 @@
 	                    <div class="section-card">
 	                        <div class="section-body">
 	                            ${crossHtml}
+	                        </div>
+	                    </div>
+	                `;
+	            } else if (section.__uiType && section.__uiType.startsWith('history_')) {
+	                const histHtml = renderHistorySection(section.__uiType);
+	                contentDiv.innerHTML = `
+	                    <div class="section-card">
+	                        <div class="section-body">
+	                            ${histHtml}
 	                        </div>
 	                    </div>
 	                `;

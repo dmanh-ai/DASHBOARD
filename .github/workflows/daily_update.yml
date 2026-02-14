@@ -160,6 +160,20 @@ jobs:
         run: python3 market/generate_market_data_js.py
 
       # ====================================================================
+      # STEP 5.5: ARCHIVE DAILY SNAPSHOT (lưu lịch sử)
+      # ====================================================================
+      - name: Archive daily snapshot
+        run: python3 market/archive_daily.py
+
+      # Re-generate JS to include history_data.js
+      - name: Generate history JS
+        run: python3 -c "
+          import sys; sys.path.insert(0, 'market')
+          from generate_market_data_js import generate_history
+          generate_history()
+          "
+
+      # ====================================================================
       # STEP 6: GENERATE META
       # ====================================================================
       - name: Generate metadata
@@ -197,7 +211,7 @@ jobs:
           git config user.name "Dmanh"
 
           # Add generated files individually (missing files must not block others)
-          for f in full_data_public.js ui_glm_meta.json index_ohlcv.js market_breadth_snapshot.js vnindex_price_20d.js vnindex_heatmap_data.js index_heatmap_data.js foreign_flow_data.js bondlab_data.js researchlab_data.js commodities_data.js portfolio_data.js fund_data.js; do
+          for f in full_data_public.js ui_glm_meta.json index_ohlcv.js market_breadth_snapshot.js vnindex_price_20d.js vnindex_heatmap_data.js index_heatmap_data.js foreign_flow_data.js bondlab_data.js researchlab_data.js commodities_data.js portfolio_data.js fund_data.js history_data.js history_data.json; do
             [ -f "$f" ] && git add -f "$f" && echo "Staged: $f" || echo "Skip (not found): $f"
           done
 
