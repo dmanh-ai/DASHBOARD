@@ -549,19 +549,127 @@ def _fetch_daily_json(asof_date, filename, max_retries=3):
 
 
 def collect_bondlab_data(asof_date):
-    """Thu thập bond/interbank data từ vnstock repo."""
+    """Thu thập bond/interbank data từ vnstock repo.
+    Thử bondlab.json trước, fallback sang macro data (exchange_rate, money_supply)."""
     log.info("=" * 60)
     log.info(f"STEP 6: Thu thập BondLab Data cho ngày {asof_date}...")
 
     data = _fetch_daily_json(asof_date, "bondlab.json")
-    if not data:
-        log.warning("  bondlab.json not found, skipping BondLab")
+    if data:
+        data["asof"] = asof_date
+        save_json(data, "bondlab_data.json")
+        log.info(f"  BondLab data saved: {list(data.keys())}")
+        return data
+
+    # Fallback: build bondlab from macro data
+    log.info("  bondlab.json not found, building from macro data...")
+    data = _build_bondlab_from_macro(asof_date)
+    if data:
+        save_json(data, "bondlab_data.json")
+        log.info(f"  BondLab (macro) data saved: {list(data.keys())}")
+        return data
+
+    log.warning("  No BondLab data available")
+    return None
+
+
+def _build_bondlab_from_macro(asof_date):
+    """Build bondlab-like data structure from macro CSVs."""
+    result = {"asof": asof_date, "source": "macro"}
+
+    # 1. Exchange rate (tỷ giá trung tâm, liên ngân hàng)
+    fx_rows = _fetch_root_csv("macro/exchange_rate.csv")
+    if fx_rows:
+        fx_data = {}
+        for row in fx_rows:
+            name = (row.get("name") or "").strip()
+            val = parse_float(row.get("value"))
+            date = (row.get("last_updated") or "")[:10]
+            if name and val is not None:
+                fx_data[name] = {"value": val, "date": date, "unit": (row.get("unit") or "").strip()}
+        if fx_data:
+            result["exchange_rate"] = fx_data
+        log.info(f"  Macro exchange_rate: {len(fx_data)} items")
+
+    # 2. Money supply (M2, tín dụng)
+    ms_rows = _fetch_root_csv("macro/money_supply.csv")
+    if ms_rows:
+        # Group by date, keep latest
+        ms_data = {}
+        for row in ms_rows:
+            name = (row.get("name") or "").strip()
+            val = parse_float(row.get("value"))
+            date = (row.get("last_updated") or "")[:10]
+            if name and val is not None:
+                if name not in ms_data or date > ms_data[name].get("date", ""):
+                    ms_data[name] = {"value": val, "date": date, "unit": (row.get("unit") or "").strip()}
+        if ms_data:
+            result["money_supply"] = ms_data
+        log.info(f"  Macro money_supply: {len(ms_data)} items")
+
+    # 3. CPI
+    cpi_rows = _fetch_root_csv("macro/cpi.csv")
+    if cpi_rows:
+        cpi_data = {}
+        for row in cpi_rows:
+            name = (row.get("name") or "").strip()
+            val = parse_float(row.get("value"))
+            date = (row.get("last_updated") or "")[:10]
+            if name and val is not None:
+                if name not in cpi_data or date > cpi_data[name].get("date", ""):
+                    cpi_data[name] = {"value": val, "date": date, "unit": (row.get("unit") or "").strip()}
+        if cpi_data:
+            result["cpi"] = cpi_data
+        log.info(f"  Macro cpi: {len(cpi_data)} items")
+
+    # 4. GDP
+    gdp_rows = _fetch_root_csv("macro/gdp.csv")
+    if gdp_rows:
+        gdp_data = {}
+        for row in gdp_rows:
+            group = (row.get("group_name") or "").strip()
+            name = (row.get("name") or "").strip()
+            val = parse_float(row.get("value"))
+            date = (row.get("last_updated") or "")[:10]
+            report = (row.get("report_type") or "").strip()
+            key = f"{group} - {name}" if group else name
+            if key and val is not None:
+                if key not in gdp_data or date > gdp_data[key].get("date", ""):
+                    gdp_data[key] = {"value": val, "date": date, "unit": (row.get("unit") or "").strip(), "report_type": report}
+        if gdp_data:
+            result["gdp"] = gdp_data
+        log.info(f"  Macro gdp: {len(gdp_data)} items")
+
+    # Build snapshot summary for rendering
+    snapshot = {}
+    fx = result.get("exchange_rate", {})
+    central = fx.get("Ty gia trung tam (tu 04/01/2016)", {})
+    interbank = fx.get("Lien ngan hang", {})
+    if central.get("value"):
+        snapshot["usd_vnd_central"] = {"rate": central["value"], "unit": "VND/USD", "date": central.get("date")}
+    if interbank.get("value"):
+        snapshot["usd_vnd_interbank"] = {"rate": interbank["value"], "unit": "VND/USD", "date": interbank.get("date")}
+
+    ms = result.get("money_supply", {})
+    credit = ms.get("Tang truong tin dung", {})
+    m2 = ms.get("Cung tien M2", {})
+    if credit.get("value") is not None:
+        snapshot["credit_growth"] = {"rate": credit["value"], "unit": "%", "date": credit.get("date")}
+    if m2.get("value") is not None:
+        snapshot["m2_money_supply"] = {"value": m2["value"], "unit": "Tỷ VND", "date": m2.get("date")}
+
+    cpi = result.get("cpi", {})
+    cpi_main = cpi.get("Chi so gia tieu dung", {})
+    if cpi_main.get("value") is not None:
+        snapshot["cpi"] = {"rate": cpi_main["value"], "unit": "%", "date": cpi_main.get("date")}
+
+    if snapshot:
+        result["snapshot"] = snapshot
+
+    if len(result) <= 2:  # only asof + source
         return None
 
-    data["asof"] = asof_date
-    save_json(data, "bondlab_data.json")
-    log.info(f"  BondLab data saved: {list(data.keys())}")
-    return data
+    return result
 
 
 # ============================================================================
@@ -621,7 +729,7 @@ def _fetch_commodity_csv(filename, max_retries=2):
 
 
 def _extract_latest_ohlcv(rows):
-    """Trích xuất giá mới nhất từ OHLCV CSV rows."""
+    """Trích xuất giá mới nhất từ OHLCV CSV rows, bao gồm %1D và %20D."""
     if not rows:
         return None
     last = rows[-1]
@@ -636,6 +744,16 @@ def _extract_latest_ohlcv(rows):
         change = round(close - prev_close, 2)
         change_pct = round(change / prev_close * 100, 2)
 
+    # 20-day change
+    change_20d = None
+    change_20d_pct = None
+    if len(rows) > 20:
+        row_20 = rows[-21]
+        close_20 = parse_float(row_20.get("close") or row_20.get("price") or row_20.get("sell_price"))
+        if close is not None and close_20 is not None and close_20 != 0:
+            change_20d = round(close - close_20, 2)
+            change_20d_pct = round((close - close_20) / close_20 * 100, 2)
+
     return {
         "date": str(last.get("date") or last.get("time", ""))[:10],
         "close": close,
@@ -645,6 +763,8 @@ def _extract_latest_ohlcv(rows):
         "prev_close": prev_close,
         "change": change,
         "change_pct": change_pct,
+        "change_20d": change_20d,
+        "change_20d_pct": change_20d_pct,
     }
 
 
@@ -872,13 +992,40 @@ def collect_fund_data(asof_date):
             "nav_update_at": (row.get("nav_update_at") or "").strip()[:10],
         })
 
+    # Also fetch fund holdings (stock allocations per fund)
+    holdings = []
+    h_url = f"{GITHUB_STOCK_DATA_BASE}/funds/fund_holdings.csv"
+    log.info(f"  Fetching: {h_url}")
+    try:
+        req = Request(h_url, headers={"User-Agent": "DASHBOARD-Pipeline/1.0"})
+        with urlopen(req, timeout=30) as resp:
+            text = resp.read().decode("utf-8-sig")
+        reader = csv.DictReader(io.StringIO(text))
+        for row in reader:
+            stock = (row.get("stock_code") or "").strip()
+            if not stock:
+                continue
+            holdings.append({
+                "stock": stock,
+                "industry": (row.get("industry") or "").strip(),
+                "pct": parse_float(row.get("net_asset_percent")) or 0,
+                "type": (row.get("type_asset") or "").strip(),
+                "fund_name": (row.get("short_name") or "").strip(),
+                "fund_id": (row.get("fundId") or "").strip(),
+                "update_at": (row.get("update_at") or "").strip()[:10],
+            })
+        log.info(f"  OK: fund_holdings.csv → {len(holdings)} holdings")
+    except Exception as e:
+        log.warning(f"  fund_holdings.csv fetch failed: {e}")
+
     result = {
         "asof": asof_date,
         "funds": funds,
+        "holdings": holdings,
     }
 
     save_json(result, "fund_data.json")
-    log.info(f"  Fund data saved: {len(funds)} funds")
+    log.info(f"  Fund data saved: {len(funds)} funds, {len(holdings)} holdings")
     return result
 
 

@@ -1,13 +1,11 @@
 {
   "holdings": [
-    {"symbol": "PNJ", "quantity": 4000, "avg_price": 116000, "weight_pct": 19.07, "sector": "Bán lẻ"},
-    {"symbol": "MBB", "quantity": 35000, "avg_price": 28800, "weight_pct": 39.58, "sector": "Ngân hàng"},
-    {"symbol": "TV2", "quantity": 8000, "avg_price": 37200, "weight_pct": 12.29, "sector": "Năng lượng"},
-    {"symbol": "MSH", "quantity": 10000, "avg_price": 36500, "weight_pct": 14.8, "sector": "Hàng cá nhân"},
-    {"symbol": "TCB", "quantity": 10000, "avg_price": 36600, "weight_pct": 14.26, "sector": "Ngân hàng"}
+    {"symbol": "MBB", "quantity": 35000, "avg_price": 28800, "weight_pct": 46.5, "sector": "Ngân hàng"},
+    {"symbol": "TCB", "quantity": 10000, "avg_price": 36600, "weight_pct": 27.0, "sector": "Ngân hàng"},
+    {"symbol": "PNJ", "quantity": 4000, "avg_price": 116000, "weight_pct": 26.5, "sector": "Bán lẻ"}
   ],
   "equity_ratio": 44.24,
   "margin_ratio": 55.76,
-  "total_value": 2486000000,
+  "total_value": 1830000000,
   "cash": 0
 }

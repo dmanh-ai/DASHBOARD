@@ -4391,6 +4391,7 @@
 	            if (indexKey === 'fund') {
 	                return [
 	                    { title: '📊 Danh sách quỹ mở', icon: '📊', content: '', alert: false, __uiType: 'fund_listing' },
+	                    { title: '🔀 Phân bổ cổ phiếu theo quỹ', icon: '🔀', content: '', alert: false, __uiType: 'fund_holdings_crosstab' },
 	                ];
 	            }
 
@@ -5263,16 +5264,17 @@
 	                wc.forEach((c, i) => {
 	                    const bg = i % 2 === 0 ? 'rgba(255,255,255,0.03)' : 'transparent';
 	                    const closeStr = c.close != null ? Number(c.close).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2}) : 'N/A';
-	                    const changeStr = c.change != null ? (c.change >= 0 ? '+' : '') + Number(c.change).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2}) : '';
-	                    const pctStr = c.change_pct != null ? (c.change_pct >= 0 ? '+' : '') + c.change_pct.toFixed(2) + '%' : '';
+	                    const pctStr = c.change_pct != null ? (c.change_pct >= 0 ? '+' : '') + c.change_pct.toFixed(2) + '%' : '-';
 	                    const pctColor = c.change_pct > 0 ? '#00c853' : c.change_pct < 0 ? '#ff1744' : '#888';
+	                    const pct20Str = c.change_20d_pct != null ? (c.change_20d_pct >= 0 ? '+' : '') + c.change_20d_pct.toFixed(2) + '%' : '-';
+	                    const pct20Color = c.change_20d_pct > 0 ? '#00c853' : c.change_20d_pct < 0 ? '#ff1744' : '#888';
 	                    const unitStr = c.unit ? `<span style="color:#888;font-size:11px;"> ${escapeHtml(c.unit)}</span>` : '';
 	                    wcRows += `
 	                        <tr style="background:${bg};">
 	                            <td style="padding:6px 10px;font-weight:600;">${escapeHtml(c.name || '')}</td>
 	                            <td style="padding:6px 10px;text-align:right;">${closeStr}${unitStr}</td>
-	                            <td style="padding:6px 10px;text-align:right;color:${pctColor};">${changeStr}</td>
 	                            <td style="padding:6px 10px;text-align:right;color:${pctColor};font-weight:600;">${pctStr}</td>
+	                            <td style="padding:6px 10px;text-align:right;color:${pct20Color};font-weight:600;">${pct20Str}</td>
 	                        </tr>
 	                    `;
 	                });
@@ -5286,8 +5288,8 @@
 	                                    <tr style="border-bottom:1px solid rgba(255,255,255,0.1);">
 	                                        <th style="padding:6px 10px;text-align:left;">Hàng hoá</th>
 	                                        <th style="padding:6px 10px;text-align:right;">Giá</th>
-	                                        <th style="padding:6px 10px;text-align:right;">Thay đổi</th>
-	                                        <th style="padding:6px 10px;text-align:right;">%</th>
+	                                        <th style="padding:6px 10px;text-align:right;">%1D</th>
+	                                        <th style="padding:6px 10px;text-align:right;">%20D</th>
 	                                    </tr>
 	                                </thead>
 	                                <tbody>${wcRows}</tbody>
@@ -5475,6 +5477,79 @@
 	            });
 
 	            return html || '<div class="info-box"><p>Không có dữ liệu quỹ mở.</p></div>';
+	        }
+
+	        function renderFundHoldingsCrosstab() {
+	            const fd = window.UI_GLM_FUND || null;
+	            if (!fd || !Array.isArray(fd.holdings) || fd.holdings.length === 0) {
+	                return '<div class="info-box"><p>Không có dữ liệu phân bổ cổ phiếu theo quỹ.</p></div>';
+	            }
+
+	            const holdings = fd.holdings.filter(h => h.type === 'STOCK' && h.stock && h.pct > 0);
+	            if (holdings.length === 0) {
+	                return '<div class="info-box"><p>Không có dữ liệu STOCK holdings.</p></div>';
+	            }
+
+	            // Build cross-tab: stockMap[stock][fund_name] = pct
+	            const fundNames = [...new Set(holdings.map(h => h.fund_name))].sort();
+	            const stockMap = {};
+	            holdings.forEach(h => {
+	                if (!stockMap[h.stock]) stockMap[h.stock] = {};
+	                stockMap[h.stock][h.fund_name] = (stockMap[h.stock][h.fund_name] || 0) + h.pct;
+	            });
+
+	            // Sort stocks by total allocation descending
+	            const stockTotals = Object.entries(stockMap)
+	                .map(([stock, funds]) => ({
+	                    stock,
+	                    total: Object.values(funds).reduce((s, v) => s + v, 0),
+	                    funds
+	                }))
+	                .sort((a, b) => b.total - a.total);
+
+	            const topStocks = stockTotals.slice(0, 30);
+
+	            // Build header
+	            let headerCells = '<th style="padding:4px 6px;text-align:left;position:sticky;left:0;background:#1e1e1e;z-index:2;min-width:60px;">Cổ phiếu</th>';
+	            fundNames.forEach(fn => {
+	                headerCells += `<th style="padding:4px 3px;text-align:center;white-space:nowrap;writing-mode:vertical-rl;text-orientation:mixed;font-size:10px;height:80px;min-width:28px;">${escapeHtml(fn)}</th>`;
+	            });
+	            headerCells += '<th style="padding:4px 6px;text-align:right;font-weight:700;">Tổng</th>';
+
+	            // Build rows
+	            let rows = '';
+	            topStocks.forEach((item, i) => {
+	                const bg = i % 2 === 0 ? 'rgba(255,255,255,0.03)' : 'transparent';
+	                let cells = `<td style="padding:4px 6px;font-weight:700;position:sticky;left:0;background:${bg === 'transparent' ? '#1a1a1a' : '#1e1e1e'};z-index:1;white-space:nowrap;">${escapeHtml(item.stock)}</td>`;
+	                fundNames.forEach(fn => {
+	                    const val = item.funds[fn] || 0;
+	                    if (val > 0) {
+	                        const intensity = Math.min(val / 8, 1);
+	                        const bgColor = `rgba(38,166,154,${intensity * 0.5})`;
+	                        cells += `<td style="padding:3px 2px;text-align:center;font-size:10px;background:${bgColor};color:#e0e0e0;" title="${escapeHtml(item.stock)} - ${escapeHtml(fn)}: ${val.toFixed(1)}%">${val.toFixed(1)}</td>`;
+	                    } else {
+	                        cells += `<td style="padding:3px 2px;text-align:center;font-size:10px;color:#444;">-</td>`;
+	                    }
+	                });
+	                cells += `<td style="padding:4px 6px;text-align:right;font-weight:700;color:#26a69a;">${item.total.toFixed(1)}%</td>`;
+	                rows += `<tr style="background:${bg};">${cells}</tr>`;
+	            });
+
+	            return `
+	                <div class="block" style="margin-bottom:12px;">
+	                    <div class="block-header">🔀 Phân bổ cổ phiếu theo quỹ (Top 30 CP, sắp xếp theo tổng %NAV)</div>
+	                    <div class="block-body" style="overflow-x:auto;max-height:600px;overflow-y:auto;">
+	                        <table style="border-collapse:collapse;font-size:11px;width:max-content;">
+	                            <thead>
+	                                <tr style="border-bottom:1px solid rgba(255,255,255,0.15);">
+	                                    ${headerCells}
+	                                </tr>
+	                            </thead>
+	                            <tbody>${rows}</tbody>
+	                        </table>
+	                    </div>
+	                </div>
+	            `;
 	        }
 
 		        function getIndexOhlcvPayload(indexKey) {
@@ -7871,6 +7946,15 @@
 	                    <div class="section-card">
 	                        <div class="section-body">
 	                            ${fundHtml}
+	                        </div>
+	                    </div>
+	                `;
+	            } else if (section.__uiType === 'fund_holdings_crosstab') {
+	                const crossHtml = renderFundHoldingsCrosstab();
+	                contentDiv.innerHTML = `
+	                    <div class="section-card">
+	                        <div class="section-body">
+	                            ${crossHtml}
 	                        </div>
 	                    </div>
 	                `;
